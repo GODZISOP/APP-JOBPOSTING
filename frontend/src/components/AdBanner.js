@@ -2,12 +2,22 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Text, ActivityIndicator, Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-// Google Mobile Ads is mocked in development build (metro.config.js redirects to empty module)
-// In production build, remove the metro.config.js redirect to enable real ads.
-const BannerAd = null;
-const BannerAdSize = null;
-const TestIds = null;
+const isExpoGo = Constants.appOwnership === 'expo';
 
+let BannerAd = null;
+let BannerAdSize = null;
+let TestIds = null;
+
+try {
+  if (!isExpoGo) {
+    const ads = require('react-native-google-mobile-ads');
+    BannerAd = ads.BannerAd;
+    BannerAdSize = ads.BannerAdSize;
+    TestIds = ads.TestIds;
+  }
+} catch (e) {
+  console.log('Google Mobile Ads native module not found, using fallback.');
+}
 
 export default function AdBanner() {
   const [adLoaded, setAdLoaded] = useState(false);
