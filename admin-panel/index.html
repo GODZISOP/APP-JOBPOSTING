@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JobLink | Secure Web Admin Dashboard</title>
+    <!-- Modern typography from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <i class="fa-solid fa-briefcase logo-icon"></i>
+                <h2>Job<span>Link</span></h2>
+            </div>
+            
+            <nav class="nav-links">
+                <a href="#dashboard" class="active"><i class="fa-solid fa-chart-pie"></i> Overview</a>
+                <a href="#jobs"><i class="fa-solid fa-list-check"></i> Job Moderation</a>
+                <a href="#users"><i class="fa-solid fa-users"></i> Users Audit</a>
+                <a href="#settings"><i class="fa-solid fa-gears"></i> Server Settings</a>
+            </nav>
+
+            <div class="server-status">
+                <div class="status-indicator online"></div>
+                <div class="status-text">
+                    <p class="status-title">Backend API: ONLINE</p>
+                    <p class="status-ip">localhost:5000</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Dashboard Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="welcome-text">
+                    <h1>System Dashboard</h1>
+                    <p>Welcome back, Administrator. Monitoring JobLink servers.</p>
+                </div>
+                <div class="profile-area">
+                    <div class="notification-badge">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="dot"></span>
+                    </div>
+                    <div class="admin-avatar">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80" alt="Admin Profile">
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Stats Grid -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon users-icon">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Total Users</p>
+                        <h3 id="stat-users">--</h3>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon jobs-icon">
+                        <i class="fa-solid fa-briefcase"></i>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Active Jobs</p>
+                        <h3 id="stat-jobs">--</h3>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon apps-icon">
+                        <i class="fa-solid fa-file-invoice"></i>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-label">Total Applications</p>
+                        <h3 id="stat-applications">--</h3>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main Content Area split: Live Stream & Control Panel -->
+            <section class="dashboard-details">
+                <!-- Job Listings Moderation -->
+                <div class="card job-moderation-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-shield-halved"></i> Active Job Postings (Moderation)</h2>
+                        <button id="btn-refresh" class="btn btn-refresh"><i class="fa-solid fa-arrows-rotate"></i> Refresh API</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Job Title</th>
+                                    <th>Company</th>
+                                    <th>Location</th>
+                                    <th>Salary</th>
+                                    <th>Type</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="jobs-table-body">
+                                <tr>
+                                    <td colspan="6" class="placeholder-row">Connecting to secure Backend API to fetch real jobs...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
