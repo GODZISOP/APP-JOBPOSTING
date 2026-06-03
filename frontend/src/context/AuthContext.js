@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { supabase } from '../config/supabase';
 import * as FileSystem from 'expo-file-system/legacy';
 
@@ -585,19 +586,23 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
             if (sessionUser) {
               console.log("Auto-recreating missing profile row in database on app startup...");
               const role = sessionUser.user_metadata?.role || 'jobseeker';
+              const googleAvatar = sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || null;
               const { error: insertError } = await supabase
                 .from('profiles')
                 .insert([
                   {
                     id: userId,
-                    name: sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0] || 'Jobify User',
+                    name: sessionUser.user_metadata?.name || sessionUser.user_metadata?.full_name || sessionUser.email?.split('@')[0] || 'Jobify User',
                     email: sessionUser.email || '',
                     role: role,
+                    avatar_url: googleAvatar,
                   }
                 ]);
               if (!insertError) {
                 console.log("Successfully auto-recreated missing profile row on app startup.");
                 return fetchUserProfile(userId, sessionUser);
+              } else {
+                console.warn("⚠️ Database profile insertion error:", insertError.message);
               }
             }
             console.log("Profile not found in profiles table and metadata missing. Signing out...");
@@ -612,7 +617,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
         console.log("🔍 AUTH USER METADATA:", sessionUser?.user_metadata);
 
         // Fallbacks using the metadata entered during registration
-        const name = data?.name || sessionUser?.user_metadata?.name || sessionUser?.email?.split('@')[0] || 'Jobify User';
+        const name = data?.name || sessionUser?.user_metadata?.name || sessionUser?.user_metadata?.full_name || sessionUser?.email?.split('@')[0] || 'Jobify User';
         const email = data?.email || sessionUser?.email || '';
         const role = data?.role || sessionUser?.user_metadata?.role || 'jobseeker';
         
@@ -655,13 +660,13 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
           title,
           location,
           phone,
-          avatar: data?.avatar_url || null,
+          avatar: data?.avatar_url || sessionUser?.user_metadata?.avatar_url || sessionUser?.user_metadata?.picture || null,
           joinDate: data?.join_date 
             ? new Date(data.join_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
             : new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
         });
       } catch (err) {
-        console.error('Error fetching profile:', err.message);
+        console.warn('ℹ️ Profile sync resolved using Auth session metadata:', err.message);
         
         // Critical Fallback: Set user directly from auth metadata so they can still use the app
         if (sessionUser) {
@@ -672,13 +677,13 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
           }
           setUser({
             id: userId,
-            name: sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0] || 'Jobify User',
+            name: sessionUser.user_metadata?.name || sessionUser.user_metadata?.full_name || sessionUser.email?.split('@')[0] || 'Jobify User',
             email: sessionUser.email || '',
             role,
             title: role === 'employer' ? 'Employer Profile' : 'Job Seeker Profile',
             location: 'Pakistan',
             phone,
-            avatar: null,
+            avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || null,
             joinDate: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
           });
         }
@@ -1229,7 +1234,11 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
         return { success: true };
       }
       try {
-        const redirectTo = AuthSession.makeRedirectUri({ scheme: 'jobify' });
+        const isExpoGo = Constants.appOwnership === 'expo';
+        const redirectTo = isExpoGo 
+          ? 'https://auth.expo.io/@zainsh-26/jobify' 
+          : AuthSession.makeRedirectUri({ scheme: 'jobify' });
+
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: { redirectTo, skipBrowserRedirect: true },
@@ -1240,12 +1249,22 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
         }
         const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
         if (result.type === 'success') {
-          const params = new URL(result.url);
-          const access_token = params.searchParams.get('access_token');
-          const refresh_token = params.searchParams.get('refresh_token');
+          console.log('[Google Auth] Redirect URL received:', result.url);
+          
+          // Robust regex extraction for tokens (handles both '#' and '?' formats seamlessly)
+          const accessTokenMatch = result.url.match(/[#?&]access_token=([^&]+)/);
+          const refreshTokenMatch = result.url.match(/[#?&]refresh_token=([^&]+)/);
+          
+          const access_token = accessTokenMatch ? accessTokenMatch[1] : null;
+          const refresh_token = refreshTokenMatch ? refreshTokenMatch[1] : null;
+          
+          console.log('[Google Auth] Extracted access_token:', access_token ? 'SUCCESS' : 'NOT FOUND');
+          
           if (access_token) {
             await supabase.auth.setSession({ access_token, refresh_token });
             return { success: true };
+          } else {
+            return { success: false, message: 'OAuth tokens not found in the redirect URL.' };
           }
         }
         return { success: false, message: 'Google sign-in was cancelled.' };
