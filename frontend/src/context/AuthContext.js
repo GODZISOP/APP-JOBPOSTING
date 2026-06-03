@@ -312,7 +312,8 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
           title: likerUser.title || 'Job Seeker',
           location: likerUser.location || 'Not specified',
           phone: likerUser.phone || 'No phone provided',
-          email: likerUser.email || 'candidate@gmail.com'
+          email: likerUser.email || 'candidate@gmail.com',
+          avatar: likerUser.avatar || null
         }
       };
       
@@ -646,6 +647,20 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
             .then(({ error: healErr }) => {
               if (healErr) console.warn("⚠️ Failed background profile healing:", healErr.message);
               else console.log("✅ Profile healed successfully in database.");
+            });
+        }
+
+        // Auto-heal/sync missing avatar_url in the database profiles table if present in Google/OAuth metadata
+        const googleAvatar = sessionUser?.user_metadata?.avatar_url || sessionUser?.user_metadata?.picture || null;
+        if (data && !data.avatar_url && googleAvatar) {
+          console.log("📝 Auto-syncing Google avatar to database profiles table...");
+          supabase
+            .from('profiles')
+            .update({ avatar_url: googleAvatar })
+            .eq('id', userId)
+            .then(({ error: syncErr }) => {
+              if (syncErr) console.warn("⚠️ Failed to sync avatar to database:", syncErr.message);
+              else console.log("✅ Avatar synced to database successfully.");
             });
         }
 
@@ -1633,6 +1648,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
         clearNotifications,
         signingUp,
         loggingIn,
+        fetchRealNotifications,
       }}
     >
       {children}

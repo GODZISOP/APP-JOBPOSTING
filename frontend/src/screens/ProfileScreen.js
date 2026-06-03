@@ -125,7 +125,7 @@ function ProfileSkeleton() {
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { user, logout, updateProfile, getMyJobs, getUserById, setIsGuest, jobs, likedJobs, notifications, clearNotifications, fetchJobs } = useAuth();
+  const { user, logout, updateProfile, getMyJobs, getUserById, setIsGuest, jobs, likedJobs, notifications, clearNotifications, fetchJobs, fetchRealNotifications } = useAuth();
   const myJobs = getMyJobs ? getMyJobs() : [];
   const bookmarkedJobs = (jobs || []).filter(j => likedJobs?.includes(j.id));
 
@@ -850,7 +850,12 @@ export default function ProfileScreen() {
 
         {/* 3-Grid Feature Cards */}
         <View style={styles.featureGrid}>
-          <TouchableOpacity style={styles.gridCard} onPress={() => setShowNotifModal(true)} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.gridCard} onPress={async () => {
+            if (fetchRealNotifications) {
+              await fetchRealNotifications();
+            }
+            setShowNotifModal(true);
+          }} activeOpacity={0.8}>
             <View style={styles.gridCardHeader}>
               <View style={styles.iconCircleBlue}>
                 <Ionicons name="notifications" size={16} color="#3B82F6" />
