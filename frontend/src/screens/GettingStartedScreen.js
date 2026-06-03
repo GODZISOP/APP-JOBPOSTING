@@ -1,9 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  StatusBar, Animated, Easing, Dimensions,
+  StatusBar, Animated, Easing, Dimensions, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS } from '../theme/colors';
 
 const { width } = Dimensions.get('window');
@@ -15,6 +16,7 @@ const FEATURES = [
 ];
 
 export default function GettingStartedScreen({ onGetStarted }) {
+  const insets = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
   const logoScale = useRef(new Animated.Value(0.5)).current;
@@ -41,7 +43,7 @@ export default function GettingStartedScreen({ onGetStarted }) {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top > 0 ? insets.top : 20 }]}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
 
       {/* Hero Section */}
@@ -79,7 +81,7 @@ export default function GettingStartedScreen({ onGetStarted }) {
       </View>
 
       {/* CTA Buttons */}
-      <Animated.View style={[styles.ctaContainer, { opacity: fadeAnim }]}>
+      <Animated.View style={[styles.ctaContainer, { opacity: fadeAnim, paddingBottom: insets.bottom > 0 ? insets.bottom + 12 : 40 }]}>
         <TouchableOpacity style={styles.primaryBtn} onPress={() => onGetStarted('skip')} activeOpacity={0.88}>
           <Text style={styles.primaryBtnText}>Get Started</Text>
           <Ionicons name="arrow-forward" size={18} color={COLORS.textPrimary} style={{ marginLeft: 6 }} />
@@ -103,7 +105,7 @@ const styles = StyleSheet.create({
   // Hero
   hero: {
     alignItems: 'center',
-    paddingTop: 80,
+    paddingTop: 30,
     marginBottom: 36,
   },
   logoCircle: {
@@ -118,7 +120,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.35,
     shadowRadius: 20,
-    elevation: 12,
+    elevation: Platform.OS === 'android' ? 3 : 12,
   },
   title: {
     fontSize: 34,
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
-    elevation: 3,
+    elevation: Platform.OS === 'android' ? 1 : 3,
   },
   featureIconCircle: {
     width: 44,
@@ -194,7 +196,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: Platform.OS === 'android' ? 2 : 5,
   },
   primaryBtnText: {
     fontSize: 16,

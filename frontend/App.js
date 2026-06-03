@@ -120,66 +120,83 @@ function RootNavigator() {
   const { user, loading, loggingOut, isGuest, setIsGuest, signingUp, loggingIn } = useAuth();
   const [transitioningToDashboard, setTransitioningToDashboard] = useState(false);
 
-  // Show "Logging out..." splash while signing out
-  if (loggingOut) {
-    return <SplashScreen message="Logging out..." subMessage="See you soon!" isSignOut={true} />;
-  }
-
-  // Show "Creating account..." splash while signing up
-  if (signingUp) {
-    return <SplashScreen message="Creating account..." subMessage="Setting up your profile" showLottie={true} />;
-  }
-
-  // Show "Signing in..." splash while logging in
-  if (loggingIn) {
-    return <SplashScreen message="Signing in..." subMessage="Welcome back!" showLottie={true} />;
-  }
-
-  // Show session-check splash on app startup
-  if (loading) return <SplashScreen />;
-
-  // Show premium entrance splash screen when transitioning to dashboard as a guest
-  if (transitioningToDashboard) {
-    return <SplashScreen message="Entering Jobify..." subMessage="Setting up your experience" />;
-  }
-
   const showDashboard = user !== null || isGuest;
 
+  // Determine if splash overlay is active
+  const showSplash = loading || loggingOut || signingUp || loggingIn || transitioningToDashboard;
+
+  // Determine splash parameters
+  let splashMessage = '';
+  let splashSubMessage = '';
+  let splashIsSignOut = false;
+  let splashShowLottie = false;
+
+  if (loggingOut) {
+    splashMessage = "Logging out...";
+    splashSubMessage = "See you soon!";
+    splashIsSignOut = true;
+  } else if (signingUp) {
+    splashMessage = "Creating account...";
+    splashSubMessage = "Setting up your profile";
+    splashShowLottie = true;
+  } else if (loggingIn) {
+    splashMessage = "Signing in...";
+    splashSubMessage = "Welcome back!";
+    splashShowLottie = true;
+  } else if (transitioningToDashboard) {
+    splashMessage = "Entering Jobify...";
+    splashSubMessage = "Setting up your experience";
+  }
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {showDashboard ? (
-          // ✅ Active session or guest browsing mode
-          <Stack.Screen name="Main" component={MainTabs} />
-        ) : (
-          // ❌ No session / welcome & auth screens
-          <>
-            <Stack.Screen name="GettingStarted">
-              {(props) => (
-                <GettingStartedScreen
-                  {...props}
-                  onGetStarted={(type) => {
-                    if (type === 'signup') {
-                      props.navigation.navigate('Signup');
-                    } else if (type === 'login') {
-                      props.navigation.navigate('Login');
-                    } else if (type === 'skip') {
-                      setTransitioningToDashboard(true);
-                      setTimeout(() => {
-                        setIsGuest(true);
-                        setTransitioningToDashboard(false);
-                      }, 1500);
-                    }
-                  }}
-                />
-              )}
-            </Stack.Screen>
-            <Stack.Screen name="Login"  component={LoginScreen}  />
-            <Stack.Screen name="Signup" component={SignupScreen} />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <View style={{ flex: 1, backgroundColor: COLORS.bgPrimary }}>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {showDashboard ? (
+            // ✅ Active session or guest browsing mode
+            <Stack.Screen name="Main" component={MainTabs} />
+          ) : (
+            // ❌ No session / welcome & auth screens
+            <>
+              <Stack.Screen name="GettingStarted">
+                {(props) => (
+                  <GettingStartedScreen
+                    {...props}
+                    onGetStarted={(type) => {
+                      if (type === 'signup') {
+                        props.navigation.navigate('Signup');
+                      } else if (type === 'login') {
+                        props.navigation.navigate('Login');
+                      } else if (type === 'skip') {
+                        setTransitioningToDashboard(true);
+                        setTimeout(() => {
+                          setIsGuest(true);
+                          setTransitioningToDashboard(false);
+                        }, 1500);
+                      }
+                    }}
+                  />
+                )}
+              </Stack.Screen>
+              <Stack.Screen name="Login"  component={LoginScreen}  />
+              <Stack.Screen name="Signup" component={SignupScreen} />
+            </>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+
+      {/* Render Splash Screen as a smooth absolute overlay to prevent black background flashes */}
+      {showSplash && (
+        <View style={StyleSheet.absoluteFill}>
+          <SplashScreen 
+            message={splashMessage} 
+            subMessage={splashSubMessage} 
+            isSignOut={splashIsSignOut} 
+            showLottie={splashShowLottie} 
+          />
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -337,7 +354,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 20,
-    elevation: 12,
+    elevation: Platform.OS === 'android' ? 4 : 12,
   },
   tabLabel: {
     fontSize: FONTS.sizes.xs,

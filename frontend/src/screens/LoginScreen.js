@@ -158,7 +158,7 @@ export default function LoginScreen({ navigation }) {
                 onChangeText={(t) => { setPassword(t); clearError('password'); }}
                 secureTextEntry={!showPass}
               />
-              <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
+              <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
                 <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={18} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
@@ -170,7 +170,7 @@ export default function LoginScreen({ navigation }) {
             ) : null}
           </View>
 
-          <TouchableOpacity style={styles.forgotBtn}>
+          <TouchableOpacity style={styles.forgotBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <Text style={styles.forgotText}>Reset passcode?</Text>
           </TouchableOpacity>
 
@@ -189,7 +189,7 @@ export default function LoginScreen({ navigation }) {
           {/* Sign Up Link */}
           <View style={styles.signupRow}>
             <Text style={styles.signupText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+            <TouchableOpacity onPress={() => navigation.navigate('Signup')} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
               <Text style={styles.signupLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>

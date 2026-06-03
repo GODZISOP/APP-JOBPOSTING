@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Image } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, Image, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../theme/colors';
 
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 16,
-    elevation: 10,
+    elevation: Platform.OS === 'android' ? 3 : 10,
   },
   splashTitle: {
     fontSize: 32,
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: Platform.OS === 'android' ? 1 : 3,
   },
   statusText: {
     fontSize: 14,

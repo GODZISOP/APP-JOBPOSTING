@@ -122,7 +122,7 @@ export default function SignupScreen({ navigation }) {
 
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <Ionicons name="chevron-back" size={20} color={COLORS.textPrimary} />
           </TouchableOpacity>
           <View style={styles.logoCircle}>
@@ -180,7 +180,7 @@ export default function SignupScreen({ navigation }) {
             secureTextEntry: !showPass,
             errorKey: 'password',
             rightElement: (
-              <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
+              <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
                 <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={18} color={COLORS.textSecondary} />
               </TouchableOpacity>
             ),
@@ -195,7 +195,16 @@ export default function SignupScreen({ navigation }) {
           {/* Login Link */}
           <View style={styles.loginRow}>
             <Text style={styles.loginText}>Already registered? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <TouchableOpacity 
+              onPress={() => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate('Login');
+                }
+              }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
               <Text style={styles.loginLink}>Sign In</Text>
             </TouchableOpacity>
           </View>
