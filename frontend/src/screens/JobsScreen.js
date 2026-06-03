@@ -1318,7 +1318,7 @@ export default function JobsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgPrimary },
   listContent: {
-    paddingBottom: 110, // Avoid overlapping floating navigation
+    paddingBottom: 180, // Avoid overlapping floating navigation and AdBanner
   },
   headerContainer: {
     paddingHorizontal: 20,

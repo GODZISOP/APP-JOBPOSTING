@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
 import { useIsFocused } from '@react-navigation/native';
@@ -47,6 +48,7 @@ function DottedColumn({ height, active }) {
 // ─── Profile Skeleton Component ──────────────────────────────────────────────
 function ProfileSkeleton() {
   const shimmerAnim = useRef(new Animated.Value(0.3)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     Animated.loop(
@@ -68,8 +70,8 @@ function ProfileSkeleton() {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: 12 }]}>
         <View style={styles.headerIconBtn} />
         <Text style={styles.headerTitle}>Profile</Text>
         <View style={styles.headerIconBtn} />
@@ -122,6 +124,7 @@ function ProfileSkeleton() {
 }
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const { user, logout, updateProfile, getMyJobs, getUserById, setIsGuest, jobs, likedJobs, notifications, clearNotifications, fetchJobs } = useAuth();
   const myJobs = getMyJobs ? getMyJobs() : [];
   const bookmarkedJobs = (jobs || []).filter(j => likedJobs?.includes(j.id));
@@ -409,9 +412,9 @@ export default function ProfileScreen() {
   // ─── Conditional renders (after all hooks) ─────────────────────────────────
   if (!user) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: 12 }]}>
           <View style={{ width: 40 }} />
           <Text style={styles.headerTitle}>Profile</Text>
           <View style={{ width: 40 }} />
@@ -463,11 +466,11 @@ export default function ProfileScreen() {
 
   if (showHowItWorksModal) {
     return (
-      <View style={styles.guideScreenContainer}>
+      <View style={[styles.guideScreenContainer, { paddingTop: insets.top }]}>
         <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
         
         {/* Guide Header */}
-        <View style={styles.guideScreenHeader}>
+        <View style={[styles.guideScreenHeader, { paddingTop: 12 }]}>
           <TouchableOpacity style={styles.guideBackBtn} onPress={() => setShowHowItWorksModal(false)} activeOpacity={0.8}>
             <Ionicons name="arrow-back" size={20} color={COLORS.textPrimary} />
           </TouchableOpacity>
@@ -596,11 +599,11 @@ export default function ProfileScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: 12 }]}>
         {editing ? (
           <TouchableOpacity 
             style={styles.headerIconBtn} 
@@ -1362,11 +1365,11 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgPrimary },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 110 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 180 },
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 12,
+    paddingHorizontal: 20, paddingTop: 0, paddingBottom: 12,
   },
   headerTitle: { fontSize: FONTS.sizes.lg, fontWeight: '700', color: COLORS.textPrimary },
   headerIconBtn: {
@@ -2036,7 +2039,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 56,
+    paddingTop: 0,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#EEF2F0',

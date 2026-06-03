@@ -5,6 +5,7 @@ import {
   Animated, Easing, Modal, FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
 import LottieView from 'lottie-react-native';
@@ -139,6 +140,7 @@ const QUICK_SKILLS = {
 
 function PostJobSkeleton() {
   const shimmerAnim = useRef(new Animated.Value(0.3)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     Animated.loop(
@@ -155,7 +157,7 @@ function PostJobSkeleton() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#D4EAD7' }}>
-      <View style={{ paddingHorizontal: 20, paddingTop: 56, paddingBottom: 12 }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: insets.top > 0 ? insets.top + 12 : 56, paddingBottom: 12 }}>
         <Block w={160} h={26} mb={6} />
         <Block w={240} h={14} />
       </View>
@@ -188,6 +190,7 @@ function PostJobSkeleton() {
 
 export default function PostJobScreen() {
   const { postJob } = useAuth();
+  const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
   const [company, setCompany] = useState('');
 
@@ -349,7 +352,7 @@ export default function PostJobScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top > 0 ? insets.top : 16 }]} showsVerticalScrollIndicator={false}>
 
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Post a Job</Text>
@@ -672,9 +675,9 @@ export default function PostJobScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgPrimary },
-  scroll: { paddingHorizontal: 20, paddingBottom: 110, paddingTop: 18 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 150, paddingTop: 0 },
 
-  header: { paddingTop: 36, paddingBottom: 20, paddingHorizontal: 2 },
+  header: { paddingTop: 12, paddingBottom: 20, paddingHorizontal: 2 },
   headerTitle: { fontSize: 24, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.5 },
   headerSub: { fontSize: FONTS.sizes.xs + 1, color: COLORS.textSecondary, marginTop: 2 },
 

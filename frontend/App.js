@@ -39,16 +39,26 @@ function MainTabs() {
 
   return (
     <Tab.Navigator
+      safeAreaInsets={{ bottom: 0, top: 0, left: 0, right: 0 }}
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
         tabBarStyle: [
           styles.tabBar,
-          { bottom: insets.bottom > 0 ? insets.bottom : 16 } // Sleek & balanced safe-area bottom offset
+          { 
+            bottom: insets.bottom > 0 ? insets.bottom + 10 : 24,
+            height: 74,
+            paddingBottom: 8,
+            paddingTop: 8,
+          }
         ],
         tabBarLabelStyle: styles.tabLabel,
         tabBarActiveTintColor: COLORS.textPrimary,
         tabBarInactiveTintColor: COLORS.textSecondary,
+        tabBarItemStyle: {
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
       }}
     >
       <Tab.Screen
@@ -318,15 +328,11 @@ const styles = StyleSheet.create({
   // Tab Bar
   tabBar: {
     position: 'absolute',
-    bottom: 16,
     left: 20,
     right: 20,
     backgroundColor: COLORS.bgCard,
     borderRadius: 28,
-    height: 72,
     borderTopWidth: 0,
-    paddingBottom: 8,
-    paddingTop: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
