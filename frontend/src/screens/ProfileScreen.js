@@ -146,7 +146,7 @@ export default function ProfileScreen() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showHowItWorksModal, setShowHowItWorksModal] = useState(false);
-  
+
   const isFocused = useIsFocused();
   const [lastAvatar, setLastAvatar] = useState(user?.avatar || '');
   const [newAvatarUri, setNewAvatarUri] = useState(null);
@@ -468,7 +468,7 @@ export default function ProfileScreen() {
     return (
       <View style={[styles.guideScreenContainer, { paddingTop: insets.top }]}>
         <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
-        
+
         {/* Guide Header */}
         <View style={[styles.guideScreenHeader, { paddingTop: 12 }]}>
           <TouchableOpacity style={styles.guideBackBtn} onPress={() => setShowHowItWorksModal(false)} activeOpacity={0.8}>
@@ -478,19 +478,19 @@ export default function ProfileScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        <ScrollView 
-          style={{ flex: 1 }} 
+        <ScrollView
+          style={{ flex: 1 }}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Editorial Banner */}
           <View style={styles.editorialBanner}>
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=800&q=80' }} 
-              style={styles.editorialBannerImg} 
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=800&q=80' }}
+              style={styles.editorialBannerImg}
             />
             <View style={styles.editorialOverlay}>
-              <Text style={styles.editorialTitle}>The Jobify Vision</Text>
+              <Text style={styles.editorialTitle}>The BKJ Vision</Text>
               <Text style={styles.editorialSub}>Discover how our professional, data-driven algorithm powers a premier marketplace for candidates and recruiters alike.</Text>
             </View>
           </View>
@@ -500,9 +500,9 @@ export default function ProfileScreen() {
 
           {/* Card 1: Explore Opportunities */}
           <View style={styles.guideDetailCard}>
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=600&q=80' }} 
-              style={styles.guideDetailImg} 
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=600&q=80' }}
+              style={styles.guideDetailImg}
             />
             <View style={styles.guideDetailContent}>
               <View style={styles.guideDetailTitleRow}>
@@ -519,9 +519,9 @@ export default function ProfileScreen() {
 
           {/* Card 2: Featured Algorithm */}
           <View style={styles.guideDetailCard}>
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&q=80' }} 
-              style={styles.guideDetailImg} 
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&q=80' }}
+              style={styles.guideDetailImg}
             />
             <View style={styles.guideDetailContent}>
               <View style={styles.guideDetailTitleRow}>
@@ -538,9 +538,9 @@ export default function ProfileScreen() {
 
           {/* Card 3: Hot Tag */}
           <View style={styles.guideDetailCard}>
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80' }} 
-              style={styles.guideDetailImg} 
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80' }}
+              style={styles.guideDetailImg}
             />
             <View style={styles.guideDetailContent}>
               <View style={styles.guideDetailTitleRow}>
@@ -557,9 +557,9 @@ export default function ProfileScreen() {
 
           {/* Card 4: Verified Badge */}
           <View style={styles.guideDetailCard}>
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80' }} 
-              style={styles.guideDetailImg} 
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80' }}
+              style={styles.guideDetailImg}
             />
             <View style={styles.guideDetailContent}>
               <View style={styles.guideDetailTitleRow}>
@@ -575,8 +575,8 @@ export default function ProfileScreen() {
           </View>
 
           {/* Finish Button */}
-          <TouchableOpacity 
-            style={styles.guideScreenFinishBtn} 
+          <TouchableOpacity
+            style={styles.guideScreenFinishBtn}
             onPress={() => setShowHowItWorksModal(false)}
             activeOpacity={0.88}
           >
@@ -605,8 +605,8 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: 12 }]}>
         {editing ? (
-          <TouchableOpacity 
-            style={styles.headerIconBtn} 
+          <TouchableOpacity
+            style={styles.headerIconBtn}
             onPress={() => setEditing(false)}
             activeOpacity={0.8}
           >
@@ -765,7 +765,7 @@ export default function ProfileScreen() {
             </View>
           ) : (
             <>
-              <Text style={styles.userName}>{user?.name || 'Jobify User'}</Text>
+              <Text style={styles.userName}>{user?.name || 'BKJ User'}</Text>
               <Text style={styles.userEmail}>{user?.email || ''}</Text>
 
               <TouchableOpacity
@@ -865,9 +865,9 @@ export default function ProfileScreen() {
             <Text style={styles.gridCardLabel}>Notifications</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.gridCard} 
-            onPress={() => setShowHowItWorksModal(true)} 
+          <TouchableOpacity
+            style={styles.gridCard}
+            onPress={() => setShowHowItWorksModal(true)}
             activeOpacity={0.8}
           >
             <View style={styles.gridCardHeader}>
@@ -975,7 +975,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <Text style={styles.footerVersion}>Jobify v1.0.0</Text>
+        <Text style={styles.footerVersion}>BKJ v1.0.0</Text>
         <AdBanner />
       </ScrollView>
 
@@ -1370,7 +1370,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgPrimary },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 180 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 140 },
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -1380,7 +1380,8 @@ const styles = StyleSheet.create({
   headerIconBtn: {
     width: 40, height: 40, borderRadius: 14,
     backgroundColor: COLORS.bgCard, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: '#E2E8F0',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 0,
   },
 
   // Avatar
@@ -1439,8 +1440,9 @@ const styles = StyleSheet.create({
   infoCard: {
     flex: 1, backgroundColor: COLORS.bgCard, borderRadius: 18, padding: 14,
     alignItems: 'center',
+    borderWidth: 1, borderColor: '#E2E8F0',
     shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.04, shadowRadius: 10, elevation: 2,
+    shadowOpacity: 0.04, shadowRadius: 10, elevation: 0,
   },
   infoIconWrap: {
     width: 34, height: 34, borderRadius: 17,
@@ -1456,8 +1458,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bgCard, borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: 10,
     marginBottom: 16, gap: 6,
+    borderWidth: 1, borderColor: '#E2E8F0',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03, shadowRadius: 6, elevation: 1,
+    shadowOpacity: 0.03, shadowRadius: 6, elevation: 0,
   },
   titleCardText: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
   titleDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: COLORS.textLight },
@@ -1524,7 +1527,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: FONTS.sizes.md, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 10, paddingLeft: 2 },
   emptyJobsCard: { backgroundColor: COLORS.bgCard, borderRadius: 16, padding: 20, alignItems: 'center', justifyContent: 'center', gap: 8 },
   emptyJobsText: { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary },
-  jobRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.bgCard, borderRadius: 16, padding: 16, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 },
+  jobRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.bgCard, borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 0 },
   jobRowLeft: { flex: 1 },
   jobRowTitle: { fontSize: FONTS.sizes.sm + 1, fontWeight: '700', color: COLORS.textPrimary },
   jobRowSub: { fontSize: FONTS.sizes.xs, color: COLORS.textSecondary, marginTop: 2 },
@@ -1534,7 +1537,7 @@ const styles = StyleSheet.create({
   // Settings
   settingsSection: { marginBottom: 15 },
   sectionHeader: { fontSize: FONTS.sizes.md, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 10, paddingLeft: 2 },
-  settingsCard: { backgroundColor: COLORS.bgCard, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 2 },
+  settingsCard: { backgroundColor: COLORS.bgCard, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 0 },
   settingsRow: { flexDirection: 'row', alignItems: 'center', padding: 16 },
   settingsIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   settingsLabel: { flex: 1, fontSize: FONTS.sizes.sm + 1, fontWeight: '700', color: COLORS.textPrimary },

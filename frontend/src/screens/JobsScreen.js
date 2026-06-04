@@ -763,10 +763,51 @@ function JobsSkeleton() {
 
 export default function JobsScreen() {
   const insets = useSafeAreaInsets();
-  const { jobs, user, likedJobs, likeJob, fetchJobs } = useAuth();
+  const { jobs, user, likedJobs, likeJob, fetchJobs, setIsGuest } = useAuth();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedJob, setSelectedJob] = useState(null);
+  
+  const handleJobPress = (job) => {
+    if (!user) {
+      Alert.alert(
+        'Create Account First',
+        'You must create an account or sign in to view job details.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Sign In / Sign Up', 
+            onPress: () => {
+              setIsGuest(false);
+            } 
+          }
+        ]
+      );
+      return;
+    }
+    setSelectedJob(job);
+  };
+
+  const handleLikePress = (jobId) => {
+    if (!user) {
+      Alert.alert(
+        'Create Account First',
+        'You must create an account or sign in to bookmark/like job listings.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Sign In / Sign Up', 
+            onPress: () => {
+              setIsGuest(false);
+            } 
+          }
+        ]
+      );
+      return;
+    }
+    likeJob(jobId);
+  };
+
   const [screenLoading, setScreenLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterLikedOnly, setFilterLikedOnly] = useState(false);
@@ -913,7 +954,7 @@ export default function JobsScreen() {
         job={freshJob}
         onBack={() => setSelectedJob(null)}
         isLiked={likedJobs?.includes(freshJob.id)}
-        onLike={likeJob}
+        onLike={handleLikePress}
       />
     );
   }
@@ -1156,9 +1197,9 @@ export default function JobsScreen() {
           screenLoading ? null : (
             <JobCard
               job={item}
-              onPress={setSelectedJob}
+              onPress={handleJobPress}
               isLiked={likedJobs?.includes(item.id)}
-              onLike={likeJob}
+              onLike={handleLikePress}
             />
           )
         }
@@ -1318,7 +1359,7 @@ export default function JobsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgPrimary },
   listContent: {
-    paddingBottom: 180, // Avoid overlapping floating navigation and AdBanner
+    paddingBottom: 140, // Avoid overlapping floating navigation and AdBanner
   },
   headerContainer: {
     paddingHorizontal: 20,
@@ -1366,11 +1407,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bgCard,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
-    elevation: 2,
+    elevation: 0,
   },
 
   searchWrapper: {
@@ -1380,11 +1423,13 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 16,
     height: 52,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 0,
     marginBottom: 20,
   },
   searchInput: { flex: 1, fontSize: FONTS.sizes.md, color: COLORS.textPrimary },
@@ -1460,7 +1505,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
     shadowRadius: 6,
-    elevation: 1,
+    elevation: 0,
     gap: 8,
   },
   categoryPillActive: {
@@ -1471,7 +1516,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 0,
   },
   categoryIconCircle: {
     width: 28,
@@ -1510,7 +1555,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
-    elevation: 6,
+    elevation: 0,
   },
   heroCardHeader: {
     marginBottom: 16,
@@ -1624,7 +1669,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 12,
-    elevation: 2,
+    elevation: 0,
   },
   premiumJobRow: {
     borderColor: '#5C9E6A',
@@ -1633,7 +1678,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
-    elevation: 4,
+    elevation: 0,
     backgroundColor: '#FCFDFD',
   },
   cardHeaderRow: {

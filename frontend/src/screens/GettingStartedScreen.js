@@ -1,96 +1,185 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  StatusBar, Animated, Easing, Dimensions, Platform,
+  StatusBar, Animated, Easing, Dimensions, Platform, ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import LottieView from 'lottie-react-native';
 import { COLORS, FONTS } from '../theme/colors';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-const FEATURES = [
-  { icon: 'search', label: 'Browse Jobs', desc: 'Explore thousands of opportunities' },
-  { icon: 'briefcase', label: 'Post Listings', desc: 'Employers publish jobs instantly' },
-  { icon: 'person', label: 'Build Profile', desc: 'Showcase your skills & experience' },
+const SLIDES = [
+  {
+    id: '1',
+    title: 'Remote Collaboration',
+    description: 'Work seamlessly with remote teams and hire experts worldwide instantly.',
+    lottie: 'https://lottie.host/db911e20-38a5-4f40-8cbf-5af02f8eb5bb/cVWOB6ycut.lottie',
+  },
+  {
+    id: '2',
+    title: 'Smart Analytics',
+    description: 'Optimize your career matching and find roles using smart analytics and insights.',
+    lottie: 'https://lottie.host/582b4bc0-2a4d-4680-bbea-b364ea23f38b/lfauopFWNP.lottie',
+  },
+  {
+    id: '3',
+    title: 'Achieve Career Success',
+    description: 'Connect with premium recruiters and discover job postings tailored to your skill set.',
+    lottie: 'https://lottie.host/885c4670-ba3b-4111-b806-0af6cd80a379/lu7hDliSFx.lottie',
+  }
 ];
 
 export default function GettingStartedScreen({ onGetStarted }) {
   const insets = useSafeAreaInsets();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(40)).current;
-  const logoScale = useRef(new Animated.Value(0.5)).current;
-  const featureAnims = FEATURES.map(() => useRef(new Animated.Value(0)).current);
+  const scrollViewRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
+  // Animations for text transitions on slide change
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  // Staggered text animations when page index changes
   useEffect(() => {
-    // Logo entrance
+    fadeAnim.setValue(0);
+    slideAnim.setValue(15);
     Animated.parallel([
-      Animated.timing(logoScale, { toValue: 1, duration: 600, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }),
-      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 500, easing: Easing.out(Easing.ease), useNativeDriver: true }),
-    ]).start();
-
-    // Stagger feature cards
-    featureAnims.forEach((anim, i) => {
-      Animated.timing(anim, {
+      Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 400,
-        delay: 500 + i * 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
         easing: Easing.out(Easing.ease),
         useNativeDriver: true,
-      }).start();
-    });
-  }, []);
+      }),
+    ]).start();
+  }, [activeIndex]);
+
+  const onScroll = (event) => {
+    const slideSize = event.nativeEvent.layoutMeasurement.width;
+    const index = Math.round(event.nativeEvent.contentOffset.x / slideSize);
+    if (index !== activeIndex && index >= 0 && index < SLIDES.length) {
+      setActiveIndex(index);
+    }
+  };
+
+  const handleNext = () => {
+    if (activeIndex < SLIDES.length - 1) {
+      scrollViewRef.current.scrollTo({
+        x: (activeIndex + 1) * width,
+        animated: true,
+      });
+      setActiveIndex(activeIndex + 1);
+    }
+  };
+
+  const isLastSlide = activeIndex === SLIDES.length - 1;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top > 0 ? insets.top : 20 }]}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
 
-      {/* Hero Section */}
-      <Animated.View style={[styles.hero, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        <Animated.View style={[styles.logoCircle, { transform: [{ scale: logoScale }] }]}>
-          <Ionicons name="briefcase" size={44} color={COLORS.textPrimary} />
-        </Animated.View>
-        <Text style={styles.title}>Jobify</Text>
-        <Text style={styles.subtitle}>Your premium gateway to{'\n'}career growth</Text>
-      </Animated.View>
+      {/* Background Blobs for Visual Depth */}
+      <View style={styles.bgBlob1} />
+      <View style={styles.bgBlob2} />
 
-      {/* Feature Cards */}
-      <View style={styles.featuresContainer}>
-        {FEATURES.map((feat, i) => (
-          <Animated.View
-            key={feat.label}
-            style={[
-              styles.featureCard,
-              {
-                opacity: featureAnims[i],
-                transform: [{ translateX: featureAnims[i].interpolate({ inputRange: [0, 1], outputRange: [60, 0] }) }],
-              },
-            ]}
+      {/* Header with Skip Button (not visible on the last slide) */}
+      <View style={styles.header}>
+        <Text style={styles.headerLogoText}>BKJ</Text>
+        {!isLastSlide && (
+          <TouchableOpacity 
+            style={styles.skipButton} 
+            onPress={() => onGetStarted('skip')}
+            activeOpacity={0.7}
           >
-            <View style={styles.featureIconCircle}>
-              <Ionicons name={feat.icon} size={20} color={COLORS.textPrimary} />
-            </View>
-            <View style={styles.featureTextWrap}>
-              <Text style={styles.featureLabel}>{feat.label}</Text>
-              <Text style={styles.featureDesc}>{feat.desc}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.textLight} />
-          </Animated.View>
-        ))}
+            <Text style={styles.skipButtonText}>Skip</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* CTA Buttons */}
-      <Animated.View style={[styles.ctaContainer, { opacity: fadeAnim, paddingBottom: insets.bottom > 0 ? insets.bottom + 12 : 40 }]}>
-        <TouchableOpacity style={styles.primaryBtn} onPress={() => onGetStarted('skip')} activeOpacity={0.88}>
-          <Text style={styles.primaryBtnText}>Get Started</Text>
-          <Ionicons name="arrow-forward" size={18} color={COLORS.textPrimary} style={{ marginLeft: 6 }} />
-        </TouchableOpacity>
+      {/* Onboarding Slider */}
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        style={styles.scrollView}
+      >
+        {SLIDES.map((slide) => (
+          <View key={slide.id} style={styles.slideContainer}>
+            <View style={styles.animationContainer}>
+              <LottieView
+                source={{ uri: slide.lottie }}
+                style={styles.lottieView}
+                autoPlay
+                loop
+              />
+            </View>
+            
+            <Animated.View style={[styles.textWrapper, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+              <Text style={styles.title}>{slide.title}</Text>
+              <Text style={styles.description}>{slide.description}</Text>
+            </Animated.View>
+          </View>
+        ))}
+      </ScrollView>
 
-        <TouchableOpacity style={styles.secondaryBtn} onPress={() => onGetStarted('login')} activeOpacity={0.88}>
-          <Text style={styles.secondaryBtnText}>Sign In</Text>
-        </TouchableOpacity>
-      </Animated.View>
+      {/* Footer containing Pagination Dots & Action Buttons */}
+      <View style={[styles.footer, { paddingBottom: insets.bottom > 0 ? insets.bottom + 16 : 40 }]}>
+        
+        {/* Pagination indicator dots */}
+        <View style={styles.paginationRow}>
+          {SLIDES.map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.dot,
+                activeIndex === i ? styles.activeDot : styles.inactiveDot
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* Action Button Area */}
+        <View style={styles.buttonWrapper}>
+          {!isLastSlide ? (
+            <TouchableOpacity 
+              style={styles.primaryBtn} 
+              onPress={handleNext} 
+              activeOpacity={0.88}
+            >
+              <Text style={styles.primaryBtnText}>Next</Text>
+              <Ionicons name="arrow-forward" size={18} color="#E8F542" style={{ marginLeft: 6 }} />
+            </TouchableOpacity>
+          ) : (
+            <>
+              <TouchableOpacity 
+                style={styles.primaryBtn} 
+                onPress={() => onGetStarted('skip')} 
+                activeOpacity={0.88}
+              >
+                <Text style={styles.primaryBtnText}>Get Started</Text>
+                <Ionicons name="rocket-outline" size={18} color="#E8F542" style={{ marginLeft: 6 }} />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.secondaryBtn} 
+                onPress={() => onGetStarted('login')} 
+                activeOpacity={0.88}
+              >
+                <Text style={styles.secondaryBtnText}>Sign In</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+      </View>
     </View>
   );
 }
@@ -99,135 +188,152 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.bgPrimary,
+  },
+  header: {
+    height: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 24,
   },
-
-  // Hero
-  hero: {
-    alignItems: 'center',
-    paddingTop: 30,
-    marginBottom: 36,
+  headerLogoText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1A1A1A',
+    letterSpacing: -0.5,
   },
-  logoCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: COLORS.accentYellow,
+  skipButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(26, 26, 26, 0.05)',
+  },
+  skipButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  slideContainer: {
+    width: width,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  animationContainer: {
+    width: width * 0.8,
+    height: width * 0.8,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
-    shadowColor: COLORS.accentYellow,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: Platform.OS === 'android' ? 3 : 12,
+  },
+  lottieView: {
+    width: '100%',
+    height: '100%',
+  },
+  textWrapper: {
+    alignItems: 'center',
+    paddingHorizontal: 12,
   },
   title: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: COLORS.textPrimary,
-    letterSpacing: -1,
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#1A1A1A',
+    textAlign: 'center',
+    letterSpacing: -0.5,
+    marginBottom: 12,
   },
-  subtitle: {
-    fontSize: 15,
-    color: COLORS.textSecondary,
+  description: {
+    fontSize: 14,
+    color: '#4B5563',
     fontWeight: '500',
     textAlign: 'center',
-    marginTop: 8,
     lineHeight: 22,
+    paddingHorizontal: 10,
   },
-
-  // Features
-  featuresContainer: {
-    gap: 12,
-    marginBottom: 36,
-  },
-  featureCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.bgCard,
-    borderRadius: 20,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: Platform.OS === 'android' ? 1 : 3,
-  },
-  featureIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: COLORS.accentYellow,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  featureTextWrap: {
-    flex: 1,
-  },
-  featureLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    letterSpacing: -0.3,
-  },
-  featureDesc: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-
-  // CTAs
-  ctaContainer: {
-    flex: 1,
+  footer: {
+    paddingHorizontal: 24,
     justifyContent: 'flex-end',
-    paddingBottom: 40,
+  },
+  paginationRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 16,
+    marginBottom: 32,
+  },
+  dot: {
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+    backgroundColor: '#1A1A1A',
+  },
+  activeDot: {
+    width: 24,
+    opacity: 1,
+  },
+  inactiveDot: {
+    width: 8,
+    opacity: 0.18,
+  },
+  buttonWrapper: {
+    width: '100%',
+    gap: 12,
   },
   primaryBtn: {
-    backgroundColor: COLORS.accentYellow,
-    borderRadius: 26,
-    height: 56,
+    backgroundColor: '#1A1A1A', // Sleek jet black
+    borderRadius: 28,
+    height: 58,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.accentYellow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: Platform.OS === 'android' ? 2 : 5,
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
   },
   primaryBtnText: {
     fontSize: 16,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: '#E8F542', // Lime yellow text on black
   },
   secondaryBtn: {
-    backgroundColor: COLORS.bgCard,
-    borderRadius: 26,
-    height: 52,
+    backgroundColor: 'transparent',
+    borderRadius: 28,
+    height: 54,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
-    borderWidth: 1.5,
-    borderColor: '#EEF2F0',
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
   },
   secondaryBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1A1A1A',
   },
-  skipBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 18,
-    paddingVertical: 8,
+  // Background Blobs for Visual Depth
+  bgBlob1: {
+    position: 'absolute',
+    top: -60,
+    right: -60,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: '#FFFBC8', // Soft warm yellow glow
+    opacity: 0.45,
+    zIndex: -1,
   },
-  skipBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.accentGreen,
+  bgBlob2: {
+    position: 'absolute',
+    bottom: -60,
+    left: -80,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: '#B2E2B9', // Slightly deeper mint green glow
+    opacity: 0.35,
+    zIndex: -1,
   },
 });

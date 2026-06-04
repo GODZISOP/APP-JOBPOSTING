@@ -1,12 +1,21 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { supabase } from '../config/supabase';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Alert, Platform, Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-const SESSION_KEY = '@jobify_user_session';
+let Notifications;
+try {
+  Notifications = require('expo-notifications');
+} catch (e) {
+  console.warn("⚠️ [NOTIFICATIONS] expo-notifications module not found in this client build. Rebuild the APK to enable native notifications.");
+}
+
+const SESSION_KEY = '@bkj_user_session';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -91,7 +100,7 @@ const INITIAL_JOBS = [
 const INITIAL_NOTIFICATIONS = [
   {
     id: 'n1',
-    title: 'Welcome to Jobify! ✨',
+    title: 'Welcome to BKJ! ✨',
     message: 'Explore active listings or post a new opportunity instantly. All users have full job matching access.',
     time: 'Just now',
     type: 'system',
@@ -168,14 +177,14 @@ const handleError = (err) => {
 
 // ─── Image Format Helpers ──────────────────────────────────────────────────
 const IMAGE_MIME_MAP = {
-  jpg:  'image/jpeg',
+  jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
-  png:  'image/png',
-  gif:  'image/gif',
+  png: 'image/png',
+  gif: 'image/gif',
   webp: 'image/webp',
   heic: 'image/heic',
   heif: 'image/heif',
-  bmp:  'image/bmp',
+  bmp: 'image/bmp',
 };
 
 const SUPPORTED_IMAGE_FORMATS = ['image/jpeg', 'image/png'];
@@ -194,12 +203,12 @@ const formatTimeAgo = (dateString) => {
   if (!dateString) return 'Just now';
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return 'Just now';
-  
+
   const now = new Date();
   const diffMs = now - date;
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
-  
+
   // Format clock time, e.g. "5:30 PM"
   const timeString = date.toLocaleTimeString('en-US', {
     hour: 'numeric',
@@ -209,21 +218,21 @@ const formatTimeAgo = (dateString) => {
 
   // Check if it's today or yesterday
   const isToday = date.toDateString() === now.toDateString();
-  
+
   const yesterday = new Date();
   yesterday.setDate(now.getDate() - 1);
   const isYesterday = date.toDateString() === yesterday.toDateString();
 
   if (diffMins < 1) return 'Just now';
   if (diffMins < 60) return `${diffMins}m ago`;
-  
+
   if (isToday) {
     return `Today at ${timeString}`;
   }
   if (isYesterday) {
     return `Yesterday at ${timeString}`;
   }
-  
+
   const dateStringFormatted = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   return `${dateStringFormatted} at ${timeString}`;
 };
@@ -242,6 +251,39 @@ export const AuthProvider = ({ children }) => {
   const [signingUp, setSigningUp] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
 
+  const [spamBlockUntil, setSpamBlockUntil] = useState(0);
+  const [spamModalVisible, setSpamModalVisible] = useState(false);
+
+  // Persistent refs to avoid reset during state/render cycles
+  const seenLikeIdsRef = useRef(new Set());
+  const lastNotificationTimesRef = useRef(new Map());
+  const lastLikeClickTimesRef = useRef(new Map()); // Clicker-side map: Key: jobId, Value: Array of timestamps
+
+  // Load saved block time on startup
+  useEffect(() => {
+    const loadBlockTime = async () => {
+      try {
+        const savedBlock = await AsyncStorage.getItem('@bkj_spam_block_until');
+        if (savedBlock) {
+          const parsed = Number(savedBlock);
+          if (parsed > Date.now()) {
+            setSpamBlockUntil(parsed);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load spam block time:', e);
+      }
+    };
+    loadBlockTime();
+  }, []);
+
+  // Clear caches when the logged-in user changes (logout/login)
+  useEffect(() => {
+    seenLikeIdsRef.current.clear();
+    lastNotificationTimesRef.current.clear();
+    lastLikeClickTimesRef.current.clear();
+  }, [user?.id]);
+
   const isMockMode =
     !process.env.EXPO_PUBLIC_SUPABASE_URL ||
     process.env.EXPO_PUBLIC_SUPABASE_URL.includes('your-project-id') ||
@@ -249,36 +291,65 @@ export const AuthProvider = ({ children }) => {
     process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY.includes('placeholder');
 
 
- // ✅ NAYA - popup bhi trigger hoga, likerProfile bhi pass hoga
-const addNotification = (title, message, type = 'system', likerProfile = null) => {
-  const newNotif = {
-    id: Math.random().toString(),
-    title, message,
-    time: 'Just now',
-    type,
-    likerProfile,
+  // ✅ NAYA - popup bhi trigger hoga, likerProfile bhi pass hoga
+  const addNotification = (title, message, type = 'system', likerProfile = null) => {
+    const newNotif = {
+      id: Math.random().toString(),
+      title, message,
+      time: 'Just now',
+      type,
+      likerProfile,
+    };
+
+    // Bell icon list mein add karo
+    setNotifications(prev => [newNotif, ...prev]);
+
+    // ✅ Popup toast trigger karo (yeh line missing thi!)
+    setNotification(null); // pehle reset karo same notif ke liye
+    setTimeout(() => {
+      setNotification({ title, message, type, likerProfile });
+      setTimeout(() => setNotification(null), 4000); // auto-dismiss
+    }, 50);
   };
 
-  // Bell icon list mein add karo
-  setNotifications(prev => [newNotif, ...prev]);
-
-  // ✅ Popup toast trigger karo (yeh line missing thi!)
-  setNotification(null); // pehle reset karo same notif ke liye
-  setTimeout(() => {
-    setNotification({ title, message, type, likerProfile });
-    setTimeout(() => setNotification(null), 4000); // auto-dismiss
-  }, 50);
-};
+  const triggerLocalNotification = async (title, body) => {
+    if (!Notifications) {
+      console.log('⚠️ [NOTIFICATIONS] Native notifications module is not available in this client build.');
+      return;
+    }
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        console.log('⚠️ [NOTIFICATIONS] Permission not granted for local notifications.');
+        return;
+      }
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          sound: true,
+        },
+        trigger: null, // deliver immediately
+      });
+    } catch (e) {
+      console.warn('⚠️ [NOTIFICATIONS] Failed to trigger local notification:', e);
+    }
+  };
 
   const clearNotifications = async () => {
     if (!user) return;
     try {
       setNotifications([]);
-      const saved = await AsyncStorage.getItem('@jobify_global_notifications');
+      const saved = await AsyncStorage.getItem('@bkj_global_notifications');
       if (saved) {
         let list = JSON.parse(saved);
         list = list.filter(n => n.owner_id !== user.id);
-        await AsyncStorage.setItem('@jobify_global_notifications', JSON.stringify(list));
+        await AsyncStorage.setItem('@bkj_global_notifications', JSON.stringify(list));
       }
       console.log('📝 [DEBUG clearNotifications] Notifications cleared successfully for user:', user.id);
     } catch (e) {
@@ -288,19 +359,19 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
 
   const addSharedLocalNotification = async (ownerId, likerUser, jobTitle, jobId) => {
     try {
-      const saved = await AsyncStorage.getItem('@jobify_global_notifications');
+      const saved = await AsyncStorage.getItem('@bkj_global_notifications');
       let list = saved ? JSON.parse(saved) : [];
-      
+
       // Prevent duplicates by removing any existing notification by this user for this specific job first!
       list = list.filter(n => !(n.owner_id === ownerId && n.likerId === likerUser.id && (n.job_id === jobId || n.message.includes(jobTitle))));
-      
+
       const isOwnLike = ownerId === likerUser.id;
       const newNotif = {
         id: 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
         owner_id: ownerId,
         job_id: jobId,
         title: isOwnLike ? `You saved your job! ❤️` : `${likerUser.name || 'A candidate'} saved your job! ❤️`,
-        message: isOwnLike 
+        message: isOwnLike
           ? `You saved your listing "${jobTitle}".`
           : `${likerUser.name || 'Someone'} saved your listing "${jobTitle}". Tap here to view their profile card.`,
         created_at: new Date().toISOString(),
@@ -316,10 +387,10 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
           avatar: likerUser.avatar || null
         }
       };
-      
+
       console.log('📝 [DEBUG addSharedLocalNotification] Appending local notif:', newNotif);
       list.unshift(newNotif);
-      await AsyncStorage.setItem('@jobify_global_notifications', JSON.stringify(list));
+      await AsyncStorage.setItem('@bkj_global_notifications', JSON.stringify(list));
       console.log('📝 [DEBUG addSharedLocalNotification] Successfully saved. Storage count is now:', list.length);
     } catch (e) {
       console.warn('Failed to save shared local notification:', e);
@@ -328,11 +399,11 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
 
   const removeSharedLocalNotification = async (ownerId, likerId, jobId, jobTitle) => {
     try {
-      const saved = await AsyncStorage.getItem('@jobify_global_notifications');
+      const saved = await AsyncStorage.getItem('@bkj_global_notifications');
       if (saved) {
         let list = JSON.parse(saved);
         list = list.filter(n => !(n.owner_id === ownerId && n.likerId === likerId && (n.job_id === jobId || n.message.includes(jobTitle))));
-        await AsyncStorage.setItem('@jobify_global_notifications', JSON.stringify(list));
+        await AsyncStorage.setItem('@bkj_global_notifications', JSON.stringify(list));
         console.log('📝 [DEBUG removeSharedLocalNotification] Removed local notification. Remaining count:', list.length);
       }
     } catch (e) {
@@ -344,13 +415,13 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
     if (!user || isGuest) return;
     try {
       console.log('📝 [DEBUG fetchRealNotifications] Logged-in user fetching:', { id: user.id, name: user.name });
-      const savedLocal = await AsyncStorage.getItem('@jobify_global_notifications');
+      const savedLocal = await AsyncStorage.getItem('@bkj_global_notifications');
       let localNotifs = [];
       if (savedLocal) {
         const parsed = JSON.parse(savedLocal);
         console.log('📝 [DEBUG fetchRealNotifications] Found global shared list of count:', parsed.length);
         const filtered = parsed.filter(n => n.owner_id === user.id);
-        
+
         // De-duplicate local notifications strictly, falling back to profile ID/name/notif ID if likerId is missing
         const uniqueLocal = [];
         const seenLocal = new Set();
@@ -362,16 +433,16 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
             uniqueLocal.push(n);
           }
         }
-        
+
         localNotifs = uniqueLocal.map(n => {
           const isOwnLike = n.owner_id === n.likerId || n.likerId === user.id;
           return {
             ...n,
             title: isOwnLike ? `You saved your job! ❤️` : n.title,
-            message: isOwnLike 
-              ? (n.message.includes('"') 
-                  ? `You saved your listing "${n.message.split('"')[1]}".` 
-                  : `You saved your job listing.`)
+            message: isOwnLike
+              ? (n.message.includes('"')
+                ? `You saved your listing "${n.message.split('"')[1]}".`
+                : `You saved your job listing.`)
               : n.message,
             time: formatTimeAgo(n.created_at)
           };
@@ -382,7 +453,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
       if (isMockMode) {
         const welcomeNotif = {
           id: 'welcome',
-          title: 'Welcome to Jobify! ✨',
+          title: 'Welcome to BKJ! ✨',
           message: 'Explore active listings or post a new opportunity instantly. All users have full job matching access.',
           time: 'Just now',
           type: 'system',
@@ -390,7 +461,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
         setNotifications([welcomeNotif, ...localNotifs]);
         return;
       }
-      
+
       const { data, error } = await supabase
         .from('likes')
         .select(`
@@ -411,14 +482,14 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
         `)
         .eq('owner_id', user.id)
         .order('created_at', { ascending: false });
-        
+
       if (error) {
         console.log('ℹ️ Supabase likes query failed:', error.message, '| Details:', error.details || 'None');
         console.log('ℹ️ Using local device activity feed fallback.');
-        
+
         const welcomeNotif = {
           id: 'welcome',
-          title: 'Welcome to Jobify! ✨',
+          title: 'Welcome to BKJ! ✨',
           message: 'Explore active listings or post a new opportunity instantly. All users have full job matching access.',
           time: 'Just now',
           type: 'system',
@@ -428,7 +499,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
         setNotifications([welcomeNotif, ...filteredLocal]);
         return;
       }
-      
+
       if (data) {
         // Only show notifications from OTHER users who liked your jobs (not your own bookmarks)
         const otherLikes = data.filter(item => {
@@ -462,11 +533,11 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
             }
           };
         });
-        
+
         // Filter out self-likes from local notifications too
         const filteredLocal = localNotifs.filter(n => n.likerId !== user.id);
         const mergedNotifs = [...dbNotifs, ...filteredLocal];
-        
+
         const uniqueNotifs = [];
         const seenKeys = new Set();
         for (const n of mergedNotifs) {
@@ -484,15 +555,15 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
           const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
           return dateB - dateA;
         });
-        
+
         const welcomeNotif = {
           id: 'welcome',
-          title: 'Welcome to Jobify! ✨',
+          title: 'Welcome to BKJ! ✨',
           message: 'Explore active listings or post a new opportunity instantly. All users have full job matching access.',
           time: 'Just now',
           type: 'system',
         };
-        
+
         setNotifications([welcomeNotif, ...uniqueNotifs]);
       }
     } catch (err) {
@@ -504,7 +575,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
   useEffect(() => {
     const loadUserLikedJobs = async () => {
       try {
-        const key = user ? `@jobify_liked_jobs_${user.id}` : '@jobify_liked_jobs_guest';
+        const key = user ? `@bkj_liked_jobs_${user.id}` : '@bkj_liked_jobs_guest';
         const saved = await AsyncStorage.getItem(key);
         let localLikes = [];
         if (saved) {
@@ -520,7 +591,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
             .from('likes')
             .select('job_id')
             .eq('user_id', user.id);
-          
+
           if (!error && data) {
             const dbLikes = data.map(item => item.job_id);
             setLikedJobs(dbLikes);
@@ -542,7 +613,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
   // ─── Session Init ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (isMockMode) {
-      console.warn('⚠️ Jobify running in MOCK MODE');
+      console.warn('⚠️ BKJ running in MOCK MODE');
       setJobs(INITIAL_JOBS);
       // Restore persisted mock session
       const restoreMockSession = async () => {
@@ -563,7 +634,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
       return;
     }
 
-    console.log('🚀 Jobify connecting to Supabase production backend!');
+    console.log('🚀 BKJ connecting to Supabase production backend!');
 
     // Helper to race a promise with a timeout
     const withTimeout = (promise, ms, timeoutErrorMsg) => {
@@ -581,7 +652,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
           10000,
           'Profile query timed out'
         );
-        
+
         if (error) {
           if (error.code === 'PGRST116') { // PGRST116 is "Row not found"
             if (sessionUser) {
@@ -593,7 +664,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
                 .insert([
                   {
                     id: userId,
-                    name: sessionUser.user_metadata?.name || sessionUser.user_metadata?.full_name || sessionUser.email?.split('@')[0] || 'Jobify User',
+                    name: sessionUser.user_metadata?.name || sessionUser.user_metadata?.full_name || sessionUser.email?.split('@')[0] || 'BKJ User',
                     email: sessionUser.email || '',
                     role: role,
                     avatar_url: googleAvatar,
@@ -618,13 +689,13 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
         console.log("🔍 AUTH USER METADATA:", sessionUser?.user_metadata);
 
         // Fallbacks using the metadata entered during registration
-        const name = data?.name || sessionUser?.user_metadata?.name || sessionUser?.user_metadata?.full_name || sessionUser?.email?.split('@')[0] || 'Jobify User';
+        const name = data?.name || sessionUser?.user_metadata?.name || sessionUser?.user_metadata?.full_name || sessionUser?.email?.split('@')[0] || 'BKJ User';
         const email = data?.email || sessionUser?.email || '';
         const role = data?.role || sessionUser?.user_metadata?.role || 'jobseeker';
-        
+
         let dbLocation = data?.location || 'Pakistan';
         let phone = data?.phone || sessionUser?.user_metadata?.phone || '';
-        
+
         // Unpack phone from packed location format if present
         if (dbLocation && dbLocation.includes('|phone:')) {
           const parts = dbLocation.split('|phone:');
@@ -676,13 +747,13 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
           location,
           phone,
           avatar: data?.avatar_url || sessionUser?.user_metadata?.avatar_url || sessionUser?.user_metadata?.picture || null,
-          joinDate: data?.join_date 
+          joinDate: data?.join_date
             ? new Date(data.join_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
             : new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
         });
       } catch (err) {
         console.warn('ℹ️ Profile sync resolved using Auth session metadata:', err.message);
-        
+
         // Critical Fallback: Set user directly from auth metadata so they can still use the app
         if (sessionUser) {
           const role = sessionUser.user_metadata?.role || 'jobseeker';
@@ -692,7 +763,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
           }
           setUser({
             id: userId,
-            name: sessionUser.user_metadata?.name || sessionUser.user_metadata?.full_name || sessionUser.email?.split('@')[0] || 'Jobify User',
+            name: sessionUser.user_metadata?.name || sessionUser.user_metadata?.full_name || sessionUser.email?.split('@')[0] || 'BKJ User',
             email: sessionUser.email || '',
             role,
             title: role === 'employer' ? 'Employer Profile' : 'Job Seeker Profile',
@@ -730,8 +801,28 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
       }
     };
 
+    const requestNotificationPermissions = async () => {
+      if (!Notifications) return;
+      try {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        if (finalStatus !== 'granted') {
+          console.log('⚠️ [NOTIFICATIONS] Device permission denied.');
+        } else {
+          console.log('✅ [NOTIFICATIONS] Device permission granted.');
+        }
+      } catch (err) {
+        console.warn('⚠️ [NOTIFICATIONS] Failed to check permissions:', err);
+      }
+    };
+
     checkSession();
     fetchJobs();
+    requestNotificationPermissions();
 
     // Pure event-driven Auth listener (ignores INITIAL_SESSION and background TOKEN_REFRESHED to prevent infinite startup loading loops and sudden mid-app splash screen flashes!)
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -754,7 +845,6 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
     if (!user || isMockMode) return;
 
     let isFirstFetch = true;
-    let seenLikeIds = new Set();
 
     const checkNewLikes = async () => {
       try {
@@ -781,37 +871,48 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
 
         if (isFirstFetch) {
           console.log('🏁 [POLLING DEBUG] First fetch baseline. Found', data.length, 'likes.');
-          
+
           // Time travel check: Find likes that happened in the last 60 seconds while app was closed!
           const sixtySecondsAgo = new Date(Date.now() - 60000).toISOString();
-          
+
           data.forEach(like => {
             // If it's an old like, or a self-like, suppress it forever.
             if (like.created_at < sixtySecondsAgo || like.user_id === user.id) {
-              seenLikeIds.add(like.id);
+              seenLikeIdsRef.current.add(like.id);
               console.log('   - Suppressed Old/Self Like ID:', like.id);
             } else {
               // Leave it UN-memorized so the exact next poll catches it and shows the missed popup!
               console.log('   - Kept Recent Like to trigger Missed Popup! ID:', like.id);
             }
           });
-          
+
           isFirstFetch = false;
           return;
         }
 
         // On subsequent runs
         for (const like of data) {
-          if (!seenLikeIds.has(like.id)) {
+          if (!seenLikeIdsRef.current.has(like.id)) {
             console.log('🚨 [POLLING DEBUG] BRAND NEW LIKE DETECTED! ID:', like.id);
-            seenLikeIds.add(like.id); // Memorize so it doesn't pop twice
+            seenLikeIdsRef.current.add(like.id); // Memorize so it doesn't pop twice
 
             if (like.user_id !== user.id) {
+              // Anti-spam protection check: prevent spamming popups for like/unlike abuse (60 seconds cooldown)
+              const spamKey = `${like.user_id}_${like.job_id}`;
+              const lastShown = lastNotificationTimesRef.current.get(spamKey) || 0;
+              const now = Date.now();
+              if (now - lastShown < 60000) { // 60 seconds cooldown
+                console.log(`[POLLING DEBUG] Suppressed spam notification for user ${like.user_id} on job ${like.job_id} (cooldown active).`);
+                continue;
+              }
+              // Update last notification time
+              lastNotificationTimesRef.current.set(spamKey, now);
+
               console.log('✅ [POLLING DEBUG] Like is from another user! Triggering popup...');
               const p = like.profiles || {};
               const likerName = p.name || 'Someone';
               const jobTitle = like.jobs?.title || 'your post';
-              
+
               const profileData = {
                 id: p.id || like.user_id,
                 name: likerName,
@@ -828,6 +929,12 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
                 `${likerName} just showed interest in "${jobTitle}"!`,
                 'like',
                 profileData
+              );
+
+              // Trigger native device local notification
+              triggerLocalNotification(
+                `${likerName} liked your post`,
+                `"${likerName}" showed interest in your listing "${jobTitle}".`
               );
             } else {
               console.log('⚠️ [POLLING DEBUG] Ignored like because it was self-liked by user:', user.id);
@@ -851,6 +958,72 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
     };
   }, [user, isMockMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Polling for New Job Listings (New Posts) ───────────────────
+  useEffect(() => {
+    if (!user || isMockMode) return;
+
+    let isFirstJobsFetch = true;
+    let seenJobIds = new Set();
+
+    const checkNewJobs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('jobs')
+          .select(`
+            id,
+            title,
+            company,
+            posted_by,
+            profiles:posted_by ( name )
+          `)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (error) {
+          console.warn('❌ [JOBS POLLING] Supabase Error fetching jobs:', error.message);
+          return;
+        }
+
+        if (!data) return;
+
+        if (isFirstJobsFetch) {
+          // Store all existing job IDs on first load so we don't spam notifications for existing jobs
+          data.forEach(job => seenJobIds.add(job.id));
+          isFirstJobsFetch = false;
+          console.log('🏁 [JOBS POLLING] Established baseline with', seenJobIds.size, 'jobs.');
+          return;
+        }
+
+        // On subsequent checks, look for brand new jobs
+        for (const job of data) {
+          if (!seenJobIds.has(job.id)) {
+            seenJobIds.add(job.id); // Memorize it
+
+            // Only notify if it was posted by someone else (not the current logged-in user)
+            if (job.posted_by !== user.id) {
+              const employerName = job.profiles?.name || job.company || 'Someone';
+              console.log('🚨 [JOBS POLLING] New job detected! Title:', job.title);
+
+              triggerLocalNotification(
+                'New Job Opportunity! 🚀',
+                `"${job.title}" has just been posted by ${employerName}. Tap to apply!`
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('❌ [JOBS POLLING] Exception:', err);
+      }
+    };
+
+    // Run first baseline check
+    checkNewJobs();
+
+    // Poll every 10 seconds
+    const interval = setInterval(checkNewJobs, 10000);
+    return () => clearInterval(interval);
+  }, [user, isMockMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const rankJobs = (jobList) => {
     return [...jobList].sort((a, b) => {
       const timeA = a.createdAtTimestamp || 0;
@@ -864,13 +1037,13 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
     });
   };
 
- const triggerNotification = (title, message, type = 'system', likerProfile = null) => {
-  setNotification(null);
-  setTimeout(() => {
-    setNotification({ title, message, type, likerProfile });
-    setTimeout(() => setNotification(null), 3500);
-  }, 50);
-};
+  const triggerNotification = (title, message, type = 'system', likerProfile = null) => {
+    setNotification(null);
+    setTimeout(() => {
+      setNotification({ title, message, type, likerProfile });
+      setTimeout(() => setNotification(null), 3500);
+    }, 50);
+  };
   // ─── Fetch Jobs ────────────────────────────────────────────────────────────
   const fetchJobs = async () => {
     if (isMockMode) {
@@ -950,7 +1123,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
         }
       }
 
-      const savedLocal = await AsyncStorage.getItem('@jobify_global_notifications');
+      const savedLocal = await AsyncStorage.getItem('@bkj_global_notifications');
       const localNotifs = savedLocal ? JSON.parse(savedLocal) : [];
 
       // De-duplicate local notifications to count only unique likes strictly, falling back to profile ID/name/notif ID if likerId is missing
@@ -972,8 +1145,8 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
           likesCount = dbLikesList.filter(l => l.job_id === job.id).length;
         } else {
           // Mock mode local fallback
-          const activeJobLikes = uniqueLocalNotifs.filter(n => 
-            n.type === 'like' && 
+          const activeJobLikes = uniqueLocalNotifs.filter(n =>
+            n.type === 'like' &&
             (n.job_id === job.id || (job.title && n.message?.toLowerCase().includes(job.title.toLowerCase())))
           ).length;
           likesCount = Math.max(job.likes || 0, activeJobLikes);
@@ -985,7 +1158,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
         let employerName = p.name || 'Anonymous Employer';
         let employerEmail = p.email || 'employer@joblink.com';
         let employerTitle = p.title || 'HR Manager';
-        
+
         if (dbLocation && dbLocation.includes('|phone:')) {
           const parts = dbLocation.split('|phone:');
           dbLocation = parts[0] || 'Pakistan';
@@ -1039,6 +1212,27 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
 
   // ─── Like Job ──────────────────────────────────────────────────────────────
   const likeJob = async (jobId) => {
+    // Check if the user is currently spam-blocked
+    const now = Date.now();
+    if (now < spamBlockUntil) {
+      setSpamModalVisible(true);
+      return;
+    }
+
+    // Clicker-side anti-spam check: max 5 clicks per 10 seconds
+    const clickHistory = lastLikeClickTimesRef.current.get(jobId) || [];
+    const recentClicks = [...clickHistory, now].filter(t => now - t < 10000); // Keep last 10s clicks
+    lastLikeClickTimesRef.current.set(jobId, recentClicks);
+
+    if (recentClicks.length > 5) {
+      const blockDuration = 600000; // 10 minutes in milliseconds
+      const blockEnd = now + blockDuration;
+      setSpamBlockUntil(blockEnd);
+      await AsyncStorage.setItem('@bkj_spam_block_until', String(blockEnd));
+      setSpamModalVisible(true);
+      return;
+    }
+
     let jobTitle = '';
     const isCurrentlyLiked = likedJobs.includes(jobId);
     let newLikedJobs;
@@ -1048,7 +1242,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
       newLikedJobs = [...likedJobs, jobId];
     }
     setLikedJobs(newLikedJobs);
-    const key = user ? `@jobify_liked_jobs_${user.id}` : '@jobify_liked_jobs_guest';
+    const key = user ? `@bkj_liked_jobs_${user.id}` : '@bkj_liked_jobs_guest';
     await AsyncStorage.setItem(key, JSON.stringify(newLikedJobs));
 
     // Update shared local notification feed for cross-user tests
@@ -1056,13 +1250,13 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
     console.log('📝 [DEBUG likeJob] Liking Job ID:', jobId);
     console.log('📝 [DEBUG likeJob] Current Logged-in User:', user ? { id: user.id, name: user.name } : 'NULL');
     if (jobToUpdate) {
-      console.log('📝 [DEBUG likeJob] Job found:', { 
-        title: jobToUpdate.title, 
-        postedBy: jobToUpdate.postedBy, 
-        posted_by: jobToUpdate.posted_by 
+      console.log('📝 [DEBUG likeJob] Job found:', {
+        title: jobToUpdate.title,
+        postedBy: jobToUpdate.postedBy,
+        posted_by: jobToUpdate.posted_by
       });
       const targetOwner = jobToUpdate.postedBy || jobToUpdate.posted_by;
-      
+
       if (user) {
         if (isCurrentlyLiked) {
           console.log(`📝 [DEBUG likeJob] Removing local bookmark notification for owner: ${targetOwner}`);
@@ -1092,11 +1286,11 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
     });
 
     const toastTitle = isCurrentlyLiked ? 'Removed from Likes' : 'Job Liked! ❤️';
-    const toastMsg = isCurrentlyLiked 
+    const toastMsg = isCurrentlyLiked
       ? `"${jobTitle}" has been removed from your favorites.`
       : `"${jobTitle}" added to your bookmarks and ranked higher!`;
     triggerNotification(toastTitle, toastMsg);
-    
+
     // NOTE: Do NOT call addNotification() here — fetchRealNotifications() at the
     // end of this function will load the notification from AsyncStorage/DB,
     // preventing the duplicate that was showing before.
@@ -1107,7 +1301,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
         if (jobToUpdate) {
           const currentLikes = jobToUpdate.likes || 0;
           const newLikesCount = Math.max(0, currentLikes + (isCurrentlyLiked ? -1 : 1));
-          
+
           supabase
             .from('jobs')
             .update({ likes_count: newLikesCount })
@@ -1149,7 +1343,7 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
         console.log('ℹ️ Network exception during like sync:', err.message);
       }
     }
-    
+
     // Auto-refresh user notifications state in real-time instantly so it shows in the UI drawer/modal
     await fetchRealNotifications();
   };
@@ -1249,10 +1443,22 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
         return { success: true };
       }
       try {
-        const isExpoGo = Constants.appOwnership === 'expo';
-        const redirectTo = isExpoGo 
-          ? 'https://auth.expo.io/@zainsh-26/jobify' 
-          : AuthSession.makeRedirectUri({ scheme: 'jobify' });
+        console.log('[Google Auth] Environment Debug:', {
+          appOwnership: Constants.appOwnership,
+          executionEnvironment: Constants.executionEnvironment,
+          expoConfig: Constants.expoConfig ? { name: Constants.expoConfig.name, slug: Constants.expoConfig.slug, scheme: Constants.expoConfig.scheme } : null
+        });
+
+        const isExpoGo = Constants.executionEnvironment === 'store-client';
+        // Overridden to 'jobify' because currently installed APK listens to 'jobify://'
+        const configScheme = 'jobify';
+        const configSlug = Constants.expoConfig?.slug || 'bkj';
+
+        const redirectTo = isExpoGo
+          ? `https://auth.expo.io/@zainsh-26/${configSlug}`
+          : `${configScheme}://redirect`;
+
+        console.log('[Google Auth] Initiating OAuth with Redirect URL:', redirectTo);
 
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
@@ -1262,19 +1468,20 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
           console.error('Google OAuth error:', error);
           return { success: false, message: error.message || 'Google sign-in failed' };
         }
+        console.log('[Google Auth] Supabase OAuth URL:', data.url);
         const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
         if (result.type === 'success') {
           console.log('[Google Auth] Redirect URL received:', result.url);
-          
+
           // Robust regex extraction for tokens (handles both '#' and '?' formats seamlessly)
           const accessTokenMatch = result.url.match(/[#?&]access_token=([^&]+)/);
           const refreshTokenMatch = result.url.match(/[#?&]refresh_token=([^&]+)/);
-          
+
           const access_token = accessTokenMatch ? accessTokenMatch[1] : null;
           const refresh_token = refreshTokenMatch ? refreshTokenMatch[1] : null;
-          
+
           console.log('[Google Auth] Extracted access_token:', access_token ? 'SUCCESS' : 'NOT FOUND');
-          
+
           if (access_token) {
             await supabase.auth.setSession({ access_token, refresh_token });
             return { success: true };
@@ -1383,194 +1590,194 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
 
   // ─── Update Profile ────────────────────────────────────────────────────────
   const updateProfile = async (updates) => {
-  if (isMockMode) {
-    setUser((prev) => ({ ...prev, ...updates }));
-    return { success: true };
-  }
-  const withTimeout = async (promise, ms) => {
-    let timeoutId;
-    const timeoutPromise = new Promise((_, reject) => {
-      timeoutId = setTimeout(() => reject(new Error('Operation timed out.')), ms);
-    });
-    const result = await Promise.race([promise, timeoutPromise]);
-    clearTimeout(timeoutId);
-    return result;
-  };
-
-  try {
-    console.log('🧩 [PROFILE] updateProfile start', { updates });
-
-    // 1. Skip auth metadata phone update here in React Native because
-    //    Supabase auth.updateUser can hang on some mobile environments.
-    //    Phone is saved in the profile record below instead.
-    if (updates.phone !== undefined) {
-      console.log('🧩 [PROFILE] skipping auth.updateUser for phone');
+    if (isMockMode) {
+      setUser((prev) => ({ ...prev, ...updates }));
+      return { success: true };
     }
-
-    // 2. Avatar upload
-    let avatarUrl = undefined;
-    let previewUrl = undefined;
-
-    if (updates.avatar !== undefined) {
-      const uri = updates.avatar;
-      console.log('🧩 [PROFILE] avatar uri', uri);
-
-      const decodeBase64ToArrayBuffer = (base64Str) => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-        const lookup = new Uint8Array(256);
-        for (let i = 0; i < chars.length; i++) lookup[chars.charCodeAt(i)] = i;
-
-        let b64 = base64Str;
-        if (b64.includes(',')) {
-          b64 = b64.split(',')[1];
-        }
-
-        let bufferLength = b64.length * 0.75;
-        if (b64[b64.length - 1] === '=') bufferLength--;
-        if (b64[b64.length - 2] === '=') bufferLength--;
-
-        const arraybuffer = new ArrayBuffer(bufferLength);
-        const bytes = new Uint8Array(arraybuffer);
-
-        let p = 0;
-        for (let i = 0; i < b64.length; i += 4) {
-          let encoded1 = lookup[b64.charCodeAt(i)];
-          let encoded2 = lookup[b64.charCodeAt(i + 1)];
-          let encoded3 = lookup[b64.charCodeAt(i + 2)];
-          let encoded4 = lookup[b64.charCodeAt(i + 3)];
-
-          bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
-          bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
-          bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
-        }
-        return arraybuffer;
-      };
-
-      const uploadAvatar = async (fileName, fileData, mimeType) => {
-        console.log('🧩 [PROFILE] uploadAvatar uploading data...');
-        const result = await withTimeout(
-          supabase.storage
-            .from('avatars')
-            .upload(fileName, fileData, {
-              contentType: mimeType || 'image/jpeg',
-              upsert: true,
-            }),
-          20000
-        );
-        console.log('🧩 [PROFILE] uploadResult', result);
-        return result;
-      };
-
-      if (uri && (uri.startsWith('data:image') || uri.startsWith('file://') || uri.startsWith('content://'))) {
-        try {
-          // Detect actual image format from the URI
-          const metadata = getImageMetadata(uri);
-          let { extension, mimeType } = metadata;
-          console.log('🧩 [PROFILE] Detected image format:', { extension, mimeType });
-
-          // Normalize unsupported formats to JPEG
-          const SUPPORTED = ['image/jpeg', 'image/png'];
-          if (!SUPPORTED.includes(mimeType)) {
-            console.log('🧩 [PROFILE] Unsupported format, falling back to JPEG');
-            extension = 'jpg';
-            mimeType = 'image/jpeg';
-          }
-
-          let fileDataToUpload;
-          
-          if (uri.startsWith('data:image')) {
-            console.log('🧩 [PROFILE] Decoding Base64 directly to ArrayBuffer...');
-            fileDataToUpload = decodeBase64ToArrayBuffer(uri);
-            console.log(`🧩 [PROFILE] ArrayBuffer created: ${fileDataToUpload.byteLength} bytes`);
-          } else {
-            console.log('🧩 [PROFILE] Local URI detected. Reading file as Base64 using expo-file-system...');
-            try {
-              const base64Str = await FileSystem.readAsStringAsync(uri, {
-                encoding: FileSystem.EncodingType.Base64,
-              });
-              fileDataToUpload = decodeBase64ToArrayBuffer(base64Str);
-              console.log(`🧩 [PROFILE] ArrayBuffer created via FileSystem: ${fileDataToUpload.byteLength} bytes`);
-            } catch (fsErr) {
-              console.warn('❌ [STORAGE] FileSystem read error:', fsErr);
-              throw fsErr;
-            }
-          }
-
-          if (!fileDataToUpload || (fileDataToUpload.size && fileDataToUpload.size < 100) || (fileDataToUpload.byteLength && fileDataToUpload.byteLength < 100)) {
-            console.warn('❌ [STORAGE] File data is empty or too small, aborting upload.');
-            return { success: false, message: 'Image file is empty or invalid.' };
-          }
-
-          const fileName = `avatar_${user.id}.${extension}`;
-          console.log('🧩 [PROFILE] Uploading avatar data to Supabase Storage...');
-          const { error: uploadError } = await uploadAvatar(fileName, fileDataToUpload, mimeType);
-
-          if (uploadError) {
-            console.warn('❌ [STORAGE] Upload error:', uploadError.message);
-            return { success: false, message: 'Image upload failed.' };
-          }
-
-          // Use public URL only (no signed URL that would expire)
-          const { data: urlData } = supabase.storage
-            .from('avatars')
-            .getPublicUrl(fileName);
-
-          // Add a cache buster timestamp to ensure React Native fetches the fresh image
-          const timestamp = new Date().getTime();
-          avatarUrl = `${urlData.publicUrl}?t=${timestamp}`;
-          previewUrl = avatarUrl;
-          console.log('✅ [STORAGE] Public Avatar URL:', avatarUrl);
-        } catch (uploadErr) {
-          console.warn('❌ [STORAGE] Exception:', uploadErr?.message || uploadErr);
-          return { success: false, message: 'Image upload failed.' };
-        }
-      } else if (uri && uri.startsWith('http')) {
-        avatarUrl = uri;
-        previewUrl = uri;
-      }
-    }
-
-    // 3. Profile table update
-    const packedLocation = updates.location
-      ? `${updates.location}|phone:${updates.phone || ''}`
-      : `Pakistan|phone:${updates.phone || ''}`;
-
-    const profileUpdates = {
-      name: updates.name,
-      title: updates.title,
-      location: packedLocation,
+    const withTimeout = async (promise, ms) => {
+      let timeoutId;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Operation timed out.')), ms);
+      });
+      const result = await Promise.race([promise, timeoutPromise]);
+      clearTimeout(timeoutId);
+      return result;
     };
 
-    if (avatarUrl !== undefined) {
-      profileUpdates.avatar_url = avatarUrl;
+    try {
+      console.log('🧩 [PROFILE] updateProfile start', { updates });
+
+      // 1. Skip auth metadata phone update here in React Native because
+      //    Supabase auth.updateUser can hang on some mobile environments.
+      //    Phone is saved in the profile record below instead.
+      if (updates.phone !== undefined) {
+        console.log('🧩 [PROFILE] skipping auth.updateUser for phone');
+      }
+
+      // 2. Avatar upload
+      let avatarUrl = undefined;
+      let previewUrl = undefined;
+
+      if (updates.avatar !== undefined) {
+        const uri = updates.avatar;
+        console.log('🧩 [PROFILE] avatar uri', uri);
+
+        const decodeBase64ToArrayBuffer = (base64Str) => {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+          const lookup = new Uint8Array(256);
+          for (let i = 0; i < chars.length; i++) lookup[chars.charCodeAt(i)] = i;
+
+          let b64 = base64Str;
+          if (b64.includes(',')) {
+            b64 = b64.split(',')[1];
+          }
+
+          let bufferLength = b64.length * 0.75;
+          if (b64[b64.length - 1] === '=') bufferLength--;
+          if (b64[b64.length - 2] === '=') bufferLength--;
+
+          const arraybuffer = new ArrayBuffer(bufferLength);
+          const bytes = new Uint8Array(arraybuffer);
+
+          let p = 0;
+          for (let i = 0; i < b64.length; i += 4) {
+            let encoded1 = lookup[b64.charCodeAt(i)];
+            let encoded2 = lookup[b64.charCodeAt(i + 1)];
+            let encoded3 = lookup[b64.charCodeAt(i + 2)];
+            let encoded4 = lookup[b64.charCodeAt(i + 3)];
+
+            bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+            bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+            bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
+          }
+          return arraybuffer;
+        };
+
+        const uploadAvatar = async (fileName, fileData, mimeType) => {
+          console.log('🧩 [PROFILE] uploadAvatar uploading data...');
+          const result = await withTimeout(
+            supabase.storage
+              .from('avatars')
+              .upload(fileName, fileData, {
+                contentType: mimeType || 'image/jpeg',
+                upsert: true,
+              }),
+            20000
+          );
+          console.log('🧩 [PROFILE] uploadResult', result);
+          return result;
+        };
+
+        if (uri && (uri.startsWith('data:image') || uri.startsWith('file://') || uri.startsWith('content://'))) {
+          try {
+            // Detect actual image format from the URI
+            const metadata = getImageMetadata(uri);
+            let { extension, mimeType } = metadata;
+            console.log('🧩 [PROFILE] Detected image format:', { extension, mimeType });
+
+            // Normalize unsupported formats to JPEG
+            const SUPPORTED = ['image/jpeg', 'image/png'];
+            if (!SUPPORTED.includes(mimeType)) {
+              console.log('🧩 [PROFILE] Unsupported format, falling back to JPEG');
+              extension = 'jpg';
+              mimeType = 'image/jpeg';
+            }
+
+            let fileDataToUpload;
+
+            if (uri.startsWith('data:image')) {
+              console.log('🧩 [PROFILE] Decoding Base64 directly to ArrayBuffer...');
+              fileDataToUpload = decodeBase64ToArrayBuffer(uri);
+              console.log(`🧩 [PROFILE] ArrayBuffer created: ${fileDataToUpload.byteLength} bytes`);
+            } else {
+              console.log('🧩 [PROFILE] Local URI detected. Reading file as Base64 using expo-file-system...');
+              try {
+                const base64Str = await FileSystem.readAsStringAsync(uri, {
+                  encoding: FileSystem.EncodingType.Base64,
+                });
+                fileDataToUpload = decodeBase64ToArrayBuffer(base64Str);
+                console.log(`🧩 [PROFILE] ArrayBuffer created via FileSystem: ${fileDataToUpload.byteLength} bytes`);
+              } catch (fsErr) {
+                console.warn('❌ [STORAGE] FileSystem read error:', fsErr);
+                throw fsErr;
+              }
+            }
+
+            if (!fileDataToUpload || (fileDataToUpload.size && fileDataToUpload.size < 100) || (fileDataToUpload.byteLength && fileDataToUpload.byteLength < 100)) {
+              console.warn('❌ [STORAGE] File data is empty or too small, aborting upload.');
+              return { success: false, message: 'Image file is empty or invalid.' };
+            }
+
+            const fileName = `avatar_${user.id}.${extension}`;
+            console.log('🧩 [PROFILE] Uploading avatar data to Supabase Storage...');
+            const { error: uploadError } = await uploadAvatar(fileName, fileDataToUpload, mimeType);
+
+            if (uploadError) {
+              console.warn('❌ [STORAGE] Upload error:', uploadError.message);
+              return { success: false, message: 'Image upload failed.' };
+            }
+
+            // Use public URL only (no signed URL that would expire)
+            const { data: urlData } = supabase.storage
+              .from('avatars')
+              .getPublicUrl(fileName);
+
+            // Add a cache buster timestamp to ensure React Native fetches the fresh image
+            const timestamp = new Date().getTime();
+            avatarUrl = `${urlData.publicUrl}?t=${timestamp}`;
+            previewUrl = avatarUrl;
+            console.log('✅ [STORAGE] Public Avatar URL:', avatarUrl);
+          } catch (uploadErr) {
+            console.warn('❌ [STORAGE] Exception:', uploadErr?.message || uploadErr);
+            return { success: false, message: 'Image upload failed.' };
+          }
+        } else if (uri && uri.startsWith('http')) {
+          avatarUrl = uri;
+          previewUrl = uri;
+        }
+      }
+
+      // 3. Profile table update
+      const packedLocation = updates.location
+        ? `${updates.location}|phone:${updates.phone || ''}`
+        : `Pakistan|phone:${updates.phone || ''}`;
+
+      const profileUpdates = {
+        name: updates.name,
+        title: updates.title,
+        location: packedLocation,
+      };
+
+      if (avatarUrl !== undefined) {
+        profileUpdates.avatar_url = avatarUrl;
+      }
+
+      console.log('📝 [PROFILE] Updating profiles table...');
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      console.log('✅ [PROFILE] Profile updated successfully!');
+
+      setUser((prev) => ({
+        ...prev,
+        ...updates,
+        avatar: previewUrl || (avatarUrl !== undefined ? avatarUrl : prev.avatar),
+      }));
+
+      // Refresh the jobs list to instantly reflect the new avatar on any jobs posted by the user
+      await fetchJobs();
+
+      return { success: true };
+
+    } catch (err) {
+      return handleError(err);
     }
-
-    console.log('📝 [PROFILE] Updating profiles table...');
-
-    const { error } = await supabase
-      .from('profiles')
-      .update(profileUpdates)
-      .eq('id', user.id);
-
-    if (error) throw error;
-
-    console.log('✅ [PROFILE] Profile updated successfully!');
-
-    setUser((prev) => ({
-      ...prev,
-      ...updates,
-      avatar: previewUrl || (avatarUrl !== undefined ? avatarUrl : prev.avatar),
-    }));
-    
-    // Refresh the jobs list to instantly reflect the new avatar on any jobs posted by the user
-    await fetchJobs();
-
-    return { success: true };
-
-  } catch (err) {
-    return handleError(err);
-  }
-};
+  };
   // ─── Post Job ──────────────────────────────────────────────────────────────
   const postJob = async (jobData) => {
     if (isMockMode) {
@@ -1652,8 +1859,155 @@ const addNotification = (title, message, type = 'system', likerProfile = null) =
       }}
     >
       {children}
+      <SpamAlertGlobalModal 
+        visible={spamModalVisible} 
+        until={spamBlockUntil} 
+        onClose={() => setSpamModalVisible(false)} 
+      />
     </AuthContext.Provider>
   );
 };
+
+// Global Custom Spam Alert Modal styled according to app theme
+function SpamAlertGlobalModal({ visible, until, onClose }) {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    if (!visible || until <= Date.now()) return;
+
+    const updateTimer = () => {
+      const diff = until - Date.now();
+      if (diff <= 0) {
+        setTimeLeft('00:00');
+        onClose();
+        return;
+      }
+      const minutes = Math.floor(diff / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      setTimeLeft(formatted);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [visible, until, onClose]);
+
+  if (!visible) return null;
+
+  return (
+    <Modal visible={visible} transparent={true} animationType="fade">
+      <View style={spamStyles.modalOverlay}>
+        <View style={spamStyles.spamCard}>
+          <Ionicons name="time" size={54} color="#EF4444" style={spamStyles.spamIcon} />
+          <Text style={spamStyles.spamTitle}>Account Restricted ⚠️</Text>
+          <Text style={spamStyles.spamMessage}>
+            You have liked and unliked too quickly. Your interest toggling has been locked temporarily to prevent network spamming.
+          </Text>
+          
+          <View style={spamStyles.timerBadge}>
+            <Text style={spamStyles.timerLabel}>Restriction remaining:</Text>
+            <Text style={spamStyles.timerText}>{timeLeft || '10:00'}</Text>
+          </View>
+
+          <TouchableOpacity style={spamStyles.spamButton} onPress={onClose} activeOpacity={0.88}>
+            <Text style={spamStyles.spamButtonText}>I Understand</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const spamStyles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  spamCard: {
+    backgroundColor: '#1E293B', // Premium dark slate card
+    borderRadius: 28,
+    borderWidth: 1.5,
+    borderColor: '#334155', // Slate border
+    padding: 24,
+    width: '90%',
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 24,
+  },
+  spamIcon: {
+    marginBottom: 12,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  spamTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  spamMessage: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#94A3B8', // Muted slate gray
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 20,
+  },
+  timerBadge: {
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 22,
+  },
+  timerLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#EF4444',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  timerText: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#F8FAFC',
+    letterSpacing: 2,
+    fontVariant: ['tabular-nums'],
+  },
+  spamButton: {
+    backgroundColor: '#E8F542', // Lime yellow matching app accent
+    borderRadius: 20,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    shadowColor: '#E8F542',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
+  spamButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A', // Dark slate text
+  },
+});
 
 export const useAuth = () => useContext(AuthContext);

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Image, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Animated, Easing, Image, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../theme/colors';
 
@@ -22,6 +22,8 @@ function LoadingDot({ delay }) {
 export default function SplashScreen({ message, subMessage, isSignOut, showLottie }) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const imageOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -38,6 +40,15 @@ export default function SplashScreen({ message, subMessage, isSignOut, showLotti
     }
   }, [isSignOut, showLottie]);
 
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+    Animated.timing(imageOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
   return (
     <Animated.View style={[styles.splash, { opacity: fadeAnim }]}>
       {isSignOut || showLottie ? (
@@ -49,14 +60,22 @@ export default function SplashScreen({ message, subMessage, isSignOut, showLotti
         />
       ) : (
         <Animated.View style={[styles.splashLogoCircle, { transform: [{ scale: pulseAnim }] }]}>
-          <Image
+          {!imageLoaded && (
+            <ActivityIndicator 
+              size="small" 
+              color="#0F172A" 
+              style={StyleSheet.absoluteFillObject} 
+            />
+          )}
+          <Animated.Image
             source={require('../../../assets/icon.png')}
-            style={styles.logoImage}
+            style={[styles.logoImage, { opacity: imageOpacity }]}
             resizeMode="cover"
+            onLoad={handleImageLoad}
           />
         </Animated.View>
       )}
-      <Text style={styles.splashTitle}>{isSignOut ? 'Logging Out' : 'Jobify'}</Text>
+      <Text style={styles.splashTitle}>{isSignOut ? 'Logging Out' : 'BKJ'}</Text>
       <Text style={styles.splashSub}>{subMessage || (isSignOut ? 'See you soon!' : 'Your gateway to career growth')}</Text>
 
       {/* Status message (e.g. "Logging out...") */}

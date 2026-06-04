@@ -7,6 +7,21 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text, StyleSheet, Animated, Easing, Alert, Image, Platform } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+let Notifications;
+try {
+  Notifications = require('expo-notifications');
+  if (Notifications) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+  }
+} catch (e) {
+  console.warn("⚠️ [NOTIFICATIONS] expo-notifications module not found in this client build. Rebuild the APK to enable native notifications.");
+}
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { COLORS, FONTS } from './src/theme/colors';
@@ -144,7 +159,7 @@ function RootNavigator() {
     splashSubMessage = "Welcome back!";
     splashShowLottie = true;
   } else if (transitioningToDashboard) {
-    splashMessage = "Entering Jobify...";
+    splashMessage = "Entering BKJ...";
     splashSubMessage = "Setting up your experience";
   }
 
@@ -290,14 +305,29 @@ function InAppNotification() {
 }
 
 import Constants from 'expo-constants';
+import { Asset } from 'expo-asset';
 
 // ─── App Root ──────────────────────────────────────────────────────────────────
 export default function App() {
   useEffect(() => {
+    // Preload critical assets (Logo and Google G) for instant loading
+    const preload = async () => {
+      try {
+        await Asset.loadAsync([
+          require('./assets/icon.png'),
+          require('./src/assets/google_g.png'),
+        ]);
+        console.log('⚡ Critical assets preloaded successfully!');
+      } catch (err) {
+        console.warn('⚠️ Asset preloading failed:', err.message);
+      }
+    };
+    preload();
+
     if (Platform.OS === 'web') {
       return;
     }
-    const isExpoGo = Constants.appOwnership === 'expo';
+    const isExpoGo = Constants.executionEnvironment === 'store-client';
     if (isExpoGo) {
       console.log('ℹ️ Running in Expo Go: Bypassing native AdMob initialization.');
       return;

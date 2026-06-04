@@ -684,7 +684,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.bgCard, borderRadius: 28, padding: 22,
     shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06, shadowRadius: 18, elevation: 4,
+    borderWidth: 1, borderColor: '#E5E7EB',
+    shadowOpacity: 0.06, shadowRadius: 18, elevation: 0,
   },
 
   inputGroup: { marginBottom: 18 },
@@ -767,14 +768,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     marginTop: 18,
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15, shadowRadius: 8, elevation: 4,
+    shadowOpacity: 0.15, shadowRadius: 8, elevation: 0,
   },
   postBtnText: { fontSize: FONTS.sizes.md + 1, fontWeight: '800', color: COLORS.textWhite },
 
   successContainer: { flex: 1, backgroundColor: COLORS.bgPrimary, justifyContent: 'center', padding: 20 },
   successCard: {
     backgroundColor: COLORS.bgCard, borderRadius: 28, padding: 36, alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 18, elevation: 4,
+    borderWidth: 1, borderColor: '#E5E7EB',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 18, elevation: 0,
   },
   successIcon: { marginBottom: 12 },
   successTitle: { fontSize: 24, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.5, marginBottom: 8 },
@@ -782,7 +784,7 @@ const styles = StyleSheet.create({
   postAnotherBtn: {
     backgroundColor: '#111111', borderRadius: 26, height: 52,
     paddingHorizontal: 28, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 0,
   },
   postAnotherBtnText: { fontSize: FONTS.sizes.sm + 1, fontWeight: '800', color: COLORS.textWhite },
 

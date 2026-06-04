@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "Jobify",
-    "slug": "jobify",
+    "name": "BKJ",
+    "slug": "bkj",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "scheme": "jobify",
+    "scheme": "bkj",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.jobify.app"
+      "bundleIdentifier": "com.bkj.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -27,7 +27,7 @@
         "backgroundColor": "#00000000",
         "barStyle": "dark-content"
       },
-      "package": "com.jobify.app"
+      "package": "com.bkj.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"

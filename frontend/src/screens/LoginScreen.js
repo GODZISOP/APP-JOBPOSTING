@@ -91,10 +91,10 @@ export default function LoginScreen({ navigation }) {
 
         {/* Header */}
         <View style={styles.logoArea}>
-          <View style={styles.logoCircle}>
-            <Ionicons name="briefcase" size={32} color={COLORS.textPrimary} />
+          <View style={[styles.logoCircle, { overflow: 'hidden' }]}>
+            <Image source={require('../../assets/icon.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
           </View>
-          <Text style={styles.appName}>Jobify</Text>
+          <Text style={styles.appName}>BKJ</Text>
           <Text style={styles.tagline}>Your beautiful gateway to career growth</Text>
         </View>
 
@@ -210,7 +210,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 12,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, shadowRadius: 8, elevation: 2,
+    borderWidth: 1, borderColor: '#E2E8F0',
+    shadowOpacity: 0.08, shadowRadius: 8, elevation: 0,
   },
   appName: { fontSize: 26, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.5 },
   tagline: { fontSize: FONTS.sizes.xs + 1, color: COLORS.textSecondary, marginTop: 2, textAlign: 'center' },
@@ -219,7 +220,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bgCard, borderRadius: 28,
     padding: 24,
     shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06, shadowRadius: 20, elevation: 6,
+    borderWidth: 1, borderColor: '#E5E7EB',
+    shadowOpacity: 0.06, shadowRadius: 20, elevation: 0,
   },
   cardTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.5 },
   cardSubtitle: { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary, marginTop: 2, marginBottom: 20 },
@@ -230,7 +232,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#E5E7EB',
     borderRadius: 16, height: 52, marginBottom: 16,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    shadowOpacity: 0.05, shadowRadius: 6, elevation: 0,
   },
   googleIcon: { width: 24, height: 24, marginRight: 10 },
   googleBtnText: { fontSize: FONTS.sizes.sm + 1, fontWeight: '700', color: COLORS.textPrimary },
@@ -266,7 +268,7 @@ const styles = StyleSheet.create({
     borderRadius: 26, height: 54,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     shadowColor: COLORS.accentYellow, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
+    shadowOpacity: 0.25, shadowRadius: 8, elevation: 0,
   },
   loginBtnText: { fontSize: FONTS.sizes.md + 1, fontWeight: '800', color: COLORS.textPrimary },
 
