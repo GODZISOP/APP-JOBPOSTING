@@ -15,19 +15,19 @@ const SLIDES = [
     id: '1',
     title: 'Remote Collaboration',
     description: 'Work seamlessly with remote teams and hire experts worldwide instantly.',
-    lottie: 'https://lottie.host/db911e20-38a5-4f40-8cbf-5af02f8eb5bb/cVWOB6ycut.lottie',
+    lottie: require('../../assets/onboarding1.lottie'),
   },
   {
     id: '2',
     title: 'Smart Analytics',
     description: 'Optimize your career matching and find roles using smart analytics and insights.',
-    lottie: 'https://lottie.host/582b4bc0-2a4d-4680-bbea-b364ea23f38b/lfauopFWNP.lottie',
+    lottie: require('../../assets/onboarding2.lottie'),
   },
   {
     id: '3',
     title: 'Achieve Career Success',
     description: 'Connect with premium recruiters and discover job postings tailored to your skill set.',
-    lottie: 'https://lottie.host/885c4670-ba3b-4111-b806-0af6cd80a379/lu7hDliSFx.lottie',
+    lottie: require('../../assets/onboarding3.lottie'),
   }
 ];
 
@@ -115,7 +115,7 @@ export default function GettingStartedScreen({ onGetStarted }) {
           <View key={slide.id} style={styles.slideContainer}>
             <View style={styles.animationContainer}>
               <LottieView
-                source={{ uri: slide.lottie }}
+                source={slide.lottie}
                 style={styles.lottieView}
                 autoPlay
                 loop
