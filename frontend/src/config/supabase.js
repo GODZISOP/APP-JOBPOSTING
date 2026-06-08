@@ -22,12 +22,36 @@ require('react-native-url-polyfill/auto');
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Create a singleton instance of the Supabase Client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
+// Create a singleton instance of the Supabase Client safely to avoid startup crashes if env vars are missing
+let supabaseInstance;
+try {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('⚠️ [SUPABASE] Warning: Supabase URL or Anon Key is missing! Fallback to placeholders to avoid startup crash.');
+  }
+  supabaseInstance = createClient(
+    supabaseUrl || 'https://placeholder-url.supabase.co', 
+    supabaseAnonKey || 'placeholder-anon-key', 
+    {
+      auth: {
+        storage: AsyncStorage,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+      },
+    }
+  );
+} catch (error) {
+  console.error('❌ [SUPABASE] Fatal initialization error:', error);
+  // Fallback minimal safe object to prevent app crash
+  supabaseInstance = {
+    auth: {
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      getSession: async () => ({ data: { session: null } }),
+    },
+    from: () => ({
+      select: () => ({ order: () => ({ limit: () => Promise.resolve({ data: [], error: null }) }) }),
+    }),
+  };
+}
+
+export const supabase = supabaseInstance;
