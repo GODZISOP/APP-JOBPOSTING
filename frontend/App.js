@@ -159,8 +159,9 @@ function RootNavigator() {
     splashSubMessage = "Welcome back!";
     splashShowLottie = true;
   } else if (transitioningToDashboard) {
-    splashMessage = "Entering BKJ...";
-    splashSubMessage = "Setting up your experience";
+    splashMessage = "Welcome to BKJ! 🚀";
+    splashSubMessage = "Setting up your premium experience...";
+    splashShowLottie = false;
   }
 
   return (

@@ -5,18 +5,57 @@ import { COLORS } from '../../theme/colors';
 
 import LottieView from 'lottie-react-native';
 
-function LoadingDot({ delay }) {
-  const anim = useRef(new Animated.Value(0.3)).current;
+// Custom glowing pulse ring behind the app logo (mint green accent)
+function PulseHalo() {
+  const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
-      Animated.sequence([
-        Animated.delay(delay),
-        Animated.timing(anim, { toValue: 1,   duration: 400, useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0.3, duration: 400, useNativeDriver: true }),
-      ])
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 2200,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      })
     ).start();
   }, []);
-  return <Animated.View style={[styles.dot, { opacity: anim }]} />;
+
+  const scale = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.45],
+  });
+
+  const opacity = anim.interpolate({
+    inputRange: [0, 0.7, 1],
+    outputRange: [0.35, 0.15, 0],
+  });
+
+  return <Animated.View style={[styles.halo, { transform: [{ scale }], opacity }]} />;
+}
+
+// Custom horizontal sliding glowing progress bar matching the main button
+function SleekProgressBar() {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 1600,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
+
+  const translateX = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-120, 120],
+  });
+
+  return (
+    <View style={styles.progressBarContainer}>
+      <Animated.View style={[styles.progressBarActive, { transform: [{ translateX }] }]} />
+    </View>
+  );
 }
 
 export default function SplashScreen({ message, subMessage, isSignOut, showLottie }) {
@@ -27,14 +66,16 @@ export default function SplashScreen({ message, subMessage, isSignOut, showLotti
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
-      toValue: 1, duration: 400, useNativeDriver: true,
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
     }).start();
 
     if (!isSignOut && !showLottie) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1,   duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.05, duration: 1100, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1,   duration: 1100, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       ).start();
     }
@@ -44,50 +85,64 @@ export default function SplashScreen({ message, subMessage, isSignOut, showLotti
     setImageLoaded(true);
     Animated.timing(imageOpacity, {
       toValue: 1,
-      duration: 300,
+      duration: 350,
       useNativeDriver: true,
     }).start();
   };
 
   return (
     <Animated.View style={[styles.splash, { opacity: fadeAnim }]}>
-      {isSignOut || showLottie ? (
-        <LottieView
-          source={require('../../../assets/signout.json')}
-          style={styles.lottieLogo}
-          autoPlay
-          loop
-        />
-      ) : (
-        <Animated.View style={[styles.splashLogoCircle, { transform: [{ scale: pulseAnim }] }]}>
-          {!imageLoaded && (
-            <ActivityIndicator 
-              size="small" 
-              color="#0F172A" 
-              style={StyleSheet.absoluteFillObject} 
+      {/* Ambient background glows matching BKJ brand colors */}
+      <View style={styles.glowBlob1} />
+      <View style={styles.glowBlob2} />
+
+      <View style={styles.logoContainer}>
+        {/* Animated halo behind logo */}
+        {!(isSignOut || showLottie) && <PulseHalo />}
+
+        {/* Brand logo is always preserved */}
+        {!(isSignOut || showLottie) && (
+          <Animated.View style={[styles.splashLogoCircle, { transform: [{ scale: pulseAnim }] }]}>
+            {!imageLoaded && (
+              <ActivityIndicator 
+                size="small" 
+                color="#1A1A1A" 
+                style={StyleSheet.absoluteFillObject} 
+              />
+            )}
+            <Animated.Image
+              source={require('../../../assets/icon.png')}
+              style={[styles.logoImage, { opacity: imageOpacity }]}
+              resizeMode="cover"
+              onLoad={handleImageLoad}
             />
-          )}
-          <Animated.Image
-            source={require('../../../assets/icon.png')}
-            style={[styles.logoImage, { opacity: imageOpacity }]}
-            resizeMode="cover"
-            onLoad={handleImageLoad}
+          </Animated.View>
+        )}
+
+        {/* Absolute Lottie overlays */}
+        {(isSignOut || showLottie) && (
+          <LottieView
+            source={require('../../../assets/signout.json')}
+            style={styles.absoluteLottie}
+            autoPlay
+            loop
           />
-        </Animated.View>
-      )}
+        )}
+      </View>
+
       <Text style={styles.splashTitle}>{isSignOut ? 'Logging Out' : 'BKJ'}</Text>
       <Text style={styles.splashSub}>{subMessage || (isSignOut ? 'See you soon!' : 'Your gateway to career growth')}</Text>
 
-      {/* Status message (e.g. "Logging out...") */}
+      {/* Premium light card status badge */}
       {message ? (
         <View style={styles.statusBadge}>
           <Text style={styles.statusText}>{message}</Text>
         </View>
       ) : null}
 
-      {/* Loading dots */}
-      <View style={styles.dotsRow}>
-        {[0, 1, 2].map((i) => <LoadingDot key={i} delay={i * 200} />)}
+      {/* Premium line loading indicator */}
+      <View style={styles.progressSection}>
+        <SleekProgressBar />
       </View>
     </Animated.View>
   );
@@ -96,73 +151,124 @@ export default function SplashScreen({ message, subMessage, isSignOut, showLotti
 const styles = StyleSheet.create({
   splash: {
     flex: 1,
-    backgroundColor: COLORS.bgPrimary,
+    backgroundColor: COLORS.bgPrimary, // Restore original light mint green theme
     alignItems: 'center',
     justifyContent: 'center',
   },
-  lottieLogo: {
-    width: 200,
-    height: 200,
-    marginBottom: 10,
+  glowBlob1: {
+    position: 'absolute',
+    top: -120,
+    right: -120,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: '#FFFBC8', // Soft warm yellow glow
+    opacity: 0.45,
+    zIndex: -2,
+  },
+  glowBlob2: {
+    position: 'absolute',
+    bottom: -140,
+    left: -140,
+    width: 360,
+    height: 360,
+    borderRadius: 180,
+    backgroundColor: '#B2E2B9', // Soft light green glow
+    opacity: 0.35,
+    zIndex: -2,
+  },
+  logoContainer: {
+    width: 140,
+    height: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    marginBottom: 24,
+  },
+  absoluteLottie: {
+    position: 'absolute',
+    width: 165,
+    height: 165,
+    zIndex: 10,
+    pointerEvents: 'none',
+  },
+  halo: {
+    position: 'absolute',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#5C9E6A', // Deeper mint green pulsing glow ring
+    zIndex: -1,
   },
   logoImage: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   splashLogoCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: COLORS.accentYellow,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: '#1A1A1A', // Jet black highlight ring matching app buttons
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-    shadowColor: COLORS.accentYellow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: Platform.OS === 'android' ? 3 : 10,
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 6,
   },
   splashTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: COLORS.textPrimary,
-    letterSpacing: -0.5,
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#1A1A1A', // Jet black matching app theme
+    letterSpacing: -0.8,
   },
   splashSub: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: '#6B7280', // Dark gray description matching main app
     fontWeight: '500',
-    marginTop: 6,
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 40,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.accentYellow,
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 36,
   },
   statusBadge: {
-    marginTop: 20,
-    backgroundColor: COLORS.bgCard,
+    marginTop: 24,
+    backgroundColor: '#FFFFFF', // Clean white card badge
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 8,
+    borderWidth: 1.5,
+    borderColor: '#EEF2F0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: Platform.OS === 'android' ? 1 : 3,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   statusText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: COLORS.textSecondary,
-    letterSpacing: 0.2,
+    color: '#4B5563',
+    letterSpacing: 0.3,
+  },
+  progressSection: {
+    marginTop: 48,
+  },
+  progressBarContainer: {
+    width: 120,
+    height: 4,
+    backgroundColor: 'rgba(26, 26, 26, 0.08)', // Translucent track
+    borderRadius: 2,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  progressBarActive: {
+    width: 50,
+    height: '100%',
+    backgroundColor: '#1A1A1A', // Jet black sliding bar matching buttons
+    borderRadius: 2,
   },
 });

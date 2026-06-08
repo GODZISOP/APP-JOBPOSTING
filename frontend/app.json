@@ -11,17 +11,25 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#D4EAD7"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bkj.app"
+      "bundleIdentifier": "com.bkj.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": [
+        "android.permission.INTERNET"
+      ],
       "edgeToEdgeEnabled": true,
       "navigationBar": {
         "backgroundColor": "#00000000",
@@ -46,7 +54,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "4c2e93f8-9b4f-4dc4-b11d-d9bbec431f05"
+        "projectId": "b0c27919-7618-4d65-9443-074909f67e92"
       }
     },
     "owner": "zainsh-26"

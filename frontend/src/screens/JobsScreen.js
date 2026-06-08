@@ -272,7 +272,7 @@ function JobCard({ job, onPress, isLiked, onLike }) {
 }
 
 function JobDetailView({ job, onBack, isLiked, onLike }) {
-  const { user } = useAuth();
+  const { user, applyToJob } = useAuth();
   const [showApplyModal, setShowApplyModal] = useState(false);
 
   // Applicant details (logged in user)
@@ -286,6 +286,9 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
   const employerName = job.posterProfile?.name || (isOwnJob ? user?.name : '') || 'Anonymous Employer';
 
   const handleWhatsApp = (phone, name, jobTitle) => {
+    if (applyToJob) {
+      applyToJob(job.id);
+    }
     const cleaned = phone.replace(/[^0-9]/g, '');
     let formattedPhone = cleaned;
     if (cleaned.startsWith('03')) {
@@ -313,6 +316,9 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
   };
 
   const handleEmail = (email, name, jobTitle) => {
+    if (applyToJob) {
+      applyToJob(job.id);
+    }
     const subject = `Job Application - ${jobTitle}`;
     const body = `Hi ${name || 'Employer'},\n\nI am interested in applying for the "${jobTitle}" position listed on Jobify.\n\nHere are my contact and application details:\n\n👤 Name: ${applicantName}\n📧 Email: ${applicantEmail}\n📞 Phone: ${applicantPhone}\n\nPlease find my contact details attached to my Jobify profile.\n\nBest regards,\n${applicantName}`;
     const url = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -505,14 +511,14 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
       )}
 
       {/* Sticky Bottom Apply Action */}
-      <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
+      <View style={{ paddingHorizontal: 20, paddingBottom: 20, marginTop: 10 }}>
         <TouchableOpacity
           style={styles.upworkApplyBtn}
           activeOpacity={0.85}
           onPress={() => setShowApplyModal(true)}
         >
           <Text style={styles.upworkApplyBtnText}>Apply Now</Text>
-          <Ionicons name="paper-plane-outline" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+          <Ionicons name="paper-plane-outline" size={16} color="#1A1A1A" style={{ marginLeft: 6 }} />
         </TouchableOpacity>
       </View>
 
@@ -613,6 +619,9 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
                 activeOpacity={0.85}
                 onPress={() => {
                   setShowApplyModal(false);
+                  if (applyToJob) {
+                    applyToJob(job.id);
+                  }
                   Alert.alert(
                     'Application Submitted! 🎉',
                     `Your Jobify profile has been successfully shared with ${job.company} for the "${job.title}" position. Good luck!`,
@@ -761,9 +770,9 @@ function JobsSkeleton() {
   );
 }
 
-export default function JobsScreen() {
+export default function JobsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { jobs, user, likedJobs, likeJob, fetchJobs, setIsGuest } = useAuth();
+  const { jobs, user, likedJobs, likeJob, fetchJobs, setIsGuest, userCountry } = useAuth();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedJob, setSelectedJob] = useState(null);
@@ -943,6 +952,22 @@ export default function JobsScreen() {
     return matchCat && matchSearch && matchType && matchLoc && matchSalary;
   });
 
+  // ─── Geo-Sort: Push user's country jobs to the top ─────────────────────────
+  const geoSortedFiltered = React.useMemo(() => {
+    if (!userCountry || selectedLocations.length > 0) return filtered; // Skip if user filtered by location already
+    const countryLower = userCountry.toLowerCase();
+    const local = [];
+    const others = [];
+    filtered.forEach(j => {
+      if (j.location && j.location.toLowerCase().includes(countryLower)) {
+        local.push(j);
+      } else {
+        others.push(j);
+      }
+    });
+    return [...local, ...others];
+  }, [filtered, userCountry, selectedLocations]);
+
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : 'LF';
@@ -989,6 +1014,29 @@ export default function JobsScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Profile Warning Banner for Missing Phone Number */}
+        {user && !user.phone && (
+          <TouchableOpacity
+            style={styles.profileWarningBanner}
+            onPress={() => navigation.navigate('Profile')}
+            activeOpacity={0.9}
+          >
+            <View style={styles.warningBannerLeft}>
+              <View style={styles.warningIconCircle}>
+                <Ionicons name="call" size={16} color="#DC2626" />
+              </View>
+              <View style={styles.warningTextContainer}>
+                <Text style={styles.warningTitle}>Complete Your Profile</Text>
+                <Text style={styles.warningDesc}>Add a phone number to post job listings on BKJ.</Text>
+              </View>
+            </View>
+            <View style={styles.warningActionBtn}>
+              <Text style={styles.warningActionText}>Add</Text>
+              <Ionicons name="chevron-forward" size={12} color="#DC2626" />
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* 🌟 NEXT-LEVEL HERO GRADIENT STATS CARD */}
         <View style={styles.heroGradientCard}>
@@ -1163,10 +1211,18 @@ export default function JobsScreen() {
 
         {/* Opportunities Header */}
         <View style={styles.listHeaderRow}>
-          <Text style={styles.listSectionTitle}>
-            {filterLikedOnly ? 'Favorite Jobs' : filterMyJobsOnly ? 'My Job Postings' : 'All Available Opportunities'}
-          </Text>
-          <Text style={styles.listSectionBadge}>{filtered.length} Jobs</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.listSectionTitle}>
+              {filterLikedOnly ? 'Favorite Jobs' : filterMyJobsOnly ? 'My Job Postings' : 'All Available Opportunities'}
+            </Text>
+            {userCountry && !filterLikedOnly && !filterMyJobsOnly && selectedLocations.length === 0 && (
+              <View style={styles.nearYouBadge}>
+                <Ionicons name="location" size={11} color="#15803D" style={{ marginRight: 3 }} />
+                <Text style={styles.nearYouBadgeText}>Showing {userCountry} jobs first</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.listSectionBadge}>{geoSortedFiltered.length} Jobs</Text>
         </View>
       </View>
     );
@@ -1179,7 +1235,7 @@ export default function JobsScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
 
       <FlatList
-        data={screenLoading ? [] : filtered}
+        data={screenLoading ? [] : geoSortedFiltered}
         keyExtractor={(j, idx) => j.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -1654,6 +1710,23 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#CBD5E1',
+  },
+  nearYouBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  nearYouBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#15803D',
   },
 
   // 🌟 Redesigned Next-Level Job Cards (LinkedIn/Upwork Premium style)
@@ -2133,9 +2206,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 16,
     marginTop: 10,
-    marginBottom: 24,
+    marginBottom: 8,
     shadowColor: '#E8F542',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
@@ -2603,5 +2675,63 @@ const styles = StyleSheet.create({
   dropdownItemTextActive: {
     color: '#1A1A1A',
     fontWeight: '700',
+  },
+  profileWarningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    borderRadius: 16,
+    padding: 14,
+    marginHorizontal: 20,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  warningBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  warningIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  warningTextContainer: {
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#991B1B',
+  },
+  warningDesc: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#B91C1C',
+    marginTop: 1,
+  },
+  warningActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  warningActionText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#DC2626',
+    marginRight: 2,
   },
 });

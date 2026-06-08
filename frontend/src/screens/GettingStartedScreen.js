@@ -15,19 +15,19 @@ const SLIDES = [
     id: '1',
     title: 'Remote Collaboration',
     description: 'Work seamlessly with remote teams and hire experts worldwide instantly.',
-    lottie: require('../../assets/onboarding1.lottie'),
+    lottie: require('../../assets/onboarding1.json'),
   },
   {
     id: '2',
     title: 'Smart Analytics',
     description: 'Optimize your career matching and find roles using smart analytics and insights.',
-    lottie: require('../../assets/onboarding2.lottie'),
+    lottie: require('../../assets/onboarding2.json'),
   },
   {
     id: '3',
     title: 'Achieve Career Success',
     description: 'Connect with premium recruiters and discover job postings tailored to your skill set.',
-    lottie: require('../../assets/onboarding3.lottie'),
+    lottie: require('../../assets/onboarding3.json'),
   }
 ];
 
@@ -35,29 +35,7 @@ export default function GettingStartedScreen({ onGetStarted }) {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
-
-  // Animations for text transitions on slide change
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const slideAnim = useRef(new Animated.Value(0)).current;
-
-  // Staggered text animations when page index changes
-  useEffect(() => {
-    fadeAnim.setValue(0);
-    slideAnim.setValue(15);
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 400,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [activeIndex]);
+  const scrollX = useRef(new Animated.Value(0)).current;
 
   const onScroll = (event) => {
     const slideSize = event.nativeEvent.layoutMeasurement.width;
@@ -79,6 +57,33 @@ export default function GettingStartedScreen({ onGetStarted }) {
 
   const isLastSlide = activeIndex === SLIDES.length - 1;
 
+  // Header skip button opacity interpolation (fades out as we scroll to last slide)
+  const skipButtonOpacity = scrollX.interpolate({
+    inputRange: [width, width * 1.5, width * 2],
+    outputRange: [1, 1, 0],
+    extrapolate: 'clamp',
+  });
+
+  // Primary button content interpolations (cross-fades Next and Get Started)
+  const nextOpacity = scrollX.interpolate({
+    inputRange: [width, width * 1.5, width * 2],
+    outputRange: [1, 0, 0],
+    extrapolate: 'clamp',
+  });
+
+  const getStartedOpacity = scrollX.interpolate({
+    inputRange: [width, width * 1.5, width * 2],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
+  });
+
+  // Secondary button opacity interpolation (fades in as we scroll to last slide)
+  const secondaryBtnOpacity = scrollX.interpolate({
+    inputRange: [width, width * 1.5, width * 2],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
+  });
+
   return (
     <View style={[styles.container, { paddingTop: insets.top > 0 ? insets.top : 20 }]}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
@@ -87,102 +92,179 @@ export default function GettingStartedScreen({ onGetStarted }) {
       <View style={styles.bgBlob1} />
       <View style={styles.bgBlob2} />
 
-      {/* Header with Skip Button (not visible on the last slide) */}
+      {/* Header with Skip Button (fades out on the last slide) */}
       <View style={styles.header}>
         <Text style={styles.headerLogoText}>BKJ</Text>
-        {!isLastSlide && (
+        <Animated.View style={{ opacity: skipButtonOpacity }}>
           <TouchableOpacity 
             style={styles.skipButton} 
             onPress={() => onGetStarted('skip')}
             activeOpacity={0.7}
+            disabled={activeIndex === 2}
           >
             <Text style={styles.skipButtonText}>Skip</Text>
           </TouchableOpacity>
-        )}
+        </Animated.View>
       </View>
 
       {/* Onboarding Slider */}
-      <ScrollView
+      <Animated.ScrollView
         ref={scrollViewRef}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onScroll={onScroll}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: true, listener: onScroll }
+        )}
         scrollEventThrottle={16}
         style={styles.scrollView}
       >
-        {SLIDES.map((slide) => (
-          <View key={slide.id} style={styles.slideContainer}>
-            <View style={styles.animationContainer}>
-              <LottieView
-                source={slide.lottie}
-                style={styles.lottieView}
-                autoPlay
-                loop
-              />
-            </View>
-            
-            <Animated.View style={[styles.textWrapper, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-              <Text style={styles.title}>{slide.title}</Text>
-              <Text style={styles.description}>{slide.description}</Text>
-            </Animated.View>
-          </View>
+        {SLIDES.map((slide, i) => (
+          <OnboardingSlide
+            key={slide.id}
+            slide={slide}
+            index={i}
+            scrollX={scrollX}
+          />
         ))}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Footer containing Pagination Dots & Action Buttons */}
       <View style={[styles.footer, { paddingBottom: insets.bottom > 0 ? insets.bottom + 16 : 40 }]}>
         
         {/* Pagination indicator dots */}
         <View style={styles.paginationRow}>
-          {SLIDES.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.dot,
-                activeIndex === i ? styles.activeDot : styles.inactiveDot
-              ]}
-            />
-          ))}
+          {SLIDES.map((_, i) => {
+            const dotScaleX = scrollX.interpolate({
+              inputRange: [
+                (i - 1) * width,
+                i * width,
+                (i + 1) * width
+              ],
+              outputRange: [1, 3, 1],
+              extrapolate: 'clamp',
+            });
+
+            const dotOpacity = scrollX.interpolate({
+              inputRange: [
+                (i - 1) * width,
+                i * width,
+                (i + 1) * width
+              ],
+              outputRange: [0.18, 1, 0.18],
+              extrapolate: 'clamp',
+            });
+
+            return (
+              <Animated.View
+                key={i}
+                style={[
+                  styles.dot,
+                  {
+                    opacity: dotOpacity,
+                    transform: [{ scaleX: dotScaleX }],
+                  }
+                ]}
+              />
+            );
+          })}
         </View>
 
         {/* Action Button Area */}
         <View style={styles.buttonWrapper}>
-          {!isLastSlide ? (
-            <TouchableOpacity 
-              style={styles.primaryBtn} 
-              onPress={handleNext} 
-              activeOpacity={0.88}
+          <TouchableOpacity 
+            style={styles.primaryBtn} 
+            onPress={isLastSlide ? () => onGetStarted('skip') : handleNext} 
+            activeOpacity={0.88}
+          >
+            {/* Next button content */}
+            <Animated.View 
+              style={[
+                styles.primaryBtnContent, 
+                { 
+                  opacity: nextOpacity,
+                  transform: [{ scale: nextOpacity }]
+                }
+              ]}
+              pointerEvents={isLastSlide ? 'none' : 'auto'}
             >
               <Text style={styles.primaryBtnText}>Next</Text>
               <Ionicons name="arrow-forward" size={18} color="#E8F542" style={{ marginLeft: 6 }} />
-            </TouchableOpacity>
-          ) : (
-            <>
-              <TouchableOpacity 
-                style={styles.primaryBtn} 
-                onPress={() => onGetStarted('skip')} 
-                activeOpacity={0.88}
-              >
-                <Text style={styles.primaryBtnText}>Get Started</Text>
-                <Ionicons name="rocket-outline" size={18} color="#E8F542" style={{ marginLeft: 6 }} />
-              </TouchableOpacity>
+            </Animated.View>
 
-              <TouchableOpacity 
-                style={styles.secondaryBtn} 
-                onPress={() => onGetStarted('login')} 
-                activeOpacity={0.88}
-              >
-                <Text style={styles.secondaryBtnText}>Sign In</Text>
-              </TouchableOpacity>
-            </>
-          )}
+            {/* Get Started button content */}
+            <Animated.View 
+              style={[
+                styles.primaryBtnContent, 
+                { 
+                  opacity: getStartedOpacity,
+                  transform: [{ scale: getStartedOpacity }]
+                }
+              ]}
+              pointerEvents={isLastSlide ? 'auto' : 'none'}
+            >
+              <Text style={styles.primaryBtnText}>Get Started</Text>
+              <Ionicons name="rocket-outline" size={18} color="#E8F542" style={{ marginLeft: 6 }} />
+            </Animated.View>
+          </TouchableOpacity>
+
+          <Animated.View style={{ opacity: secondaryBtnOpacity }}>
+            <TouchableOpacity 
+              style={styles.secondaryBtn} 
+              onPress={() => onGetStarted('login')} 
+              activeOpacity={0.88}
+              disabled={activeIndex !== 2}
+            >
+              <Text style={styles.secondaryBtnText}>Sign In</Text>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
 
       </View>
     </View>
   );
 }
+
+const OnboardingSlide = React.memo(({ slide, index, scrollX }) => {
+  const opacity = scrollX.interpolate({
+    inputRange: [
+      (index - 0.75) * width,
+      index * width,
+      (index + 0.75) * width
+    ],
+    outputRange: [0, 1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const translateY = scrollX.interpolate({
+    inputRange: [
+      (index - 0.75) * width,
+      index * width,
+      (index + 0.75) * width
+    ],
+    outputRange: [24, 0, 24],
+    extrapolate: 'clamp',
+  });
+
+  return (
+    <View style={styles.slideContainer}>
+      <View style={styles.animationContainer}>
+        <LottieView
+          source={slide.lottie}
+          style={styles.lottieView}
+          autoPlay
+          loop
+        />
+      </View>
+      
+      <Animated.View style={[styles.textWrapper, { opacity, transform: [{ translateY }] }]}>
+        <Text style={styles.title}>{slide.title}</Text>
+        <Text style={styles.description}>{slide.description}</Text>
+      </Animated.View>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -266,17 +348,10 @@ const styles = StyleSheet.create({
   },
   dot: {
     height: 8,
-    borderRadius: 4,
-    marginHorizontal: 4,
-    backgroundColor: '#1A1A1A',
-  },
-  activeDot: {
-    width: 24,
-    opacity: 1,
-  },
-  inactiveDot: {
     width: 8,
-    opacity: 0.18,
+    borderRadius: 4,
+    marginHorizontal: 6,
+    backgroundColor: '#1A1A1A',
   },
   buttonWrapper: {
     width: '100%',
@@ -286,13 +361,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1A1A', // Sleek jet black
     borderRadius: 28,
     height: 58,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#1A1A1A',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
+  },
+  primaryBtnContent: {
+    position: 'absolute',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryBtnText: {
     fontSize: 16,

@@ -188,8 +188,8 @@ function PostJobSkeleton() {
   );
 }
 
-export default function PostJobScreen() {
-  const { postJob } = useAuth();
+export default function PostJobScreen({ navigation }) {
+  const { postJob, user } = useAuth();
   const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
   const [company, setCompany] = useState('');
@@ -332,7 +332,7 @@ export default function PostJobScreen() {
         <View style={styles.successCard}>
           <View style={styles.successIcon}>
             <LottieView
-              source={require('../../assets/success.lottie')}
+              source={require('../../assets/success.json')}
               style={{ width: 240, height: 240 }}
               autoPlay
               loop={false}
@@ -343,6 +343,32 @@ export default function PostJobScreen() {
 
           <TouchableOpacity style={styles.postAnotherBtn} onPress={handleReset} activeOpacity={0.88}>
             <Text style={styles.postAnotherBtnText}>Post Another Listing</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  if (user && !user.phone) {
+    return (
+      <View style={styles.blockedContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
+        <View style={styles.blockedCard}>
+          <View style={styles.blockedIconCircle}>
+            <Ionicons name="call-outline" size={44} color="#B91C1C" />
+          </View>
+          <Text style={styles.blockedTitle}>Phone Number Required</Text>
+          <Text style={styles.blockedSub}>
+            To maintain a professional and authentic job marketplace, BKJ requires all employers to have a valid phone number before posting job opportunities.
+          </Text>
+          
+          <TouchableOpacity
+            style={styles.blockedBtn}
+            onPress={() => navigation.navigate('Profile')}
+            activeOpacity={0.88}
+          >
+            <Text style={styles.blockedBtnText}>Add Phone Number Now</Text>
+            <Ionicons name="arrow-forward" size={16} color="#1A1A1A" style={{ marginLeft: 6 }} />
           </TouchableOpacity>
         </View>
       </View>
@@ -827,6 +853,68 @@ const styles = StyleSheet.create({
   modalItemText: {
     fontSize: FONTS.sizes.md,
     fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  blockedContainer: {
+    flex: 1,
+    backgroundColor: COLORS.bgPrimary,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  blockedCard: {
+    backgroundColor: COLORS.bgCard,
+    borderRadius: 28,
+    padding: 36,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    elevation: 2,
+  },
+  blockedIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  blockedTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#991B1B',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  blockedSub: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  blockedBtn: {
+    backgroundColor: COLORS.accentYellow,
+    borderRadius: 24,
+    height: 52,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    shadowColor: COLORS.accentYellow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  blockedBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
     color: COLORS.textPrimary,
   },
 });

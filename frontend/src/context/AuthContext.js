@@ -250,6 +250,10 @@ export const AuthProvider = ({ children }) => {
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
   const [signingUp, setSigningUp] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [appliedJobs, setAppliedJobs] = useState([]);
+
+  // Geo-targeting: auto-detected country from IP
+  const [userCountry, setUserCountry] = useState(null);
 
   const [spamBlockUntil, setSpamBlockUntil] = useState(0);
   const [spamModalVisible, setSpamModalVisible] = useState(false);
@@ -276,6 +280,105 @@ export const AuthProvider = ({ children }) => {
     };
     loadBlockTime();
   }, []);
+
+  // ─── Geo-Detect User Country (IP-based, no permissions needed) ──────────────
+  useEffect(() => {
+    const ISO_TO_NAME = {
+      PK: 'Pakistan', IN: 'India', AE: 'United Arab Emirates', SA: 'Saudi Arabia',
+      US: 'United States', GB: 'United Kingdom', CA: 'Canada', AU: 'Australia',
+      QA: 'Qatar', KW: 'Kuwait', BH: 'Bahrain', OM: 'Oman', DE: 'Germany',
+      FR: 'France', IT: 'Italy', ES: 'Spain', NL: 'Netherlands', SE: 'Sweden',
+      NO: 'Norway', DK: 'Denmark', IE: 'Ireland', NZ: 'New Zealand',
+      CN: 'China', JP: 'Japan', KR: 'South Korea', SG: 'Singapore',
+      MY: 'Malaysia', PH: 'Philippines', TH: 'Thailand', BD: 'Bangladesh',
+      TR: 'Turkey', EG: 'Egypt', ZA: 'South Africa', NG: 'Nigeria',
+      BR: 'Brazil', MX: 'Mexico', AF: 'Afghanistan', NP: 'Nepal',
+      ID: 'Indonesia', VN: 'Vietnam', LK: 'Sri Lanka', IQ: 'Iraq',
+      JO: 'Jordan', LB: 'Lebanon', IR: 'Iran', RU: 'Russia', PL: 'Poland',
+      PT: 'Portugal', BE: 'Belgium', AT: 'Austria', GR: 'Greece', CZ: 'Czech Republic',
+      RO: 'Romania', HU: 'Hungary', FI: 'Finland', CH: 'Switzerland',
+    };
+
+    const detectCountry = async () => {
+      console.log('🌍 [GEO] Starting country detection...');
+
+      // Step 1: Load from cache first (instant)
+      try {
+        const cached = await AsyncStorage.getItem('@bkj_user_country');
+        if (cached) {
+          setUserCountry(cached);
+          console.log('🌍 [GEO] Loaded from cache:', cached);
+        }
+      } catch (cacheErr) {
+        console.warn('🌍 [GEO] Cache read failed:', cacheErr.message);
+      }
+
+      // Step 2: Try ip-api.com (no HTTPS restriction, mobile-friendly, 10k/day free)
+      try {
+        console.log('🌍 [GEO] Trying ip-api.com...');
+        const r1 = await fetch('http://ip-api.com/json/?fields=country', {
+          method: 'GET',
+        });
+        console.log('🌍 [GEO] ip-api.com status:', r1.status);
+        if (r1.ok) {
+          const d1 = await r1.json();
+          console.log('🌍 [GEO] ip-api.com response:', JSON.stringify(d1));
+          if (d1.country) {
+            setUserCountry(d1.country);
+            await AsyncStorage.setItem('@bkj_user_country', d1.country);
+            console.log('🌍 [GEO] ✅ Country set to:', d1.country);
+            return;
+          }
+        }
+      } catch (e1) {
+        console.warn('🌍 [GEO] ip-api.com failed:', e1.message);
+      }
+
+      // Step 3: Try ipapi.co as fallback
+      try {
+        console.log('🌍 [GEO] Trying ipapi.co...');
+        const r2 = await fetch('https://ipapi.co/json/');
+        console.log('🌍 [GEO] ipapi.co status:', r2.status);
+        if (r2.ok) {
+          const d2 = await r2.json();
+          console.log('🌍 [GEO] ipapi.co response:', JSON.stringify(d2).substring(0, 100));
+          const country = d2.country_name || null;
+          if (country) {
+            setUserCountry(country);
+            await AsyncStorage.setItem('@bkj_user_country', country);
+            console.log('🌍 [GEO] ✅ Country set to:', country);
+            return;
+          }
+        }
+      } catch (e2) {
+        console.warn('🌍 [GEO] ipapi.co failed:', e2.message);
+      }
+
+      // Step 4: Try api.country.is (ISO code based)
+      try {
+        console.log('🌍 [GEO] Trying api.country.is...');
+        const r3 = await fetch('https://api.country.is/');
+        console.log('🌍 [GEO] api.country.is status:', r3.status);
+        if (r3.ok) {
+          const d3 = await r3.json();
+          console.log('🌍 [GEO] api.country.is response:', JSON.stringify(d3));
+          const countryName = ISO_TO_NAME[d3.country] || d3.country || null;
+          if (countryName) {
+            setUserCountry(countryName);
+            await AsyncStorage.setItem('@bkj_user_country', countryName);
+            console.log('🌍 [GEO] ✅ Country set to:', countryName);
+            return;
+          }
+        }
+      } catch (e3) {
+        console.warn('🌍 [GEO] api.country.is failed:', e3.message);
+      }
+
+      console.warn('🌍 [GEO] ❌ All 3 geo APIs failed. Geo-targeting unavailable.');
+    };
+
+    detectCountry();
+  }, []); // Run once on app startup
 
   // Clear caches when the logged-in user changes (logout/login)
   useEffect(() => {
@@ -602,7 +705,106 @@ export const AuthProvider = ({ children }) => {
         console.warn('Failed to load liked jobs:', e);
       }
     };
+
+    const loadUserAppliedJobs = async () => {
+      try {
+        const key = user ? `@bkj_applied_jobs_${user.id}` : '@bkj_applied_jobs_guest';
+
+        // 1. Load from local AsyncStorage first (instant UI, works offline)
+        const saved = await AsyncStorage.getItem(key);
+        let localList = [];
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          localList = parsed.map(item => {
+            if (typeof item === 'object' && item !== null && item.jobId) return item;
+            return { jobId: item, appliedAt: new Date().toISOString() };
+          });
+          setAppliedJobs(localList);
+
+          // Reconcile applicants counts for previously applied jobs in local state
+          const localIds = localList.map(item => item.jobId);
+          setJobs(prevJobs => prevJobs.map(j => {
+            if (localIds.includes(j.id) && !j.appliedByUser) {
+              return { ...j, applicants: (j.applicants || 0) + 1, appliedByUser: true };
+            }
+            return j;
+          }));
+        }
+
+        // 2. If logged in with real DB, fetch from the real `applications` table
+        if (!isMockMode && user) {
+          const { data: dbApps, error } = await supabase
+            .from('applications')
+            .select('job_id, created_at')
+            .eq('applicant_id', user.id);
+
+          if (!error && dbApps) {
+            console.log(`✅ [APPLIED] Loaded ${dbApps.length} applications from database.`);
+            const dbList = dbApps.map(item => ({
+              jobId: item.job_id,
+              appliedAt: item.created_at || new Date().toISOString()
+            }));
+
+            // Merge: DB is source of truth; keep any local items not yet synced to DB
+            const merged = [...dbList];
+            const dbJobIds = dbList.map(d => d.jobId);
+            const localOnlyItems = [];
+
+            localList.forEach(localItem => {
+              const exists = dbJobIds.includes(localItem.jobId);
+              if (!exists) {
+                merged.push(localItem);
+                localOnlyItems.push(localItem); // these need to be synced to DB
+              }
+            });
+
+            // ── Auto-sync old local applications to Supabase ─────────────────
+            if (localOnlyItems.length > 0) {
+              console.log(`🔄 [SYNC] Syncing ${localOnlyItems.length} old local applications to Supabase...`);
+              localOnlyItems.forEach(async (item) => {
+                const { error: syncErr } = await supabase
+                  .from('applications')
+                  .insert({
+                    job_id: item.jobId,
+                    applicant_id: user.id,
+                    created_at: item.appliedAt || new Date().toISOString()
+                  });
+                if (!syncErr) {
+                  console.log(`✅ [SYNC] Old application synced to DB: ${item.jobId}`);
+                } else {
+                  // Ignore duplicate key errors (already exists)
+                  if (!syncErr.code?.includes('23505')) {
+                    console.warn(`⚠️ [SYNC] Failed to sync ${item.jobId}:`, syncErr.message);
+                  }
+                }
+              });
+            }
+
+            // Persist merged back to AsyncStorage for offline support
+            AsyncStorage.setItem(key, JSON.stringify(merged)).catch(e => console.warn(e));
+            setAppliedJobs(merged);
+
+            // Reconcile job counts with the merged list
+            const mergedIds = merged.map(item => item.jobId);
+            setJobs(prevJobs => prevJobs.map(j => {
+              if (mergedIds.includes(j.id) && !j.appliedByUser) {
+                return { ...j, applicants: (j.applicants || 0) + 1, appliedByUser: true };
+              }
+              return j;
+            }));
+          } else if (error) {
+            console.warn('⚠️ [APPLIED] Failed to fetch applications from DB:', error.message);
+          }
+        } else if (!saved) {
+          setAppliedJobs([]);
+        }
+      } catch (e) {
+        console.warn('Failed to load applied jobs:', e);
+      }
+    };
+
     loadUserLikedJobs();
+    loadUserAppliedJobs();
 
     if (user !== null) {
       setIsGuest(false);
@@ -696,11 +898,53 @@ export const AuthProvider = ({ children }) => {
         let dbLocation = data?.location || 'Pakistan';
         let phone = data?.phone || sessionUser?.user_metadata?.phone || '';
 
-        // Unpack phone from packed location format if present
-        if (dbLocation && dbLocation.includes('|phone:')) {
-          const parts = dbLocation.split('|phone:');
+        let appliedFromDb = [];
+        // Unpack phone and applied from packed location format if present
+        if (dbLocation && dbLocation.includes('|')) {
+          const parts = dbLocation.split('|');
           dbLocation = parts[0] || 'Pakistan';
-          phone = parts[1] || phone;
+
+          const phonePart = parts.find(p => p.startsWith('phone:'));
+          if (phonePart) {
+            phone = phonePart.replace('phone:', '');
+          }
+
+          const appliedPart = parts.find(p => p.startsWith('applied:'));
+          if (appliedPart) {
+            const listStr = appliedPart.replace('applied:', '');
+            if (listStr) {
+              appliedFromDb = listStr.split(',').map(id => ({
+                jobId: id,
+                appliedAt: new Date().toISOString()
+              }));
+            }
+          }
+        }
+
+        // Merge database-loaded applications into local storage scoped by user ID
+        if (appliedFromDb.length > 0) {
+          const key = `@bkj_applied_jobs_${userId}`;
+          AsyncStorage.getItem(key).then((saved) => {
+            let localList = saved ? JSON.parse(saved) : [];
+            const merged = [...localList];
+            appliedFromDb.forEach(dbItem => {
+              const exists = merged.some(localItem => {
+                const id = typeof localItem === 'object' ? localItem.jobId : localItem;
+                return id === dbItem.jobId;
+              });
+              if (!exists) {
+                merged.push(dbItem);
+              }
+            });
+            const normalized = merged.map(item => {
+              if (typeof item === 'object' && item !== null && item.jobId) {
+                return item;
+              }
+              return { jobId: item, appliedAt: new Date().toISOString() };
+            });
+            AsyncStorage.setItem(key, JSON.stringify(normalized)).catch(e => console.warn(e));
+            setAppliedJobs(normalized);
+          }).catch(e => console.warn(e));
         }
 
         // If the phone number contains an '@' (due to browser autofill or Google meta mismatch), treat it as empty
@@ -1123,6 +1367,24 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
+      // Query real applicant counts from the `applications` table (one row = one applicant)
+      let dbApplicationCounts = {};
+      if (!isMockMode) {
+        try {
+          const { data: appCountData, error: appCountErr } = await supabase
+            .from('applications')
+            .select('job_id');
+          if (!appCountErr && appCountData) {
+            appCountData.forEach(app => {
+              dbApplicationCounts[app.job_id] = (dbApplicationCounts[app.job_id] || 0) + 1;
+            });
+            console.log(`✅ [APPLICANTS] Loaded counts for ${Object.keys(dbApplicationCounts).length} jobs from DB.`);
+          }
+        } catch (e) {
+          console.warn('Failed to fetch application counts:', e);
+        }
+      }
+
       const savedLocal = await AsyncStorage.getItem('@bkj_global_notifications');
       const localNotifs = savedLocal ? JSON.parse(savedLocal) : [];
 
@@ -1137,6 +1399,9 @@ export const AuthProvider = ({ children }) => {
           uniqueLocalNotifs.push(n);
         }
       }
+
+      // Check which jobs the user has applied to
+      const appliedIds = appliedJobs.map(item => typeof item === 'object' ? item.jobId : item);
 
       const mapped = data.map((job) => {
         let likesCount = job.likes || 0;
@@ -1200,7 +1465,10 @@ export const AuthProvider = ({ children }) => {
           postedAt: formatTimeAgo(job.created_at),
           likes: likesCount,
           createdAtTimestamp: job.created_at ? new Date(job.created_at).getTime() : Date.now(),
-          applicants: job.applicants_count || 0,
+          applicants: !isMockMode && dbApplicationCounts[job.id] !== undefined
+            ? dbApplicationCounts[job.id]
+            : (appliedIds.includes(job.id) ? (job.applicants_count || 0) + 1 : (job.applicants_count || 0)),
+          appliedByUser: appliedIds.includes(job.id),
         };
       });
       setJobs(rankJobs(mapped));
@@ -1353,6 +1621,8 @@ export const AuthProvider = ({ children }) => {
     setLoggingIn(true);
     try {
       if (isMockMode) {
+        // Premium transition delay to show loading splash screen
+        await new Promise((res) => setTimeout(res, 1500));
         let loggedInUser;
         if (!email) { loggedInUser = users[0]; }
         else {
@@ -1439,6 +1709,8 @@ export const AuthProvider = ({ children }) => {
     setLoggingIn(true);
     try {
       if (isMockMode) {
+        // Premium transition delay to show loading splash screen
+        await new Promise((res) => setTimeout(res, 1500));
         setUser(users[0]);
         return { success: true };
       }
@@ -1504,6 +1776,8 @@ export const AuthProvider = ({ children }) => {
     setSigningUp(true);
     try {
       if (isMockMode) {
+        // Premium transition delay to show loading splash screen
+        await new Promise((res) => setTimeout(res, 1500));
         const exists = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
         if (exists) return { success: false, message: 'Email already registered' };
         const newUser = {
@@ -1551,6 +1825,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     setLoggingOut(true);
     setLikedJobs([]); // Clear active likes immediately so state does not leak during transitions
+    setAppliedJobs([]); // Clear active applied jobs immediately too
     // Brief delay so the "Logging out..." splash is visible
     await new Promise((res) => setTimeout(res, 1800));
     setIsGuest(false);
@@ -1591,7 +1866,19 @@ export const AuthProvider = ({ children }) => {
   // ─── Update Profile ────────────────────────────────────────────────────────
   const updateProfile = async (updates) => {
     if (isMockMode) {
-      setUser((prev) => ({ ...prev, ...updates }));
+      setUser((prev) => {
+        const newUser = { ...prev, ...updates };
+        AsyncStorage.setItem(SESSION_KEY, JSON.stringify(newUser)).catch(err => {
+          console.warn('Failed to save mock user profile:', err);
+        });
+
+        // Also update in the global mock users array
+        setUsers((prevUsers) =>
+          prevUsers.map(u => u.id === prev.id ? { ...u, ...updates } : u)
+        );
+
+        return newUser;
+      });
       return { success: true };
     }
     const withTimeout = async (promise, ms) => {
@@ -1763,6 +2050,22 @@ export const AuthProvider = ({ children }) => {
 
       console.log('✅ [PROFILE] Profile updated successfully!');
 
+      // Asynchronously sync Supabase Auth metadata for name/phone in the background to ensure session stays fully aligned
+      supabase.auth.updateUser({
+        data: {
+          name: updates.name,
+          phone: updates.phone
+        }
+      }).then(({ error: authErr }) => {
+        if (authErr) {
+          console.log('ℹ️ Background metadata sync info (safe to ignore):', authErr.message);
+        } else {
+          console.log('✅ Background auth user metadata synced successfully.');
+        }
+      }).catch(err => {
+        console.log('ℹ️ Background metadata sync exception:', err);
+      });
+
       setUser((prev) => ({
         ...prev,
         ...updates,
@@ -1829,6 +2132,77 @@ export const AuthProvider = ({ children }) => {
   const getMyJobs = () => jobs.filter((j) => j.postedBy === user?.id);
   const getUserById = (id) => users.find((u) => u.id === id) || INITIAL_USERS.find((u) => u.id === id);
 
+  const applyToJob = async (jobId) => {
+    const jobToUpdate = jobs.find(j => j.id === jobId);
+    if (!jobToUpdate) return;
+
+    // Check if already applied to prevent duplicate count increment
+    const alreadyApplied = appliedJobs.some(item => {
+      const id = typeof item === 'object' ? item.jobId : item;
+      return id === jobId;
+    });
+    if (alreadyApplied) return;
+
+    // 1. Add to appliedJobs local list
+    const newAppliedItem = { jobId, appliedAt: new Date().toISOString() };
+    const newApplied = [...appliedJobs, newAppliedItem];
+    setAppliedJobs(newApplied);
+    const key = user ? `@bkj_applied_jobs_${user.id}` : '@bkj_applied_jobs_guest';
+    await AsyncStorage.setItem(key, JSON.stringify(newApplied)).catch((e) => {
+      console.warn('Failed to save applied jobs to AsyncStorage:', e);
+    });
+
+    // 2. Increment applicants count locally in state
+    setJobs(prevJobs => {
+      return prevJobs.map(j => {
+        if (j.id === jobId) {
+          return { ...j, applicants: (j.applicants || 0) + 1 };
+        }
+        return j;
+      });
+    });
+
+    // 3. Update Database if not mock mode and user is logged in
+    if (!isMockMode && user) {
+      try {
+        console.log(`📤 [APPLICATION] Saving: job_id=${jobId}, applicant_id=${user.id}`);
+
+        // Insert into the real `applications` table (awaited for full error visibility)
+        const { data: insertData, error: insertError } = await supabase
+          .from('applications')
+          .insert({
+            job_id: jobId,
+            applicant_id: user.id,
+            created_at: new Date().toISOString()
+          })
+          .select();
+
+        if (insertError) {
+          console.error('❌ [APPLICATION] Insert FAILED:', {
+            message: insertError.message,
+            code: insertError.code,
+            details: insertError.details,
+            hint: insertError.hint,
+          });
+        } else {
+          console.log('✅ [APPLICATION] Saved to Supabase!', insertData);
+
+          // Also bump applicants_count on the jobs table for consistency
+          const newApplicantsCount = (jobToUpdate.applicants || 0) + 1;
+          supabase
+            .from('jobs')
+            .update({ applicants_count: newApplicantsCount })
+            .eq('id', jobId)
+            .then(({ error }) => {
+              if (error) console.warn('⚠️ [JOBS] applicants_count update failed:', error.message);
+            });
+        }
+      } catch (err) {
+        console.error('❌ [APPLICATION] Exception:', err.message);
+      }
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -1849,6 +2223,8 @@ export const AuthProvider = ({ children }) => {
         fetchJobs,
         likedJobs,
         likeJob,
+        appliedJobs,
+        applyToJob,
         notification,
         notifications,
         addNotification,
@@ -1856,13 +2232,14 @@ export const AuthProvider = ({ children }) => {
         signingUp,
         loggingIn,
         fetchRealNotifications,
+        userCountry,
       }}
     >
       {children}
-      <SpamAlertGlobalModal 
-        visible={spamModalVisible} 
-        until={spamBlockUntil} 
-        onClose={() => setSpamModalVisible(false)} 
+      <SpamAlertGlobalModal
+        visible={spamModalVisible}
+        until={spamBlockUntil}
+        onClose={() => setSpamModalVisible(false)}
       />
     </AuthContext.Provider>
   );
@@ -1904,7 +2281,7 @@ function SpamAlertGlobalModal({ visible, until, onClose }) {
           <Text style={spamStyles.spamMessage}>
             You have liked and unliked too quickly. Your interest toggling has been locked temporarily to prevent network spamming.
           </Text>
-          
+
           <View style={spamStyles.timerBadge}>
             <Text style={spamStyles.timerLabel}>Restriction remaining:</Text>
             <Text style={spamStyles.timerText}>{timeLeft || '10:00'}</Text>

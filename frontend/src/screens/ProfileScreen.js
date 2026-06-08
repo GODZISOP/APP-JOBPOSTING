@@ -15,35 +15,57 @@ import AdBanner from '../components/AdBanner';
 
 const { width } = Dimensions.get('window');
 
-function DottedColumn({ height, active }) {
-  const dotCount = Math.max(3, Math.min(10, Math.floor(height / 8)));
-  const dots = [];
-  for (let i = 0; i < dotCount; i++) {
-    dots.push(
-      <View
-        key={i}
-        style={[
-          styles.chartDot,
-          active ? styles.chartDotActive : styles.chartDotInactive,
-          { opacity: 0.3 + (i / dotCount) * 0.7 },
-        ]}
-      />
-    );
-  }
+function DottedColumn({ height, active, onPress }) {
+  const heightAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(heightAnim, {
+      toValue: height,
+      tension: 50,
+      friction: 6,
+      useNativeDriver: false,
+    }).start();
+  }, [height]);
+
   return (
-    <View style={styles.chartColumn}>
+    <TouchableOpacity
+      style={styles.chartColumn}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
       {active && (
         <View style={styles.peakIndicatorContainer}>
           <View style={styles.peakRing} />
           <View style={styles.peakCore} />
         </View>
       )}
-      <View style={[styles.dotsWrapper, active && styles.dotsWrapperActive]}>
-        {dots.reverse()}
-      </View>
-    </View>
+      <Animated.View style={[
+        styles.barWrapper,
+        active ? styles.barActive : styles.barInactive,
+        { height: heightAnim }
+      ]} />
+    </TouchableOpacity>
   );
 }
+
+const parseSalary = (salaryStr) => {
+  if (!salaryStr) return 0;
+  const numbers = salaryStr.replace(/,/g, '').match(/\d+/g);
+  if (!numbers || numbers.length === 0) return 0;
+  let value = 0;
+  if (numbers.length >= 2) {
+    const min = parseFloat(numbers[0]);
+    const max = parseFloat(numbers[1]);
+    value = (min + max) / 2;
+  } else {
+    value = parseFloat(numbers[0]);
+  }
+  const isHourly = salaryStr.toLowerCase().includes('hr') || salaryStr.toLowerCase().includes('hour');
+  if (isHourly) {
+    value = value * 160; // 160 hours/month
+  }
+  return value;
+};
 
 // ─── Profile Skeleton Component ──────────────────────────────────────────────
 function ProfileSkeleton() {
@@ -125,9 +147,23 @@ function ProfileSkeleton() {
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { user, logout, updateProfile, getMyJobs, getUserById, setIsGuest, jobs, likedJobs, notifications, clearNotifications, fetchJobs, fetchRealNotifications } = useAuth();
+  const { user, logout, updateProfile, getMyJobs, getUserById, setIsGuest, jobs, likedJobs, appliedJobs, notifications, clearNotifications, fetchJobs, fetchRealNotifications } = useAuth();
   const myJobs = getMyJobs ? getMyJobs() : [];
   const bookmarkedJobs = (jobs || []).filter(j => likedJobs?.includes(j.id));
+  const appliedJobsList = (jobs || []).reduce((acc, job) => {
+    const applyInfo = appliedJobs?.find(item => {
+      const id = typeof item === 'object' ? item.jobId : item;
+      return id === job.id;
+    });
+    if (applyInfo) {
+      const date = typeof applyInfo === 'object' ? applyInfo.appliedAt : new Date().toISOString();
+      acc.push({
+        ...job,
+        appliedAtDate: date
+      });
+    }
+    return acc;
+  }, []);
 
   // ─── ALL HOOKS MUST BE AT THE TOP (Rules of Hooks) ─────────────────────────
   const [notif, setNotif] = useState(true);
@@ -150,6 +186,23 @@ export default function ProfileScreen() {
   const isFocused = useIsFocused();
   const [lastAvatar, setLastAvatar] = useState(user?.avatar || '');
   const [newAvatarUri, setNewAvatarUri] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(null);
+
+  // Sync chart selectedIndex with active list updates
+  useEffect(() => {
+    const list = user?.role === 'employer' ? myJobs : appliedJobsList;
+    if (list && list.length > 0) {
+      const parsedValues = list.slice(-15).map(job => parseSalary(job.salary));
+      const maxIndex = parsedValues.indexOf(Math.max(...parsedValues));
+      if (maxIndex !== -1 && maxIndex < list.slice(-15).length) {
+        setSelectedIndex(maxIndex);
+      } else {
+        setSelectedIndex(0);
+      }
+    } else {
+      setSelectedIndex(null);
+    }
+  }, [appliedJobsList.length, myJobs.length, user?.role]);
 
   // Trigger loading skeleton ONLY when the user ID transitions (e.g., login)
   const lastUserId = useRef(user?.id || null);
@@ -587,16 +640,82 @@ export default function ProfileScreen() {
     );
   }
 
-  const chartData = [
-    { height: 25, active: false }, { height: 35, active: false },
-    { height: 18, active: false }, { height: 48, active: false },
-    { height: 55, active: false }, { height: 30, active: false },
-    { height: 40, active: false }, { height: 82, active: true },
-    { height: 35, active: false }, { height: 50, active: false },
-    { height: 22, active: false }, { height: 44, active: false },
-    { height: 60, active: false }, { height: 38, active: false },
-    { height: 28, active: false },
-  ];
+  const userRole = user?.role || 'jobseeker';
+  const isEmployer = userRole === 'employer';
+  const activeList = isEmployer ? myJobs : appliedJobsList;
+
+  // Calculate total spend/potential rate
+  let totalSpend = 0;
+  activeList.forEach(job => {
+    totalSpend += parseSalary(job.salary);
+  });
+
+  let chartData = [];
+  if (isEmployer) {
+    if (activeList.length > 0) {
+      const listToUse = activeList.slice(-15); // limit to last 15 items
+      const parsedValues = listToUse.map(job => parseSalary(job.salary));
+      const maxVal = Math.max(...parsedValues, 1);
+
+      chartData = listToUse.map((job, idx) => {
+        const val = parsedValues[idx];
+        // Map value to height percentage (15 to 80)
+        const height = Math.max(15, Math.min(80, Math.round((val / maxVal) * 80)));
+        return { 
+          height, 
+          job, 
+          val,
+          label: `J${idx + 1}`,
+          dateLabel: job.title,
+          appCount: 1
+        };
+      });
+    } else {
+      // Fallback placeholder wave when empty
+      chartData = [
+        { height: 15 }, { height: 20 }, { height: 25 }, { height: 22 },
+        { height: 18 }, { height: 30 }, { height: 35 }, { height: 40 },
+        { height: 32 }, { height: 25 }, { height: 20 }, { height: 18 },
+        { height: 22 }, { height: 28 }, { height: 15 }
+      ].map((d, i) => ({ ...d, label: `${i}`, dateLabel: '', appCount: 0 }));
+    }
+  } else {
+    // Job Seeker: 7-day Application Timeline
+    const getLast7Days = () => {
+      const days = [];
+      const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push({
+          dateString: d.toDateString(),
+          label: weekdays[d.getDay()],
+          rawDate: d,
+        });
+      }
+      return days;
+    };
+
+    const daysList = getLast7Days();
+    chartData = daysList.map((day) => {
+      const jobsOnDay = appliedJobsList.filter(job => {
+        const jobDate = new Date(job.appliedAtDate).toDateString();
+        return jobDate === day.dateString;
+      });
+
+      const appCount = jobsOnDay.length;
+      // 0 apps -> 15% height, 1 app -> 45% height, 2 apps -> 65%, 3+ apps -> 80%
+      const height = appCount === 0 ? 15 : Math.min(80, 25 + appCount * 20);
+
+      return {
+        height,
+        label: day.label,
+        dateLabel: day.rawDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' }),
+        jobs: jobsOnDay,
+        appCount,
+      };
+    });
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -812,7 +931,6 @@ export default function ProfileScreen() {
             </View>
           </View>
         )}
-
         {/* Job Title Info */}
         {!editing && user?.title && (
           <View style={styles.titleCard}>
@@ -831,20 +949,100 @@ export default function ProfileScreen() {
         {/* Dotted Chart Card */}
         <View style={styles.chartCard}>
           <View style={styles.chartCardHeader}>
-            <Text style={styles.chartCardTitle}>Total Rate</Text>
-            <TouchableOpacity style={styles.dropdownBtn}>
-              <Text style={styles.dropdownText}>Yearly </Text>
-              <Ionicons name="chevron-down" size={12} color={COLORS.textSecondary} />
-            </TouchableOpacity>
+            <Text style={styles.chartCardTitle}>
+              {isEmployer ? 'Hiring Budget' : 'Application Timeline'}
+            </Text>
+            <View style={styles.dropdownBtn}>
+              <Text style={styles.dropdownText}>
+                {isEmployer ? 'My Postings' : 'Last 7 Days'}
+              </Text>
+            </View>
           </View>
           <View style={styles.rateBadge}>
-            <Text style={styles.rateValue}>$118,952.34</Text>
-            <Text style={styles.rateLabel}>Total Spend</Text>
+            <Text style={styles.rateValue}>
+              {isEmployer 
+                ? `$${totalSpend.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
+                : `${appliedJobsList.length} ${appliedJobsList.length === 1 ? 'Application' : 'Applications'}`}
+            </Text>
+            <Text style={styles.rateLabel}>
+              {isEmployer 
+                ? 'Total Spend Rate / mo' 
+                : 'Application History Timeline'}
+            </Text>
           </View>
-          <View style={styles.chartVisualizer}>
-            {chartData.map((data, index) => (
-              <DottedColumn key={index} height={data.height} active={data.active} />
-            ))}
+          <View style={{ position: 'relative' }}>
+            {activeList.length > 0 && selectedIndex !== null && chartData[selectedIndex] && (
+              (() => {
+                const dayData = chartData[selectedIndex];
+                const totalColumns = chartData.length;
+                const tooltipLeft = totalColumns > 1 
+                  ? `${(selectedIndex / (totalColumns - 1)) * 75 + 12.5}%`
+                  : '50%';
+                
+                const titleText = isEmployer 
+                  ? (dayData.job?.title || 'Job Posting')
+                  : dayData.dateLabel;
+                  
+                const subtitleText = isEmployer
+                  ? `${dayData.job?.company || 'Company'} • ${dayData.job?.salary || 'Salary'}`
+                  : (dayData.appCount === 0 
+                      ? 'No applications' 
+                      : dayData.jobs.map(j => `• ${j.title}`).join('\n'));
+                
+                return (
+                  <View style={[styles.chartTooltip, { left: tooltipLeft }]}>
+                    <Text style={styles.chartTooltipTitle} numberOfLines={1}>
+                      {titleText}
+                    </Text>
+                    <Text style={[styles.chartTooltipSubtitle, !isEmployer && { textAlign: 'left', marginTop: 3 }]} numberOfLines={5}>
+                      {subtitleText}
+                    </Text>
+                    <View style={styles.chartTooltipArrow} />
+                  </View>
+                );
+              })()
+            )}
+
+            <View style={[styles.chartVisualizer, activeList.length === 0 && { opacity: 0.15 }]}>
+              {chartData.map((data, index) => (
+                <DottedColumn 
+                  key={index} 
+                  height={data.height} 
+                  active={activeList.length > 0 ? index === selectedIndex : false} 
+                  onPress={() => activeList.length > 0 && setSelectedIndex(index)}
+                />
+              ))}
+            </View>
+            {!isEmployer && activeList.length > 0 && (
+              <View style={styles.chartLabelsRow}>
+                {chartData.map((data, index) => (
+                  <Text 
+                    key={index} 
+                    style={[
+                      styles.chartLabelText, 
+                      index === selectedIndex && styles.chartLabelTextActive
+                    ]}
+                  >
+                    {data.label}
+                  </Text>
+                ))}
+              </View>
+            )}
+            {activeList.length === 0 && (
+              <View style={styles.chartPlaceholderOverlay}>
+                <Ionicons
+                  name={isEmployer ? 'briefcase-outline' : 'paper-plane-outline'}
+                  size={20}
+                  color={COLORS.textSecondary}
+                  style={{ marginBottom: 6 }}
+                />
+                <Text style={styles.chartPlaceholderText}>
+                  {isEmployer
+                    ? 'Post a job with a budget to analyze spend'
+                    : 'Apply to jobs via WhatsApp or Email to visualize earning potential'}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -918,8 +1116,48 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* Applied Opportunities */}
+        {user && !isEmployer && (
+          <View style={styles.section}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={styles.sectionTitle}>Applied Opportunities ({appliedJobsList.length})</Text>
+              <Ionicons name="paper-plane" size={16} color={COLORS.accentGreen} />
+            </View>
+            {appliedJobsList.length === 0 ? (
+              <View style={styles.emptyJobsCard}>
+                <Ionicons name="paper-plane-outline" size={24} color={COLORS.textLight} />
+                <Text style={styles.emptyJobsText}>No applied jobs yet.</Text>
+              </View>
+            ) : (
+              appliedJobsList.map(job => {
+                const appliedDate = new Date(job.appliedAtDate).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                });
+                return (
+                  <TouchableOpacity
+                    key={job.id}
+                    style={styles.jobRow}
+                    activeOpacity={0.7}
+                    onPress={() => setSelectedJob(job)}
+                  >
+                    <View style={styles.jobRowLeft}>
+                      <Text style={styles.jobRowTitle}>{job.title}</Text>
+                      <Text style={styles.jobRowSub}>{job.company} • Applied on {appliedDate}</Text>
+                    </View>
+                    <View style={[styles.jobRowBadge, { backgroundColor: '#E8F5E9' }]}>
+                      <Text style={[styles.jobRowBadgeText, { color: COLORS.accentGreen, fontWeight: '700' }]}>{job.salary}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </View>
+        )}
+
         {/* Bookmarked Opportunities */}
-        {user && (
+        {user && !isEmployer && (
           <View style={styles.section}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text style={styles.sectionTitle}>Bookmarked Opportunities ({bookmarkedJobs.length})</Text>
@@ -1497,17 +1735,81 @@ const styles = StyleSheet.create({
   chartVisualizer: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
     height: 100, paddingHorizontal: 4,
-    borderTopWidth: 1, borderStyle: 'dashed', borderColor: '#F0F0F0', paddingTop: 10,
   },
   chartColumn: { alignItems: 'center', width: 14, height: '100%', justifyContent: 'flex-end' },
-  dotsWrapper: { gap: 3, alignItems: 'center' },
-  dotsWrapperActive: { gap: 3 },
-  chartDot: { width: 4, height: 4, borderRadius: 2 },
-  chartDotActive: { backgroundColor: '#E8F542', width: 5, height: 5, borderRadius: 2.5 },
-  chartDotInactive: { backgroundColor: '#9EAE9F' },
+  barWrapper: {
+    width: 6,
+    borderRadius: 3,
+  },
+  barActive: {
+    backgroundColor: '#E8F542',
+    shadowColor: '#E8F542',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  barInactive: {
+    backgroundColor: '#9EAE9F',
+    opacity: 0.4,
+  },
   peakIndicatorContainer: { alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   peakRing: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#E8F542', backgroundColor: '#FFFFFF', position: 'absolute' },
   peakCore: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#E8F542' },
+  chartTooltip: {
+    position: 'absolute',
+    bottom: 115,
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    transform: [{ translateX: -50 }],
+    zIndex: 10,
+  },
+  chartTooltipTitle: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  chartTooltipSubtitle: {
+    color: '#E8F542',
+    fontSize: 9,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  chartTooltipArrow: {
+    width: 6,
+    height: 6,
+    backgroundColor: '#1E293B',
+    transform: [{ rotate: '45deg' }],
+    position: 'absolute',
+    bottom: -3,
+    alignSelf: 'center',
+  },
+  chartLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginTop: 8,
+  },
+  chartLabelText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#9EAE9F',
+    width: 14,
+    textAlign: 'center',
+  },
+  chartLabelTextActive: {
+    color: '#E8F542',
+    fontWeight: '700',
+  },
 
   // Feature Grid
   featureGrid: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginBottom: 20 },
@@ -2176,5 +2478,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  chartPlaceholderOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  chartPlaceholderText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });
