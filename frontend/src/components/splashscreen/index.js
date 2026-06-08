@@ -61,8 +61,6 @@ function SleekProgressBar() {
 export default function SplashScreen({ message, subMessage, isSignOut, showLottie }) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const imageOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -81,15 +79,6 @@ export default function SplashScreen({ message, subMessage, isSignOut, showLotti
     }
   }, [isSignOut, showLottie]);
 
-  const handleImageLoad = () => {
-    setImageLoaded(true);
-    Animated.timing(imageOpacity, {
-      toValue: 1,
-      duration: 350,
-      useNativeDriver: true,
-    }).start();
-  };
-
   return (
     <Animated.View style={[styles.splash, { opacity: fadeAnim }]}>
       {/* Ambient background glows matching BKJ brand colors */}
@@ -103,18 +92,10 @@ export default function SplashScreen({ message, subMessage, isSignOut, showLotti
         {/* Brand logo is always preserved */}
         {!(isSignOut || showLottie) && (
           <Animated.View style={[styles.splashLogoCircle, { transform: [{ scale: pulseAnim }] }]}>
-            {!imageLoaded && (
-              <ActivityIndicator 
-                size="small" 
-                color="#1A1A1A" 
-                style={StyleSheet.absoluteFillObject} 
-              />
-            )}
-            <Animated.Image
+            <Image
               source={require('../../../assets/icon.png')}
-              style={[styles.logoImage, { opacity: imageOpacity }]}
+              style={styles.logoImage}
               resizeMode="cover"
-              onLoad={handleImageLoad}
             />
           </Animated.View>
         )}

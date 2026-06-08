@@ -262,6 +262,7 @@ export const AuthProvider = ({ children }) => {
   const seenLikeIdsRef = useRef(new Set());
   const lastNotificationTimesRef = useRef(new Map());
   const lastLikeClickTimesRef = useRef(new Map()); // Clicker-side map: Key: jobId, Value: Array of timestamps
+  const isInitialLoadRef = useRef(true);
 
   // Load saved block time on startup
   useEffect(() => {
@@ -848,10 +849,10 @@ export const AuthProvider = ({ children }) => {
 
     const fetchUserProfile = async (userId, sessionUser = null) => {
       try {
-        // Wrap Supabase profiles single row fetch in a 10s timeout
+        // Wrap Supabase profiles single row fetch in a 3.5s timeout for instant app startup
         const { data, error } = await withTimeout(
           supabase.from('profiles').select('*').eq('id', userId).single(),
-          10000,
+          3500,
           'Profile query timed out'
         );
 
@@ -1023,10 +1024,10 @@ export const AuthProvider = ({ children }) => {
     const checkSession = async () => {
       const startTime = Date.now();
       try {
-        // Wrap initial session get in a 10s timeout
+        // Wrap initial session get in a 3.5s timeout for fast startup
         const { data: sessionData } = await withTimeout(
           supabase.auth.getSession(),
-          10000,
+          3500,
           'Session get timed out'
         );
         if (sessionData?.session) {
@@ -1035,6 +1036,7 @@ export const AuthProvider = ({ children }) => {
       } catch (err) {
         console.error('Session check error or timeout:', err);
       } finally {
+        isInitialLoadRef.current = false; // Mark initial check as completed to allow subsequent onAuthStateChange SIGNED_IN events
         const elapsedTime = Date.now() - startTime;
         const minimumDelay = 2500; // 2.5 seconds for a premium splash animation
         const remainingDelay = Math.max(0, minimumDelay - elapsedTime);
@@ -1072,6 +1074,11 @@ export const AuthProvider = ({ children }) => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log(`🔑 Auth State Event Triggered: ${event}`);
       if (event === 'SIGNED_IN' && session) {
+        // Prevent duplicate profile fetches during initial startup
+        if (isInitialLoadRef.current) {
+          console.log('ℹ️ Skipping duplicate profile fetch on SIGNED_IN event during app launch.');
+          return;
+        }
         setLoading(true);
         await fetchUserProfile(session.user.id, session.user);
         setLoading(false);
