@@ -862,6 +862,8 @@ export const AuthProvider = ({ children }) => {
               console.log("Auto-recreating missing profile row in database on app startup...");
               const role = sessionUser.user_metadata?.role || 'jobseeker';
               const googleAvatar = sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || null;
+              const phone = sessionUser.user_metadata?.phone || '';
+              const location = phone ? `Pakistan|phone:${phone}` : 'Pakistan';
               const { error: insertError } = await supabase
                 .from('profiles')
                 .insert([
@@ -871,6 +873,8 @@ export const AuthProvider = ({ children }) => {
                     email: sessionUser.email || '',
                     role: role,
                     avatar_url: googleAvatar,
+                    phone: phone || null,
+                    location: location,
                   }
                 ]);
               if (!insertError) {
@@ -897,7 +901,7 @@ export const AuthProvider = ({ children }) => {
         const role = data?.role || sessionUser?.user_metadata?.role || 'jobseeker';
 
         let dbLocation = data?.location || 'Pakistan';
-        let phone = data?.phone || sessionUser?.user_metadata?.phone || '';
+        let phone = data?.phone || '';
 
         let appliedFromDb = [];
         // Unpack phone and applied from packed location format if present
@@ -906,7 +910,7 @@ export const AuthProvider = ({ children }) => {
           dbLocation = parts[0] || 'Pakistan';
 
           const phonePart = parts.find(p => p.startsWith('phone:'));
-          if (phonePart) {
+          if (phonePart && !phone) {
             phone = phonePart.replace('phone:', '');
           }
 
@@ -920,6 +924,11 @@ export const AuthProvider = ({ children }) => {
               }));
             }
           }
+        }
+
+        // Google/session metadata fallback only if DB does not have it
+        if (!phone) {
+          phone = sessionUser?.user_metadata?.phone || '';
         }
 
         // Merge database-loaded applications into local storage scoped by user ID
@@ -953,12 +962,22 @@ export const AuthProvider = ({ children }) => {
           phone = '';
         }
 
-        // Auto-heal/sync missing phone packing for existing profiles in the background
-        if (data && data.location && !data.location.includes('|phone:') && phone) {
-          console.log("📝 Healing existing profile location database field with phone number package in background...");
+        // Auto-heal/sync missing phone/location packing for existing profiles in the background
+        const hasPackedPhone = data && data.location && data.location.includes('|phone:');
+        const hasDbPhone = data && data.phone;
+        if (data && phone && (!hasPackedPhone || !hasDbPhone)) {
+          console.log("📝 Healing existing profile database phone fields in background...");
+          const healUpdates = {};
+          if (!hasDbPhone) {
+            healUpdates.phone = phone;
+          }
+          if (!hasPackedPhone) {
+            const currentLoc = (data.location && !data.location.includes('|')) ? data.location : 'Pakistan';
+            healUpdates.location = `${currentLoc}|phone:${phone}`;
+          }
           supabase
             .from('profiles')
-            .update({ location: `${data.location}|phone:${phone}` })
+            .update(healUpdates)
             .eq('id', userId)
             .then(({ error: healErr }) => {
               if (healErr) console.warn("⚠️ Failed background profile healing:", healErr.message);
@@ -1684,6 +1703,8 @@ export const AuthProvider = ({ children }) => {
           if (!profile) {
             // Recreate the profile row automatically so the user is never locked out!
             console.log("Auto-recreating deleted profile row in database for user:", userId);
+            const userPhone = signInData?.user?.user_metadata?.phone || '';
+            const userLocation = userPhone ? `Pakistan|phone:${userPhone}` : 'Pakistan';
             const { error: insertError } = await supabase
               .from('profiles')
               .insert([
@@ -1692,6 +1713,8 @@ export const AuthProvider = ({ children }) => {
                   name: signInData?.user?.user_metadata?.name || email.split('@')[0],
                   email: email,
                   role: signInData?.user?.user_metadata?.role || 'jobseeker',
+                  phone: userPhone || null,
+                  location: userLocation,
                 }
               ]);
             if (insertError) {
@@ -1728,9 +1751,9 @@ export const AuthProvider = ({ children }) => {
           expoConfig: Constants.expoConfig ? { name: Constants.expoConfig.name, slug: Constants.expoConfig.slug, scheme: Constants.expoConfig.scheme } : null
         });
 
-        const isExpoGo = Constants.executionEnvironment === 'store-client';
-        // Overridden to 'jobify' because currently installed APK listens to 'jobify://'
-        const configScheme = 'jobify';
+        const isExpoGo = Constants.executionEnvironment === 'storeClient' || Constants.executionEnvironment === 'store-client' || Constants.appOwnership === 'expo';
+        // Dynamically resolve scheme from app config, falling back to 'bkj'
+        const configScheme = Constants.expoConfig?.scheme || 'bkj';
         const configSlug = Constants.expoConfig?.slug || 'bkj';
 
         const redirectTo = isExpoGo
@@ -2041,6 +2064,10 @@ export const AuthProvider = ({ children }) => {
         title: updates.title,
         location: packedLocation,
       };
+
+      if (updates.phone !== undefined) {
+        profileUpdates.phone = updates.phone;
+      }
 
       if (avatarUrl !== undefined) {
         profileUpdates.avatar_url = avatarUrl;

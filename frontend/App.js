@@ -134,6 +134,13 @@ function MainTabs() {
 function RootNavigator() {
   const { user, loading, loggingOut, isGuest, setIsGuest, signingUp, loggingIn } = useAuth();
   const [transitioningToDashboard, setTransitioningToDashboard] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  useEffect(() => {
+    if (!loading) {
+      setIsInitialLoad(false);
+    }
+  }, [loading]);
 
   const showDashboard = user !== null || isGuest;
 
@@ -162,6 +169,11 @@ function RootNavigator() {
     splashMessage = "Welcome to BKJ! 🚀";
     splashSubMessage = "Setting up your premium experience...";
     splashShowLottie = false;
+  } else if (loading && !isInitialLoad) {
+    // Show the login/signup style loader (door Lottie) in the dashboard
+    splashMessage = "Loading...";
+    splashSubMessage = "Please wait...";
+    splashShowLottie = true;
   }
 
   return (

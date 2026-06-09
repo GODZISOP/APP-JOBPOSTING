@@ -949,7 +949,19 @@ export default function JobsScreen({ navigation }) {
       if (!isOwnJob) return false;
     }
 
-    return matchCat && matchSearch && matchType && matchLoc && matchSalary;
+    // 6. Global vs Country Specific targeted display logic
+    let matchCountryTarget = true;
+    if (j.location) {
+      const isGlobal = j.location.toLowerCase().includes('global');
+      if (!isGlobal && userCountry) {
+        // If it's a specific country job, only show to users in that country
+        const jobCountryLower = j.location.toLowerCase();
+        const userCountryLower = userCountry.toLowerCase();
+        matchCountryTarget = jobCountryLower.includes(userCountryLower);
+      }
+    }
+
+    return matchCat && matchSearch && matchType && matchLoc && matchSalary && matchCountryTarget;
   });
 
   // ─── Geo-Sort: Push user's country jobs to the top ─────────────────────────

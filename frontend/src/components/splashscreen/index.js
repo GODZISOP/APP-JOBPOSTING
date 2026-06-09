@@ -1,255 +1,401 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Image, Platform, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../theme/colors';
-
+import {
+  View, Text, StyleSheet, Animated, Easing, Image, Dimensions,
+} from 'react-native';
 import LottieView from 'lottie-react-native';
 
-// Custom glowing pulse ring behind the app logo (mint green accent)
-function PulseHalo() {
-  const anim = useRef(new Animated.Value(0)).current;
+const { width: SW, height: SH } = Dimensions.get('window');
+
+// ─── BRAND STORY LINES ─────────────────────────────────────────────────────────
+const STORY_LINES = [
+  "Every great career starts\nwith one step.",
+  "Thousands of opportunities\nwaiting for you.",
+  "Connect with top recruiters\nin seconds.",
+  "Your dream job is closer\nthan you think.",
+  "BKJ — Where careers\ncome alive.",
+];
+const STEPS = ['01', '02', '03', '04', '05'];
+
+// ─── FLOATING SPARKLE ──────────────────────────────────────────────────────────
+function Sparkle({ x, y, delay, size = 7 }) {
+  const op = useRef(new Animated.Value(0)).current;
+  const sc = useRef(new Animated.Value(0.4)).current;
+  const ty = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     Animated.loop(
-      Animated.timing(anim, {
-        toValue: 1,
-        duration: 2200,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      })
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.parallel([
+          Animated.timing(op, { toValue: 1, duration: 500, useNativeDriver: true }),
+          Animated.timing(sc, { toValue: 1, duration: 500, useNativeDriver: true }),
+        ]),
+        Animated.timing(ty, { toValue: -20, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.parallel([
+          Animated.timing(op, { toValue: 0, duration: 500, useNativeDriver: true }),
+          Animated.timing(sc, { toValue: 0.4, duration: 500, useNativeDriver: true }),
+        ]),
+      ])
     ).start();
+    ty.setValue(0);
   }, []);
-
-  const scale = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.45],
-  });
-
-  const opacity = anim.interpolate({
-    inputRange: [0, 0.7, 1],
-    outputRange: [0.35, 0.15, 0],
-  });
-
-  return <Animated.View style={[styles.halo, { transform: [{ scale }], opacity }]} />;
-}
-
-// Custom horizontal sliding glowing progress bar matching the main button
-function SleekProgressBar() {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.loop(
-      Animated.timing(anim, {
-        toValue: 1,
-        duration: 1600,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      })
-    ).start();
-  }, []);
-
-  const translateX = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-120, 120],
-  });
 
   return (
-    <View style={styles.progressBarContainer}>
-      <Animated.View style={[styles.progressBarActive, { transform: [{ translateX }] }]} />
+    <Animated.Text style={{ position: 'absolute', left: x, top: y, fontSize: size, color: '#fff', opacity: op, transform: [{ scale: sc }, { translateY: ty }] }}>
+      ✦
+    </Animated.Text>
+  );
+}
+
+// ─── STORY CAROUSEL ────────────────────────────────────────────────────────────
+function StoryCarousel({ onStep }) {
+  const [idx, setIdx] = useState(0);
+  const op = useRef(new Animated.Value(1)).current;
+  const ty = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const cycle = () => {
+      const t = setTimeout(() => {
+        Animated.parallel([
+          Animated.timing(op, { toValue: 0, duration: 280, useNativeDriver: true }),
+          Animated.timing(ty, { toValue: -12, duration: 280, easing: Easing.in(Easing.ease), useNativeDriver: true }),
+        ]).start(() => {
+          const next = (idx + 1) % STORY_LINES.length;
+          setIdx(next);
+          if (onStep) onStep(next);
+          ty.setValue(12);
+          Animated.parallel([
+            Animated.timing(op, { toValue: 1, duration: 320, useNativeDriver: true }),
+            Animated.timing(ty, { toValue: 0, duration: 320, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+          ]).start(() => cycle());
+        });
+      }, 1400);
+      return t;
+    };
+    const t = cycle();
+    return () => clearTimeout(t);
+  }, [idx]);
+
+  return (
+    <Animated.Text style={[styles.storyText, { opacity: op, transform: [{ translateY: ty }] }]}>
+      {STORY_LINES[idx]}
+    </Animated.Text>
+  );
+}
+
+// ─── DOT PROGRESS ──────────────────────────────────────────────────────────────
+function DotProgress({ active }) {
+  return (
+    <View style={styles.dotsRow}>
+      {STEPS.map((_, i) => (
+        <View key={i} style={[styles.dot, i === active ? styles.dotActive : styles.dotInactive]} />
+      ))}
     </View>
   );
 }
 
+// ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function SplashScreen({ message, subMessage, isSignOut, showLottie }) {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const [stepIdx, setStepIdx] = useState(0);
+
+  const phase = useRef(new Animated.Value(0)).current;
+  const iconBounce = useRef(new Animated.Value(0)).current;
+  const iconScale = useRef(new Animated.Value(0)).current;
+  const iconOp = useRef(new Animated.Value(0)).current;
+  const cardOp = useRef(new Animated.Value(0)).current;
+  const cardTY = useRef(new Animated.Value(40)).current;
+  const bA = useRef(new Animated.Value(0)).current;
+  const kA = useRef(new Animated.Value(0)).current;
+  const jA = useRef(new Animated.Value(0)).current;
+  const badgeSc = useRef(new Animated.Value(0.6)).current;
+  const badgeOp = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(cardTY, { toValue: 0, duration: 700, delay: 200, easing: Easing.out(Easing.back(1.3)), useNativeDriver: true }),
+      Animated.timing(cardOp, { toValue: 1, duration: 600, delay: 200, useNativeDriver: true }),
+    ]).start();
 
-    if (!isSignOut && !showLottie) {
+    Animated.stagger(130, [
+      Animated.spring(bA, { toValue: 1, friction: 5, tension: 50, useNativeDriver: true }),
+      Animated.spring(kA, { toValue: 1, friction: 5, tension: 50, useNativeDriver: true }),
+      Animated.spring(jA, { toValue: 1, friction: 5, tension: 50, useNativeDriver: true }),
+    ]).start();
+
+    Animated.parallel([
+      Animated.spring(badgeSc, { toValue: 1, friction: 5, tension: 55, delay: 400, useNativeDriver: true }),
+      Animated.timing(badgeOp, { toValue: 1, duration: 350, delay: 400, useNativeDriver: true }),
+    ]).start();
+
+    Animated.parallel([
+      Animated.spring(iconScale, { toValue: 1, bounciness: 14, speed: 8, delay: 300, useNativeDriver: true }),
+      Animated.timing(iconOp, { toValue: 1, duration: 400, delay: 300, useNativeDriver: true }),
+    ]).start(() => {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.05, duration: 1100, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1,   duration: 1100, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(iconBounce, { toValue: -7, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(iconBounce, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       ).start();
+    });
+
+    if (!isSignOut && !showLottie) {
+      const t = setTimeout(() => {
+        Animated.timing(phase, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }).start();
+      }, 3500);
+      return () => clearTimeout(t);
     }
   }, [isSignOut, showLottie]);
 
+  const isoOp = phase.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+  const isoSc = phase.interpolate({ inputRange: [0, 1], outputRange: [1, 0.82] });
+  const deckOp = phase.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+  const deckSc = phase.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] });
+
+  const mkLetter = (a) => ({
+    opacity: a,
+    transform: [
+      { scale: a.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) },
+      { translateY: a.interpolate({ inputRange: [0, 1], outputRange: [22, 0] }) },
+    ],
+  });
+
+  const isSimple = isSignOut || showLottie;
+
   return (
-    <Animated.View style={[styles.splash, { opacity: fadeAnim }]}>
-      {/* Ambient background glows matching BKJ brand colors */}
-      <View style={styles.glowBlob1} />
-      <View style={styles.glowBlob2} />
+    // Single white root — no two-section split
+    <View style={styles.root}>
 
-      <View style={styles.logoContainer}>
-        {/* Animated halo behind logo */}
-        {!(isSignOut || showLottie) && <PulseHalo />}
+      {/* ── GREEN DOME HERO (arch shape via huge borderRadius at bottom) ─── */}
+      <View style={[styles.heroDome, isSimple && { height: SH * 0.46 }]}>
 
-        {/* Brand logo is always preserved */}
-        {!(isSignOut || showLottie) && (
-          <Animated.View style={[styles.splashLogoCircle, { transform: [{ scale: pulseAnim }] }]}>
-            <Image
-              source={require('../../../assets/icon.png')}
-              style={styles.logoImage}
-              resizeMode="cover"
-            />
+        {/* Sparkles inside dome */}
+        <Sparkle x={24} y={38} delay={0} size={10} />
+        <Sparkle x={SW - 52} y={55} delay={700} size={8} />
+        <Sparkle x={48} y={SW * 0.42} delay={400} size={7} />
+        <Sparkle x={SW - 68} y={SW * 0.40} delay={1100} size={9} />
+        <Sparkle x={SW * 0.5} y={28} delay={900} size={6} />
+
+        {/* Lottie — Phase 1 Isometric */}
+        {!isSimple && (
+          <Animated.View style={[StyleSheet.absoluteFill, { opacity: isoOp, transform: [{ scale: isoSc }], alignItems: 'center', justifyContent: 'center' }]}>
+            <LottieView source={require('../../../assets/lottie_isometric.json')} style={styles.lottieMain} autoPlay loop />
           </Animated.View>
         )}
 
-        {/* Absolute Lottie overlays */}
-        {(isSignOut || showLottie) && (
-          <LottieView
-            source={require('../../../assets/signout.json')}
-            style={styles.absoluteLottie}
-            autoPlay
-            loop
-          />
+        {/* Lottie — Phase 2 Map */}
+        {!isSimple && (
+          <Animated.View style={[StyleSheet.absoluteFill, { opacity: deckOp, transform: [{ scale: deckSc }], alignItems: 'center', justifyContent: 'center' }]}>
+            <LottieView source={require('../../../assets/lottie_map.json')} style={styles.lottieMain} autoPlay loop />
+          </Animated.View>
+        )}
+
+        {/* Signout lottie */}
+        {isSimple && (
+          <LottieView source={require('../../../assets/signout.json')} style={styles.lottieMain} autoPlay loop />
         )}
       </View>
 
-      <Text style={styles.splashTitle}>{isSignOut ? 'Logging Out' : 'BKJ'}</Text>
-      <Text style={styles.splashSub}>{subMessage || (isSignOut ? 'See you soon!' : 'Your gateway to career growth')}</Text>
+      {/* ── FLOATING APP ICON — centered between dome and content ── */}
+      <Animated.View style={[styles.iconWrapper, { opacity: iconOp, transform: [{ scale: iconScale }, { translateY: iconBounce }] }]}>
+        <View style={styles.iconGlow} />
+        <Image source={require('../../../assets/icon.png')} style={styles.appIcon} resizeMode="cover" />
+      </Animated.View>
 
-      {/* Premium light card status badge */}
-      {message ? (
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>{message}</Text>
+      {/* ── CONTENT AREA (plain white, no card) ────────────────────── */}
+      <Animated.View style={[styles.content, { opacity: cardOp, transform: [{ translateY: cardTY }] }, isSimple && { paddingBottom: 80 }]}>
+
+        {/* Step badge */}
+        {!isSimple && (
+          <Animated.View style={[styles.stepBadge, { opacity: badgeOp, transform: [{ scale: badgeSc }] }]}>
+            <Text style={styles.stepText}>Step {STEPS[stepIdx]}</Text>
+          </Animated.View>
+        )}
+
+        {/* BKJ title or Main status message */}
+        {isSimple ? (
+          <Text style={styles.titleFull}>{message || (isSignOut ? 'Logging Out' : 'Loading...')}</Text>
+        ) : (
+          <View style={styles.letterRow}>
+            <Animated.Text style={[styles.titleLetter, mkLetter(bA)]}>B</Animated.Text>
+            <Animated.Text style={[styles.titleLetter, mkLetter(kA)]}>K</Animated.Text>
+            <Animated.Text style={[styles.titleLetter, mkLetter(jA)]}>J</Animated.Text>
+          </View>
+        )}
+
+        {/* Story / subtitle */}
+        <View style={styles.storyBox}>
+          {!isSimple ? (
+            <StoryCarousel onStep={setStepIdx} />
+          ) : (
+            <Text style={styles.storyText}>{subMessage || 'See you soon!'}</Text>
+          )}
         </View>
-      ) : null}
 
-      {/* Premium line loading indicator */}
-      <View style={styles.progressSection}>
-        <SleekProgressBar />
-      </View>
-    </Animated.View>
+        {/* Status badge (only for starting/onboarding if message is present) */}
+        {!isSimple && message ? (
+          <View style={styles.statusBadge}>
+            <Text style={styles.statusBadgeText}>{message}</Text>
+          </View>
+        ) : null}
+
+        {/* Dot progress */}
+        {!isSimple && <DotProgress active={stepIdx} />}
+      </Animated.View>
+    </View>
   );
 }
 
+// ─── STYLES ────────────────────────────────────────────────────────────────────
+const DOME_H = SH * 0.56;
+
 const styles = StyleSheet.create({
-  splash: {
+  root: {
     flex: 1,
-    backgroundColor: COLORS.bgPrimary, // Restore original light mint green theme
+    backgroundColor: '#FFFFFF',   // Whole screen is white
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  glowBlob1: {
-    position: 'absolute',
-    top: -120,
-    right: -120,
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: '#FFFBC8', // Soft warm yellow glow
-    opacity: 0.45,
-    zIndex: -2,
-  },
-  glowBlob2: {
-    position: 'absolute',
-    bottom: -140,
-    left: -140,
-    width: 360,
-    height: 360,
-    borderRadius: 180,
-    backgroundColor: '#B2E2B9', // Soft light green glow
-    opacity: 0.35,
-    zIndex: -2,
-  },
-  logoContainer: {
-    width: 140,
-    height: 140,
+
+  // Green dome: fills top portion, huge bottom border radius = arch / wave shape
+  heroDome: {
+    width: SW + 80,               // wider than screen so side cuts are hidden
+    height: DOME_H,
+    backgroundColor: '#B2E2B9',
+    borderBottomLeftRadius: (SW + 80) / 1.6,   // big arch curve
+    borderBottomRightRadius: (SW + 80) / 1.6,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    marginBottom: 24,
-  },
-  absoluteLottie: {
-    position: 'absolute',
-    width: 165,
-    height: 165,
-    zIndex: 10,
-    pointerEvents: 'none',
-  },
-  halo: {
-    position: 'absolute',
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#5C9E6A', // Deeper mint green pulsing glow ring
-    zIndex: -1,
-  },
-  logoImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  splashLogoCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2.5,
-    borderColor: '#1A1A1A', // Jet black highlight ring matching app buttons
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#1A1A1A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  splashTitle: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#1A1A1A', // Jet black matching app theme
-    letterSpacing: -0.8,
-  },
-  splashSub: {
-    fontSize: 14,
-    color: '#6B7280', // Dark gray description matching main app
-    fontWeight: '500',
-    marginTop: 8,
-    textAlign: 'center',
-    paddingHorizontal: 36,
-  },
-  statusBadge: {
-    marginTop: 24,
-    backgroundColor: '#FFFFFF', // Clean white card badge
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderWidth: 1.5,
-    borderColor: '#EEF2F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#4B5563',
-    letterSpacing: 0.3,
-  },
-  progressSection: {
-    marginTop: 48,
-  },
-  progressBarContainer: {
-    width: 120,
-    height: 4,
-    backgroundColor: 'rgba(26, 26, 26, 0.08)', // Translucent track
-    borderRadius: 2,
     overflow: 'hidden',
-    position: 'relative',
+    marginLeft: -40,
+    marginRight: -40,
+    // Lift icon above the dome bottom edge
+    paddingBottom: 40,
   },
-  progressBarActive: {
-    width: 50,
-    height: '100%',
-    backgroundColor: '#1A1A1A', // Jet black sliding bar matching buttons
-    borderRadius: 2,
+  lottieMain: {
+    width: SW * 0.68,
+    height: SW * 0.68,
+  },
+
+  // Floating icon — between dome and content, always centered
+  iconWrapper: {
+    marginTop: -36,         // pull up to overlap dome bottom edge
+    marginBottom: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  iconGlow: {
+    position: 'absolute',
+    width: 84,
+    height: 84,
+    borderRadius: 24,
+    backgroundColor: 'rgba(26, 155, 86, 0.18)',
+    transform: [{ scale: 1.2 }],
+  },
+  appIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    borderWidth: 3.5,
+    borderColor: '#FFFFFF',
+  },
+
+  // Content area below dome
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 8,
+    paddingBottom: 28,
+    paddingHorizontal: 32,
+    width: '100%',
+  },
+
+  stepBadge: {
+    backgroundColor: '#E8F9EF',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#A7F3C9',
+  },
+  stepText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1A9B56',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+
+  letterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  titleLetter: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#0A2417',
+    letterSpacing: -1.5,
+  },
+  titleFull: {
+    fontSize: 38,
+    fontWeight: '900',
+    color: '#0A2417',
+    marginBottom: 8,
+  },
+
+  storyBox: {
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  storyText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#4B5563',
+    textAlign: 'center',
+    lineHeight: 23,
+  },
+
+  statusBadge: {
+    marginTop: 14,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#15803D',
+    letterSpacing: 0.2,
+  },
+
+  dotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    gap: 6,
+  },
+  dot: {
+    borderRadius: 6,
+    height: 7,
+  },
+  dotActive: {
+    width: 24,
+    backgroundColor: '#1A9B56',
+  },
+  dotInactive: {
+    width: 7,
+    backgroundColor: '#D1FAE5',
   },
 });

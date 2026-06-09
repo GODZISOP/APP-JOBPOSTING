@@ -31,11 +31,19 @@ const SLIDES = [
   }
 ];
 
-export default function GettingStartedScreen({ onGetStarted }) {
+export default function GettingStartedScreen({ onGetStarted, onReady }) {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Premium delay to allow Lottie files and onboarding slide layout to fully mount
+    const timer = setTimeout(() => {
+      if (onReady) onReady();
+    }, 850);
+    return () => clearTimeout(timer);
+  }, [onReady]);
 
   const onScroll = (event) => {
     const slideSize = event.nativeEvent.layoutMeasurement.width;
@@ -96,8 +104,8 @@ export default function GettingStartedScreen({ onGetStarted }) {
       <View style={styles.header}>
         <Text style={styles.headerLogoText}>BKJ</Text>
         <Animated.View style={{ opacity: skipButtonOpacity }}>
-          <TouchableOpacity 
-            style={styles.skipButton} 
+          <TouchableOpacity
+            style={styles.skipButton}
             onPress={() => onGetStarted('skip')}
             activeOpacity={0.7}
             disabled={activeIndex === 2}
@@ -132,7 +140,7 @@ export default function GettingStartedScreen({ onGetStarted }) {
 
       {/* Footer containing Pagination Dots & Action Buttons */}
       <View style={[styles.footer, { paddingBottom: insets.bottom > 0 ? insets.bottom + 16 : 40 }]}>
-        
+
         {/* Pagination indicator dots */}
         <View style={styles.paginationRow}>
           {SLIDES.map((_, i) => {
@@ -173,16 +181,16 @@ export default function GettingStartedScreen({ onGetStarted }) {
 
         {/* Action Button Area */}
         <View style={styles.buttonWrapper}>
-          <TouchableOpacity 
-            style={styles.primaryBtn} 
-            onPress={isLastSlide ? () => onGetStarted('skip') : handleNext} 
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={isLastSlide ? () => onGetStarted('skip') : handleNext}
             activeOpacity={0.88}
           >
             {/* Next button content */}
-            <Animated.View 
+            <Animated.View
               style={[
-                styles.primaryBtnContent, 
-                { 
+                styles.primaryBtnContent,
+                {
                   opacity: nextOpacity,
                   transform: [{ scale: nextOpacity }]
                 }
@@ -194,10 +202,10 @@ export default function GettingStartedScreen({ onGetStarted }) {
             </Animated.View>
 
             {/* Get Started button content */}
-            <Animated.View 
+            <Animated.View
               style={[
-                styles.primaryBtnContent, 
-                { 
+                styles.primaryBtnContent,
+                {
                   opacity: getStartedOpacity,
                   transform: [{ scale: getStartedOpacity }]
                 }
@@ -210,9 +218,9 @@ export default function GettingStartedScreen({ onGetStarted }) {
           </TouchableOpacity>
 
           <Animated.View style={{ opacity: secondaryBtnOpacity }}>
-            <TouchableOpacity 
-              style={styles.secondaryBtn} 
-              onPress={() => onGetStarted('login')} 
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => onGetStarted('login')}
               activeOpacity={0.88}
               disabled={activeIndex !== 2}
             >
@@ -257,7 +265,7 @@ const OnboardingSlide = React.memo(({ slide, index, scrollX }) => {
           loop
         />
       </View>
-      
+
       <Animated.View style={[styles.textWrapper, { opacity, transform: [{ translateY }] }]}>
         <Text style={styles.title}>{slide.title}</Text>
         <Text style={styles.description}>{slide.description}</Text>

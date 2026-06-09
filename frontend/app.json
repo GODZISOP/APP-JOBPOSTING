@@ -9,8 +9,6 @@
     "newArchEnabled": true,
     "scheme": "bkj",
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
       "backgroundColor": "#D4EAD7"
     },
     "ios": {
@@ -41,6 +39,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-splash-screen",
       "expo-web-browser",
       [
         "react-native-google-mobile-ads",

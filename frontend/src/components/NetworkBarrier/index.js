@@ -8,8 +8,9 @@ import { COLORS } from '../../theme/colors';
 
 export default function NetworkBarrier({ children }) {
   const [isConnected, setIsConnected] = useState(true);
-  const { fetchJobs } = useAuth();
+  const { fetchJobs, loading } = useAuth();
   const wasOffline = useRef(false);
+  const debounceTimeout = useRef(null);
 
   useEffect(() => {
     // 1. Subscribe to real-time NetInfo changes
@@ -17,21 +18,39 @@ export default function NetworkBarrier({ children }) {
       // isInternetReachable can be false when there's a signal/connection but no actual internet data flow.
       // If it is null, we fallback to isConnected to avoid transient connection check flickers.
       const connected = state.isConnected !== false && state.isInternetReachable !== false;
-      setIsConnected(connected);
+      
+      if (connected) {
+        // Clear any pending offline trigger immediately
+        if (debounceTimeout.current) {
+          clearTimeout(debounceTimeout.current);
+          debounceTimeout.current = null;
+        }
+        setIsConnected(true);
 
-      // 2. Dynamic Auto-refresh: When network goes from offline back to online
-      if (connected && wasOffline.current) {
-        console.log('📶 Internet reconnected! Automatically refreshing job listings...');
-        fetchJobs();
-        wasOffline.current = false;
-      }
-
-      if (!connected) {
+        // 2. Dynamic Auto-refresh: When network goes from offline back to online
+        if (wasOffline.current) {
+          console.log('📶 Internet reconnected! Automatically refreshing job listings...');
+          fetchJobs();
+          wasOffline.current = false;
+        }
+      } else {
         wasOffline.current = true;
+        // Debounce setting offline state to avoid transient check flickers (especially on startup)
+        if (!debounceTimeout.current) {
+          debounceTimeout.current = setTimeout(() => {
+            setIsConnected(false);
+            debounceTimeout.current = null;
+          }, 2000); // Wait 2 seconds of persistent disconnect before showing offline UI
+        }
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
+      }
+    };
   }, [fetchJobs]);
 
   const handleManualRetry = async () => {
@@ -48,7 +67,8 @@ export default function NetworkBarrier({ children }) {
     }
   };
 
-  if (!isConnected) {
+  // Only show the offline screen if the user is truly offline AND the app has finished its initial splash screen loading phase
+  if (!isConnected && !loading) {
     return (
       <View style={styles.offlineContainer}>
         {/* Hardware-Accelerated LottieView to render the local offline JSON animation */}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Text, ActivityIndicator, Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-const isExpoGo = Constants.executionEnvironment === 'store-client';
+const isExpoGo = Constants.executionEnvironment === 'storeClient' || Constants.executionEnvironment === 'store-client' || Constants.appOwnership === 'expo';
 
 let BannerAd = null;
 let BannerAdSize = null;

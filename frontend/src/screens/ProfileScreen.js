@@ -92,22 +92,29 @@ function ProfileSkeleton() {
   }, []);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={[styles.header, { paddingTop: 12 }]}>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#B2E2B9" />
+
+      {/* Top Hero Dome (Mint Green Dome matched) */}
+      <View style={styles.heroDome} />
+
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerIconBtn} />
         <Text style={styles.headerTitle}>Profile</Text>
         <View style={styles.headerIconBtn} />
       </View>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Avatar Section Skeleton */}
-        <View style={styles.avatarSection}>
-          <View style={[styles.avatarBorder, { borderColor: '#E5E7EB' }]}>
-            <Animated.View style={[styles.avatarCircle, { backgroundColor: '#E5E7EB', opacity: shimmerAnim }]} />
-          </View>
-          <Animated.View style={{ width: 140, height: 24, backgroundColor: '#E5E7EB', borderRadius: 4, marginBottom: 8, alignSelf: 'center', opacity: shimmerAnim }} />
-          <Animated.View style={{ width: 180, height: 16, backgroundColor: '#E5E7EB', borderRadius: 4, alignSelf: 'center', opacity: shimmerAnim }} />
-        </View>
 
+      {/* Static Profile Section Skeleton */}
+      <View style={styles.avatarSection}>
+        <View style={[styles.avatarBorder, { borderColor: '#E5E7EB' }]}>
+          <Animated.View style={[styles.avatarCircle, { backgroundColor: '#E5E7EB', opacity: shimmerAnim }]} />
+        </View>
+        <Animated.View style={{ width: 140, height: 24, backgroundColor: '#E5E7EB', borderRadius: 4, marginBottom: 8, alignSelf: 'center', opacity: shimmerAnim }} />
+        <Animated.View style={{ width: 180, height: 16, backgroundColor: '#E5E7EB', borderRadius: 4, alignSelf: 'center', opacity: shimmerAnim }} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Info Cards Skeleton */}
         <View style={styles.infoRow}>
           {[1, 2, 3].map((i) => (
@@ -140,6 +147,80 @@ function ProfileSkeleton() {
             </View>
           ))}
         </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function HowItWorksSkeleton({ onClose }) {
+  const shimmerAnim = useRef(new Animated.Value(0.3)).current;
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, {
+          toValue: 0.8,
+          duration: 800,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnim, {
+          toValue: 0.3,
+          duration: 800,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <View style={styles.guideScreenContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* Guide Header */}
+      <View style={[styles.guideScreenHeader, { paddingTop: insets.top > 0 ? insets.top + 12 : 20, paddingBottom: 16 }]}>
+        <TouchableOpacity style={styles.guideBackBtn} onPress={onClose} activeOpacity={0.8}>
+          <Ionicons name="arrow-back" size={20} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.guideScreenHeaderTitle}>How It Works</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Editorial Banner Skeleton */}
+        <View style={[styles.editorialBanner, { backgroundColor: '#F3F4F6', overflow: 'hidden' }]}>
+          <Animated.View style={{ width: '100%', height: '100%', backgroundColor: '#E5E7EB', opacity: shimmerAnim }} />
+        </View>
+
+        {/* Section Heading Skeleton */}
+        <Animated.View style={{ width: '60%', height: 20, backgroundColor: '#E5E7EB', borderRadius: 4, marginVertical: 20, opacity: shimmerAnim }} />
+
+        {/* Stepper Timeline Skeleton */}
+        <View style={styles.timelineContainer}>
+          {[1, 2, 3, 4].map((i) => (
+            <View key={i} style={styles.timelineItem}>
+              <View style={styles.timelineLineContainer}>
+                <Animated.View style={[styles.timelineIconBadge, { opacity: shimmerAnim }]} />
+                {i < 4 && <View style={styles.timelineLine} />}
+              </View>
+              <View style={styles.timelineContent}>
+                <Animated.View style={{ width: '25%', height: 10, backgroundColor: '#E5E7EB', borderRadius: 4, marginBottom: 6, opacity: shimmerAnim }} />
+                <Animated.View style={{ width: '60%', height: 16, backgroundColor: '#E5E7EB', borderRadius: 4, marginBottom: 8, opacity: shimmerAnim }} />
+                <Animated.View style={{ width: '100%', height: 12, backgroundColor: '#E5E7EB', borderRadius: 4, marginTop: 4, opacity: shimmerAnim }} />
+                <Animated.View style={{ width: '90%', height: 12, backgroundColor: '#E5E7EB', borderRadius: 4, marginTop: 6, opacity: shimmerAnim }} />
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Finish Button Skeleton */}
+        <Animated.View style={[styles.guideScreenFinishBtn, { backgroundColor: '#E5E7EB', opacity: shimmerAnim, borderWidth: 0 }]} />
       </ScrollView>
     </View>
   );
@@ -182,6 +263,7 @@ export default function ProfileScreen() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showHowItWorksModal, setShowHowItWorksModal] = useState(false);
+  const [guideLoading, setGuideLoading] = useState(false);
 
   const isFocused = useIsFocused();
   const [lastAvatar, setLastAvatar] = useState(user?.avatar || '');
@@ -499,144 +581,25 @@ export default function ProfileScreen() {
 
   if (uploadOverlay === 'uploading') {
     return (
-      <SplashScreen
-        message="Uploading profile photo..."
-        subMessage="Saving your beautiful avatar to servers dynamically"
-        showLottie={true}
-      />
+      <Modal visible={true} transparent={false} animationType="fade" statusBarTranslucent={true}>
+        <SplashScreen
+          message="Uploading profile photo..."
+          subMessage="Saving your beautiful avatar to servers dynamically"
+          showLottie={true}
+        />
+      </Modal>
     );
   }
 
   if (saving) {
     return (
-      <SplashScreen
-        message="Saving profile changes..."
-        subMessage="Updating your professional details in the database"
-        showLottie={true}
-      />
-    );
-  }
-
-  if (showHowItWorksModal) {
-    return (
-      <View style={[styles.guideScreenContainer, { paddingTop: insets.top }]}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
-
-        {/* Guide Header */}
-        <View style={[styles.guideScreenHeader, { paddingTop: 12 }]}>
-          <TouchableOpacity style={styles.guideBackBtn} onPress={() => setShowHowItWorksModal(false)} activeOpacity={0.8}>
-            <Ionicons name="arrow-back" size={20} color={COLORS.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.guideScreenHeaderTitle}>Platform Guide</Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Editorial Banner */}
-          <View style={styles.editorialBanner}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=800&q=80' }}
-              style={styles.editorialBannerImg}
-            />
-            <View style={styles.editorialOverlay}>
-              <Text style={styles.editorialTitle}>The BKJ Vision</Text>
-              <Text style={styles.editorialSub}>Discover how our professional, data-driven algorithm powers a premier marketplace for candidates and recruiters alike.</Text>
-            </View>
-          </View>
-
-          {/* Section Heading */}
-          <Text style={styles.guideSectionHeading}>Platform Mechanics & Guidelines</Text>
-
-          {/* Card 1: Explore Opportunities */}
-          <View style={styles.guideDetailCard}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=600&q=80' }}
-              style={styles.guideDetailImg}
-            />
-            <View style={styles.guideDetailContent}>
-              <View style={styles.guideDetailTitleRow}>
-                <View style={[styles.guideIconWrap, { backgroundColor: '#EFF6FF' }]}>
-                  <Ionicons name="search" size={18} color="#3B82F6" />
-                </View>
-                <Text style={styles.guideDetailTitle}>1. Discover Elite Careers</Text>
-              </View>
-              <Text style={styles.guideDetailDesc}>
-                Browse professional job opportunities globally. Apply instantly with a single tap and track your application status in real-time on your dashboard.
-              </Text>
-            </View>
-          </View>
-
-          {/* Card 2: Featured Algorithm */}
-          <View style={styles.guideDetailCard}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&q=80' }}
-              style={styles.guideDetailImg}
-            />
-            <View style={styles.guideDetailContent}>
-              <View style={styles.guideDetailTitleRow}>
-                <View style={[styles.guideIconWrap, { backgroundColor: '#ECFDF5' }]}>
-                  <Ionicons name="sparkles" size={18} color="#10B981" />
-                </View>
-                <Text style={styles.guideDetailTitle}>2. Premium "Featured" Upgrade</Text>
-              </View>
-              <Text style={styles.guideDetailDesc}>
-                Jobs achieving 10+ likes automatically upgrade to premium status. The listing gets highlighted with an elegant Emerald border, gold drop shadows, and a crown icon 👑.
-              </Text>
-            </View>
-          </View>
-
-          {/* Card 3: Hot Tag */}
-          <View style={styles.guideDetailCard}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80' }}
-              style={styles.guideDetailImg}
-            />
-            <View style={styles.guideDetailContent}>
-              <View style={styles.guideDetailTitleRow}>
-                <View style={[styles.guideIconWrap, { backgroundColor: '#FFF5F5' }]}>
-                  <Ionicons name="flame" size={18} color="#EF4444" />
-                </View>
-                <Text style={styles.guideDetailTitle}>3. Instant "Hot 🔥" Trending Status</Text>
-              </View>
-              <Text style={styles.guideDetailDesc}>
-                Postings that gain 10+ likes within the first 24 hours of creation are marked as Hot 🔥. This high-velocity engagement highlights listing popularity to active job-seekers.
-              </Text>
-            </View>
-          </View>
-
-          {/* Card 4: Verified Badge */}
-          <View style={styles.guideDetailCard}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80' }}
-              style={styles.guideDetailImg}
-            />
-            <View style={styles.guideDetailContent}>
-              <View style={styles.guideDetailTitleRow}>
-                <View style={[styles.guideIconWrap, { backgroundColor: '#F0FDF4' }]}>
-                  <Ionicons name="checkmark-circle" size={18} color="#15803D" />
-                </View>
-                <Text style={styles.guideDetailTitle}>4. Verified Network Trust</Text>
-              </View>
-              <Text style={styles.guideDetailDesc}>
-                Verified profiles and job posters are labeled with our custom vector tick emblem. This eliminates credentials offset issues and guarantees authentic hiring channels.
-              </Text>
-            </View>
-          </View>
-
-          {/* Finish Button */}
-          <TouchableOpacity
-            style={styles.guideScreenFinishBtn}
-            onPress={() => setShowHowItWorksModal(false)}
-            activeOpacity={0.88}
-          >
-            <Text style={styles.guideScreenFinishText}>Got It! Return to Profile 🚀</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
+      <Modal visible={true} transparent={false} animationType="fade" statusBarTranslucent={true}>
+        <SplashScreen
+          message="Saving profile changes..."
+          subMessage="Updating your professional details in the database"
+          showLottie={true}
+        />
+      </Modal>
     );
   }
 
@@ -661,9 +624,9 @@ export default function ProfileScreen() {
         const val = parsedValues[idx];
         // Map value to height percentage (15 to 80)
         const height = Math.max(15, Math.min(80, Math.round((val / maxVal) * 80)));
-        return { 
-          height, 
-          job, 
+        return {
+          height,
+          job,
           val,
           label: `J${idx + 1}`,
           dateLabel: job.title,
@@ -718,11 +681,14 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#B2E2B9" />
+
+      {/* Top Hero Dome (Mint Green Dome similar to Splash Screen) */}
+      <View style={styles.heroDome} />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: 12 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         {editing ? (
           <TouchableOpacity
             style={styles.headerIconBtn}
@@ -757,6 +723,141 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Static Profile Section (Unscrollable Top Part on Green Background) */}
+      <View style={styles.avatarSection}>
+        {editing ? (
+          <TouchableOpacity
+            style={styles.avatarBorder}
+            onPress={handlePickAvatar}
+            activeOpacity={0.8}
+          >
+            {editAvatar ? (
+              <Image source={{ uri: editAvatar }} style={styles.avatarImage} resizeMode="cover" />
+            ) : (
+              <View style={styles.avatarCircle}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+            )}
+            <View style={styles.avatarEditBadge}>
+              <Ionicons name="camera" size={14} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.avatarBorder}
+            onPress={handlePickAvatarAndSave}
+            activeOpacity={0.8}
+          >
+            {/* Layer 1: Base image (last active image, cached and immediate) */}
+            {lastAvatar ? (
+              <Image
+                source={{ uri: lastAvatar }}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.avatarCircle}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+            )}
+
+            {/* Layer 2: Incoming avatar image (loading on top absolute) */}
+            {newAvatarUri && newAvatarUri !== lastAvatar && (
+              <Image
+                source={{ uri: newAvatarUri }}
+                style={[styles.avatarImage, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }]}
+                resizeMode="cover"
+                onLoad={() => {
+                  setLastAvatar(newAvatarUri);
+                  setNewAvatarUri(null);
+                  setShowAvatarError(false);
+                }}
+                onError={() => {
+                  setNewAvatarUri(null);
+                  setShowAvatarError(true);
+                }}
+              />
+            )}
+
+            {showAvatarError && !lastAvatar && !newAvatarUri && (
+              <View style={[styles.avatarCircle, { position: 'absolute', backgroundColor: '#E5E7EB' }]}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+            )}
+            <View style={styles.avatarEditBadge}>
+              <Ionicons name="camera" size={14} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {editing && (
+          <TouchableOpacity onPress={handlePickAvatar} style={{ marginBottom: 12 }}>
+            <Text style={{ color: COLORS.accentGreen, fontSize: 13, fontWeight: '700' }}>Change Profile Photo</Text>
+          </TouchableOpacity>
+        )}
+
+        {editing ? (
+          <View style={styles.editFields}>
+            <View style={styles.editRow}>
+              <Ionicons name="person-outline" size={16} color={COLORS.textSecondary} style={styles.editIcon} />
+              <TextInput
+                style={styles.editInput}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Full name"
+                placeholderTextColor={COLORS.textLight}
+              />
+            </View>
+            <View style={styles.editRow}>
+              <Ionicons name="briefcase-outline" size={16} color={COLORS.textSecondary} style={styles.editIcon} />
+              <TextInput
+                style={styles.editInput}
+                value={editTitle}
+                onChangeText={setEditTitle}
+                placeholder="Job title / Role"
+                placeholderTextColor={COLORS.textLight}
+              />
+            </View>
+            <View style={styles.editRow}>
+              <Ionicons name="call-outline" size={16} color={COLORS.textSecondary} style={styles.editIcon} />
+              <TextInput
+                style={styles.editInput}
+                value={editPhone}
+                onChangeText={setEditPhone}
+                placeholder="+92 300 1234567"
+                placeholderTextColor={COLORS.textLight}
+                keyboardType="phone-pad"
+              />
+            </View>
+            <View style={styles.editRow}>
+              <Ionicons name="location-outline" size={16} color={COLORS.textSecondary} style={styles.editIcon} />
+              <TextInput
+                style={styles.editInput}
+                value={editLocation}
+                onChangeText={setEditLocation}
+                placeholder="Location"
+                placeholderTextColor={COLORS.textLight}
+              />
+            </View>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.userName}>{user?.name || 'BKJ User'}</Text>
+            <Text style={styles.userEmail}>{user?.email || ''}</Text>
+
+            <TouchableOpacity
+              style={styles.uploadPhotoBtn}
+              onPress={handlePickAvatarAndSave}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="camera-outline" size={15} color="#111111" style={{ marginRight: 6 }} />
+              <Text style={styles.uploadPhotoText}>Upload Profile Photo</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+
+      {/* Scrollable Content (Bottom Section on White Background) */}
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -764,140 +865,6 @@ export default function ProfileScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accentGreen} />
         }
       >
-
-        {/* Avatar + Basic Info */}
-        <View style={styles.avatarSection}>
-          {editing ? (
-            <TouchableOpacity
-              style={styles.avatarBorder}
-              onPress={handlePickAvatar}
-              activeOpacity={0.8}
-            >
-              {editAvatar ? (
-                <Image source={{ uri: editAvatar }} style={styles.avatarImage} resizeMode="cover" />
-              ) : (
-                <View style={styles.avatarCircle}>
-                  <Text style={styles.avatarText}>{initials}</Text>
-                </View>
-              )}
-              <View style={styles.avatarEditBadge}>
-                <Ionicons name="camera" size={14} color="#FFFFFF" />
-              </View>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={styles.avatarBorder}
-              onPress={handlePickAvatarAndSave}
-              activeOpacity={0.8}
-            >
-              {/* Layer 1: Base image (last active image, cached and immediate) */}
-              {lastAvatar ? (
-                <Image
-                  source={{ uri: lastAvatar }}
-                  style={styles.avatarImage}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.avatarCircle}>
-                  <Text style={styles.avatarText}>{initials}</Text>
-                </View>
-              )}
-
-              {/* Layer 2: Incoming avatar image (loading on top absolute) */}
-              {newAvatarUri && newAvatarUri !== lastAvatar && (
-                <Image
-                  source={{ uri: newAvatarUri }}
-                  style={[styles.avatarImage, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }]}
-                  resizeMode="cover"
-                  onLoad={() => {
-                    setLastAvatar(newAvatarUri);
-                    setNewAvatarUri(null);
-                    setShowAvatarError(false);
-                  }}
-                  onError={() => {
-                    setNewAvatarUri(null);
-                    setShowAvatarError(true);
-                  }}
-                />
-              )}
-
-              {showAvatarError && !lastAvatar && !newAvatarUri && (
-                <View style={[styles.avatarCircle, { position: 'absolute', backgroundColor: '#E5E7EB' }]}>
-                  <Text style={styles.avatarText}>{initials}</Text>
-                </View>
-              )}
-              <View style={styles.avatarEditBadge}>
-                <Ionicons name="camera" size={14} color="#FFFFFF" />
-              </View>
-            </TouchableOpacity>
-          )}
-
-          {editing && (
-            <TouchableOpacity onPress={handlePickAvatar} style={{ marginBottom: 12 }}>
-              <Text style={{ color: COLORS.accentGreen, fontSize: 13, fontWeight: '700' }}>Change Profile Photo</Text>
-            </TouchableOpacity>
-          )}
-
-          {editing ? (
-            <View style={styles.editFields}>
-              <View style={styles.editRow}>
-                <Ionicons name="person-outline" size={16} color={COLORS.textSecondary} style={styles.editIcon} />
-                <TextInput
-                  style={styles.editInput}
-                  value={editName}
-                  onChangeText={setEditName}
-                  placeholder="Full name"
-                  placeholderTextColor={COLORS.textLight}
-                />
-              </View>
-              <View style={styles.editRow}>
-                <Ionicons name="briefcase-outline" size={16} color={COLORS.textSecondary} style={styles.editIcon} />
-                <TextInput
-                  style={styles.editInput}
-                  value={editTitle}
-                  onChangeText={setEditTitle}
-                  placeholder="Job title / Role"
-                  placeholderTextColor={COLORS.textLight}
-                />
-              </View>
-              <View style={styles.editRow}>
-                <Ionicons name="call-outline" size={16} color={COLORS.textSecondary} style={styles.editIcon} />
-                <TextInput
-                  style={styles.editInput}
-                  value={editPhone}
-                  onChangeText={setEditPhone}
-                  placeholder="+92 300 1234567"
-                  placeholderTextColor={COLORS.textLight}
-                  keyboardType="phone-pad"
-                />
-              </View>
-              <View style={styles.editRow}>
-                <Ionicons name="location-outline" size={16} color={COLORS.textSecondary} style={styles.editIcon} />
-                <TextInput
-                  style={styles.editInput}
-                  value={editLocation}
-                  onChangeText={setEditLocation}
-                  placeholder="Location"
-                  placeholderTextColor={COLORS.textLight}
-                />
-              </View>
-            </View>
-          ) : (
-            <>
-              <Text style={styles.userName}>{user?.name || 'BKJ User'}</Text>
-              <Text style={styles.userEmail}>{user?.email || ''}</Text>
-
-              <TouchableOpacity
-                style={styles.uploadPhotoBtn}
-                onPress={handlePickAvatarAndSave}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="camera-outline" size={15} color="#111111" style={{ marginRight: 6 }} />
-                <Text style={styles.uploadPhotoText}>Upload Profile Photo</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
 
         {/* Info Cards Row - Initials / Phone / Role */}
         {!editing && (
@@ -960,13 +927,13 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.rateBadge}>
             <Text style={styles.rateValue}>
-              {isEmployer 
-                ? `$${totalSpend.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
+              {isEmployer
+                ? `$${totalSpend.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
                 : `${appliedJobsList.length} ${appliedJobsList.length === 1 ? 'Application' : 'Applications'}`}
             </Text>
             <Text style={styles.rateLabel}>
-              {isEmployer 
-                ? 'Total Spend Rate / mo' 
+              {isEmployer
+                ? 'Total Spend Rate / mo'
                 : 'Application History Timeline'}
             </Text>
           </View>
@@ -975,20 +942,20 @@ export default function ProfileScreen() {
               (() => {
                 const dayData = chartData[selectedIndex];
                 const totalColumns = chartData.length;
-                const tooltipLeft = totalColumns > 1 
+                const tooltipLeft = totalColumns > 1
                   ? `${(selectedIndex / (totalColumns - 1)) * 75 + 12.5}%`
                   : '50%';
-                
-                const titleText = isEmployer 
+
+                const titleText = isEmployer
                   ? (dayData.job?.title || 'Job Posting')
                   : dayData.dateLabel;
-                  
+
                 const subtitleText = isEmployer
                   ? `${dayData.job?.company || 'Company'} • ${dayData.job?.salary || 'Salary'}`
-                  : (dayData.appCount === 0 
-                      ? 'No applications' 
-                      : dayData.jobs.map(j => `• ${j.title}`).join('\n'));
-                
+                  : (dayData.appCount === 0
+                    ? 'No applications'
+                    : dayData.jobs.map(j => `• ${j.title}`).join('\n'));
+
                 return (
                   <View style={[styles.chartTooltip, { left: tooltipLeft }]}>
                     <Text style={styles.chartTooltipTitle} numberOfLines={1}>
@@ -1005,10 +972,10 @@ export default function ProfileScreen() {
 
             <View style={[styles.chartVisualizer, activeList.length === 0 && { opacity: 0.15 }]}>
               {chartData.map((data, index) => (
-                <DottedColumn 
-                  key={index} 
-                  height={data.height} 
-                  active={activeList.length > 0 ? index === selectedIndex : false} 
+                <DottedColumn
+                  key={index}
+                  height={data.height}
+                  active={activeList.length > 0 ? index === selectedIndex : false}
                   onPress={() => activeList.length > 0 && setSelectedIndex(index)}
                 />
               ))}
@@ -1016,10 +983,10 @@ export default function ProfileScreen() {
             {!isEmployer && activeList.length > 0 && (
               <View style={styles.chartLabelsRow}>
                 {chartData.map((data, index) => (
-                  <Text 
-                    key={index} 
+                  <Text
+                    key={index}
                     style={[
-                      styles.chartLabelText, 
+                      styles.chartLabelText,
                       index === selectedIndex && styles.chartLabelTextActive
                     ]}
                   >
@@ -1065,7 +1032,13 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={styles.gridCard}
-            onPress={() => setShowHowItWorksModal(true)}
+            onPress={() => {
+              setShowHowItWorksModal(true);
+              setGuideLoading(true);
+              setTimeout(() => {
+                setGuideLoading(false);
+              }, 1200);
+            }}
             activeOpacity={0.8}
           >
             <View style={styles.gridCardHeader}>
@@ -1089,7 +1062,10 @@ export default function ProfileScreen() {
         {/* My Job Listings */}
         {user && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>My Job Listings ({myJobs.length})</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={styles.sectionTitle}>My Job Listings ({myJobs.length})</Text>
+              <Ionicons name="paper-plane" size={16} color={COLORS.accentGreen} />
+            </View>
             {myJobs.length === 0 ? (
               <View style={styles.emptyJobsCard}>
                 <Ionicons name="folder-open-outline" size={24} color={COLORS.textLight} />
@@ -1601,18 +1577,173 @@ export default function ProfileScreen() {
           </Animated.View>
         </View>
       </Modal>
+
+      {/* How It Works Guide Modal (Genuine Overlay to Prevent Bottom Navigation Bar Intersections) */}
+      <Modal
+        visible={showHowItWorksModal}
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => {
+          setGuideLoading(false);
+          setShowHowItWorksModal(false);
+        }}
+      >
+        {guideLoading ? (
+          <HowItWorksSkeleton
+            onClose={() => {
+              setGuideLoading(false);
+              setShowHowItWorksModal(false);
+            }}
+          />
+        ) : (
+          <View style={styles.guideScreenContainer}>
+            <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+            {/* Guide Header */}
+            <View style={[styles.guideScreenHeader, { paddingTop: insets.top > 0 ? insets.top + 12 : 20, paddingBottom: 16 }]}>
+              <TouchableOpacity
+                style={styles.guideBackBtn}
+                onPress={() => {
+                  setGuideLoading(false);
+                  setShowHowItWorksModal(false);
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="arrow-back" size={20} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+              <Text style={styles.guideScreenHeaderTitle}>How It Works</Text>
+              <View style={{ width: 40 }} />
+            </View>
+
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Editorial Banner */}
+              <View style={styles.editorialBanner}>
+                <View style={styles.editorialOverlay}>
+                  <View style={styles.editorialBadge}>
+                    <Text style={styles.editorialBadgeText}>BKJ SYSTEM DESIGN</Text>
+                  </View>
+                  <Text style={styles.editorialTitle}>The BKJ Mechanics</Text>
+                  <Text style={styles.editorialSub}>Discover how our professional, data-driven algorithm powers a marketplace for candidates and recruiters alike.</Text>
+                </View>
+              </View>
+
+              {/* Section Heading */}
+              <Text style={styles.guideSectionHeading}>Platform Mechanics & Guidelines</Text>
+
+              {/* Stepper Timeline Section */}
+              <View style={styles.timelineContainer}>
+                {/* Step 1 */}
+                <View style={styles.timelineItem}>
+                  <View style={styles.timelineLineContainer}>
+                    <View style={[styles.timelineIconBadge, { backgroundColor: 'rgba(59, 130, 246, 0.08)' }]}>
+                      <Ionicons name="search" size={16} color="#3B82F6" />
+                    </View>
+                    <View style={styles.timelineLine} />
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineStepNumber}>STEP 01</Text>
+                    <Text style={styles.timelineStepTitle}>Discover Elite Careers</Text>
+                    <Text style={styles.timelineStepDesc}>
+                      Browse professional job opportunities globally. Apply instantly with a single tap and track your application status in real-time on your dashboard.
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Step 2 */}
+                <View style={styles.timelineItem}>
+                  <View style={styles.timelineLineContainer}>
+                    <View style={[styles.timelineIconBadge, { backgroundColor: 'rgba(16, 185, 129, 0.08)' }]}>
+                      <Ionicons name="sparkles" size={16} color="#10B981" />
+                    </View>
+                    <View style={styles.timelineLine} />
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineStepNumber}>STEP 02</Text>
+                    <Text style={styles.timelineStepTitle}>Premium "Featured" Upgrade</Text>
+                    <Text style={styles.timelineStepDesc}>
+                      Jobs achieving 10+ likes automatically upgrade to premium status. The listing gets highlighted with an elegant Emerald border, gold drop shadows, and a crown icon 👑.
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Step 3 */}
+                <View style={styles.timelineItem}>
+                  <View style={styles.timelineLineContainer}>
+                    <View style={[styles.timelineIconBadge, { backgroundColor: 'rgba(239, 68, 68, 0.08)' }]}>
+                      <Ionicons name="flame" size={16} color="#EF4444" />
+                    </View>
+                    <View style={styles.timelineLine} />
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineStepNumber}>STEP 03</Text>
+                    <Text style={styles.timelineStepTitle}>Instant "Hot 🔥" Trending Status</Text>
+                    <Text style={styles.timelineStepDesc}>
+                      Postings that gain 10+ likes within the first 24 hours of creation are marked as Hot 🔥. This high-velocity engagement highlights listing popularity to active job-seekers.
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Step 4 */}
+                <View style={styles.timelineItem}>
+                  <View style={styles.timelineLineContainer}>
+                    <View style={[styles.timelineIconBadge, { backgroundColor: 'rgba(21, 128, 61, 0.08)' }]}>
+                      <Ionicons name="checkmark-circle" size={16} color="#15803D" />
+                    </View>
+                    {/* No line for the last step */}
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineStepNumber}>STEP 04</Text>
+                    <Text style={styles.timelineStepTitle}>Verified Network Trust</Text>
+                    <Text style={styles.timelineStepDesc}>
+                      Verified profiles and job posters are labeled with our custom vector tick emblem. This eliminates credentials offset issues and guarantees authentic hiring channels.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Finish Button */}
+              <TouchableOpacity
+                style={styles.guideScreenFinishBtn}
+                onPress={() => {
+                  setGuideLoading(false);
+                  setShowHowItWorksModal(false);
+                }}
+                activeOpacity={0.88}
+              >
+                <Text style={styles.guideScreenFinishText}>Got It! Return to Profile 🚀</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
+      </Modal>
     </View>
 
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgPrimary },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 140 },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 34, paddingBottom: 140 },
+
+  heroDome: {
+    position: 'absolute',
+    top: 0,
+    left: -40,
+    right: -40,
+    height: 360,
+    backgroundColor: '#B2E2B9',
+    borderBottomLeftRadius: (width + 80) / 1.6,
+    borderBottomRightRadius: (width + 80) / 1.6,
+  },
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 0, paddingBottom: 12,
+    paddingHorizontal: 20, paddingTop: 0, paddingBottom: 6,
+    zIndex: 10,
   },
   headerTitle: { fontSize: FONTS.sizes.lg, fontWeight: '700', color: COLORS.textPrimary },
   headerIconBtn: {
@@ -1623,7 +1754,7 @@ const styles = StyleSheet.create({
   },
 
   // Avatar
-  avatarSection: { alignItems: 'center', marginTop: 18, marginBottom: 16 },
+  avatarSection: { alignItems: 'center', marginTop: 10, marginBottom: 20, zIndex: 10 },
   avatarBorder: {
     width: 104, height: 104, borderRadius: 52,
     borderWidth: 3, borderColor: '#B5DCB9',
@@ -2372,27 +2503,36 @@ const styles = StyleSheet.create({
   },
   editorialBanner: {
     width: '100%',
-    height: 180,
+    height: 155,
     borderRadius: 24,
     overflow: 'hidden',
     marginTop: 20,
     marginBottom: 20,
-    shadowColor: '#000',
+    backgroundColor: '#1E293B',
+    shadowColor: '#1E293B',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 3,
   },
-  editorialBannerImg: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-  },
   editorialOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     padding: 20,
+  },
+  editorialBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#E8F542',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  editorialBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    letterSpacing: 0.5,
   },
   editorialTitle: {
     fontSize: 20,
@@ -2413,49 +2553,67 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     letterSpacing: -0.2,
   },
-  guideDetailCard: {
-    backgroundColor: COLORS.bgCard,
-    borderRadius: 24,
-    overflow: 'hidden',
+  timelineContainer: {
+    paddingLeft: 4,
+    marginTop: 10,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#EEF2F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 12,
-    elevation: 2,
   },
-  guideDetailImg: {
-    width: '100%',
-    height: 160,
-    backgroundColor: '#E5E7EB',
-  },
-  guideDetailContent: {
-    padding: 18,
-  },
-  guideDetailTitleRow: {
+  timelineItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  guideIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+  timelineLineContainer: {
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  timelineIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    borderWidth: 1.5,
+    borderColor: '#EEF2F0',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+    zIndex: 2,
   },
-  guideDetailTitle: {
+  timelineLine: {
+    flex: 1,
+    width: 2,
+    backgroundColor: '#EEF2F0',
+    marginVertical: 4,
+    minHeight: 88,
+  },
+  timelineContent: {
+    flex: 1,
+    backgroundColor: COLORS.bgCard,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#EEF2F0',
+    padding: 18,
+  },
+  timelineStepNumber: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: COLORS.accentGreen,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  timelineStepTitle: {
     fontSize: 15,
     fontWeight: '800',
     color: COLORS.textPrimary,
+    marginBottom: 6,
   },
-  guideDetailDesc: {
+  timelineStepDesc: {
     fontSize: 13,
     color: COLORS.textSecondary,
-    lineHeight: 19,
+    lineHeight: 18,
     fontWeight: '500',
   },
   guideScreenFinishBtn: {

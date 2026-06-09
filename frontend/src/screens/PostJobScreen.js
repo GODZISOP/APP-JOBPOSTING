@@ -45,6 +45,7 @@ const EXPERIENCE_LEVELS = ['Entry Level', 'Intermediate', 'Expert'];
 
 
 const COUNTRIES = [
+  { name: 'Global (All over the world)', flag: '🌐', cities: ['All over the world'] },
   { name: 'Pakistan', flag: '🇵🇰', cities: ['All over the country', 'Lahore', 'Karachi', 'Islamabad', 'Faisalabad', 'Rawalpindi', 'Multan', 'Peshawar', 'Quetta', 'Sialkot', 'Gujranwala', 'Hyderabad', 'Bahawalpur'] },
   { name: 'India', flag: '🇮🇳', cities: ['All over the country', 'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad', 'Jaipur'] },
   { name: 'United Arab Emirates', flag: '🇦🇪', cities: ['All over the country', 'Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Fujairah'] },
@@ -317,11 +318,13 @@ export default function PostJobScreen({ navigation }) {
 
   if (loading) {
     return (
-      <SplashScreen 
-        message="Uploading job details..." 
-        subMessage="Publishing your premium opportunity dynamically" 
-        showLottie={true} 
-      />
+      <Modal visible={true} transparent={false} animationType="fade" statusBarTranslucent={true}>
+        <SplashScreen 
+          message="Uploading job details..." 
+          subMessage="Publishing your premium opportunity dynamically" 
+          showLottie={true} 
+        />
+      </Modal>
     );
   }
 
@@ -332,7 +335,7 @@ export default function PostJobScreen({ navigation }) {
         <View style={styles.successCard}>
           <View style={styles.successIcon}>
             <LottieView
-              source={require('../../assets/success.json')}
+              source={require('../../assets/success.lottie')}
               style={{ width: 240, height: 240 }}
               autoPlay
               loop={false}
