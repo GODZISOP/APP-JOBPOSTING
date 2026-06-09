@@ -9,6 +9,8 @@
     "newArchEnabled": true,
     "scheme": "bkj",
     "splash": {
+      "image": "./assets/transparent-splash.png",
+      "resizeMode": "contain",
       "backgroundColor": "#D4EAD7"
     },
     "ios": {
