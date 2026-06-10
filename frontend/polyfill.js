@@ -64,25 +64,11 @@ try {
     TextInput.defaultProps = { allowFontScaling: false };
   }
 
-  // Method 2: For React 19 / React Native 0.81+ (where defaultProps are ignored)
-  // SAFE PROP-INJECTION APPROACH (Prevents RN 0.81 Native Crashes)
-  if (Text.render) {
-    const originalTextRender = Text.render;
-    Text.render = function (props, ref) {
-      const newProps = { ...props, allowFontScaling: false };
-      return originalTextRender.call(this, newProps, ref);
-    };
-  }
+  // NOTE: In React 19 / React Native 0.81+, modifying Text.render or TextInput.render
+  // directly causes internal React rendering crashes and native app crashes.
+  // We bypass this monkey-patching to ensure stability.
 
-  if (TextInput.render) {
-    const originalTextInputRender = TextInput.render;
-    TextInput.render = function (props, ref) {
-      const newProps = { ...props, allowFontScaling: false };
-      return originalTextInputRender.call(this, newProps, ref);
-    };
-  }
-
-  console.log('⚡ Global font scaling disabled successfully!');
+  console.log('⚡ Global font scaling disabled successfully (legacy defaultProps fallback applied)!');
 } catch (err) {
   console.warn('Failed to disable font scaling globally:', err);
 }

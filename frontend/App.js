@@ -1,4 +1,10 @@
 import './polyfill';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+});
+
 
 import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
@@ -321,7 +327,7 @@ import Constants from 'expo-constants';
 import { Asset } from 'expo-asset';
 
 // ─── App Root ──────────────────────────────────────────────────────────────────
-export default function App() {
+function App() {
   useEffect(() => {
     // Preload critical assets (Logo and Google G) for instant loading
     const preload = async () => {
@@ -481,3 +487,5 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+
+export default Sentry.wrap(App);
