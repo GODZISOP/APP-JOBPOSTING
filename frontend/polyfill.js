@@ -47,28 +47,4 @@ if (!globalThis.expo.modules['ExpoAsset']) {
   console.log('⚡ Native module ExpoAsset successfully polyfilled in JS!');
 }
 
-// Disable system font scaling globally to ensure layout consistency across all devices
-try {
-  const { Text, TextInput } = require('react-native');
-  const React = require('react');
-
-  // Method 1: For older React Native versions
-  if (Text.defaultProps) {
-    Text.defaultProps.allowFontScaling = false;
-  } else {
-    Text.defaultProps = { allowFontScaling: false };
-  }
-  if (TextInput.defaultProps) {
-    TextInput.defaultProps.allowFontScaling = false;
-  } else {
-    TextInput.defaultProps = { allowFontScaling: false };
-  }
-
-  // NOTE: In React 19 / React Native 0.81+, modifying Text.render or TextInput.render
-  // directly causes internal React rendering crashes and native app crashes.
-  // We bypass this monkey-patching to ensure stability.
-
-  console.log('⚡ Global font scaling disabled successfully (legacy defaultProps fallback applied)!');
-} catch (err) {
-  console.warn('Failed to disable font scaling globally:', err);
-}
+// Global font scaling overrides removed to prevent React 19 / React Native 0.81+ rendering crashes.

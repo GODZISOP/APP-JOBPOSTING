@@ -16,13 +16,15 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://mbmgulgrgxruptfaodus.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_37Xm5MbMyvgFKa5QkhA0eQ_zKCeXMcG",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://25fcc40f8d3790e609ece3a1232b942a@o4511540381810688.ingest.us.sentry.io/4511540400619520",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "production": {
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://mbmgulgrgxruptfaodus.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_37Xm5MbMyvgFKa5QkhA0eQ_zKCeXMcG"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_37Xm5MbMyvgFKa5QkhA0eQ_zKCeXMcG",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://25fcc40f8d3790e609ece3a1232b942a@o4511540381810688.ingest.us.sentry.io/4511540400619520"
       }
     }
   },

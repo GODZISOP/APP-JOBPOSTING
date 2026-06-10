@@ -1,9 +1,7 @@
 import './polyfill';
 import * as Sentry from '@sentry/react-native';
 
-Sentry.init({
-  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-});
+// Sentry initialization has been moved to index.js to catch early startup crashes.
 
 
 import React, { useEffect, useRef, useState } from 'react';
