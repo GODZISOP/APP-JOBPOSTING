@@ -65,19 +65,20 @@ try {
   }
 
   // Method 2: For React 19 / React Native 0.81+ (where defaultProps are ignored)
+  // SAFE PROP-INJECTION APPROACH (Prevents RN 0.81 Native Crashes)
   if (Text.render) {
     const originalTextRender = Text.render;
-    Text.render = function (...args) {
-      const origin = originalTextRender.apply(this, args);
-      return origin ? React.cloneElement(origin, { allowFontScaling: false }) : origin;
+    Text.render = function (props, ref) {
+      const newProps = { ...props, allowFontScaling: false };
+      return originalTextRender.call(this, newProps, ref);
     };
   }
 
   if (TextInput.render) {
     const originalTextInputRender = TextInput.render;
-    TextInput.render = function (...args) {
-      const origin = originalTextInputRender.apply(this, args);
-      return origin ? React.cloneElement(origin, { allowFontScaling: false }) : origin;
+    TextInput.render = function (props, ref) {
+      const newProps = { ...props, allowFontScaling: false };
+      return originalTextInputRender.call(this, newProps, ref);
     };
   }
 
