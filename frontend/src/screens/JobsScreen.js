@@ -162,6 +162,8 @@ const TYPE_COLORS = {
   'Full Time': { bg: '#E8F5E9', text: '#2E7D32' },
   'Part Time': { bg: '#FFF8E1', text: '#F57F17' },
   'Remote': { bg: '#E3F2FD', text: '#1565C0' },
+  'Contract': { bg: '#F3E5F5', text: '#7B1FA2' },
+  'Daily Basis': { bg: '#E0F7FA', text: '#00838F' },
 };
 
 function JobCard({ job, onPress, isLiked, onLike }) {
@@ -399,38 +401,20 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
         <View style={styles.upworkDivider} />
 
         {/* Key Job Specifications Block */}
-        <View style={styles.upworkSpecsGrid}>
-          {/* Salary Spec */}
-          <View style={styles.upworkSpecItem}>
-            <View style={styles.upworkSpecIconContainer}>
-              <Ionicons name="wallet-outline" size={18} color="#15803D" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.upworkSpecLabel} numberOfLines={1} adjustsFontSizeToFit>Salary/Budget</Text>
-              <Text style={styles.upworkSpecValue} numberOfLines={1} adjustsFontSizeToFit>{job.salary}</Text>
-            </View>
+        <View style={styles.specsChipsRow}>
+          <View style={[styles.specChip, { backgroundColor: '#F0FDF4', borderColor: '#DCFCE7', borderWidth: 1 }]}>
+            <Ionicons name="wallet-outline" size={14} color="#15803D" style={{ marginRight: 6 }} />
+            <Text style={[styles.specChipText, { color: '#15803D' }]}>{job.salary}</Text>
+          </View>
+          
+          <View style={[styles.specChip, { backgroundColor: '#EFF6FF', borderColor: '#DBEAFE', borderWidth: 1 }]}>
+            <Ionicons name="briefcase-outline" size={14} color="#1D4ED8" style={{ marginRight: 6 }} />
+            <Text style={[styles.specChipText, { color: '#1D4ED8' }]}>{job.type}</Text>
           </View>
 
-          {/* Job Type Spec */}
-          <View style={styles.upworkSpecItem}>
-            <View style={styles.upworkSpecIconContainer}>
-              <Ionicons name="briefcase-outline" size={18} color="#0284C7" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.upworkSpecLabel} numberOfLines={1} adjustsFontSizeToFit>Job Type</Text>
-              <Text style={styles.upworkSpecValue} numberOfLines={1} adjustsFontSizeToFit>{job.type}</Text>
-            </View>
-          </View>
-
-          {/* Experience Spec */}
-          <View style={styles.upworkSpecItem}>
-            <View style={styles.upworkSpecIconContainer}>
-              <Ionicons name="school-outline" size={18} color="#7C3AED" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.upworkSpecLabel} numberOfLines={1} adjustsFontSizeToFit>Experience Level</Text>
-              <Text style={styles.upworkSpecValue} numberOfLines={1} adjustsFontSizeToFit>{experienceReq}</Text>
-            </View>
+          <View style={[styles.specChip, { backgroundColor: '#F5F3FF', borderColor: '#EDE9FE', borderWidth: 1 }]}>
+            <Ionicons name="school-outline" size={14} color="#6D28D9" style={{ marginRight: 6 }} />
+            <Text style={[styles.specChipText, { color: '#6D28D9' }]}>{experienceReq}</Text>
           </View>
         </View>
       </View>
@@ -771,12 +755,87 @@ function JobsSkeleton() {
   );
 }
 
+// Levenshtein distance fuzzy search helper (Amazon/Daraz style)
+function isFuzzyMatch(str, query) {
+  if (!str || !query) return false;
+  str = str.toLowerCase().trim();
+  query = query.toLowerCase().trim();
+
+  // Split both query and target string into clean word tokens
+  const strWords = str.split(/[\s\-_,\./\\]+/).filter(Boolean);
+  const queryWords = query.split(/\s+/).filter(Boolean);
+
+  if (queryWords.length === 0) return false;
+
+  const getLevenshteinDistance = (a, b) => {
+    const tmp = [];
+    for (let i = 0; i <= a.length; i++) tmp[i] = [i];
+    for (let j = 0; j <= b.length; j++) tmp[0][j] = j;
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        tmp[i][j] = Math.min(
+          tmp[i - 1][j] + 1,
+          tmp[i][j - 1] + 1,
+          tmp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+        );
+      }
+    }
+    return tmp[a.length][b.length];
+  };
+
+  // Every word in the query must match at least one word in the target string
+  return queryWords.every(qWord => {
+    return strWords.some(w => {
+      // 1. Exact or prefix match (e.g., "re" matches "react")
+      if (w.startsWith(qWord)) return true;
+      // 2. Query contains the target word (e.g., user typed "react-native" matches "react")
+      if (qWord.startsWith(w)) return true;
+      // 3. Substring match but only if they are related/meaningful (at least 3 characters)
+      if (qWord.length >= 3 && w.length >= qWord.length && w.includes(qWord)) {
+        // Prevent matching unrelated words (like "contract" for "react") by ensuring it's not con-tract.
+        // If query is "react", we don't want "contract" to match.
+        if (qWord === 'react' && w === 'contract') return false;
+        return true;
+      }
+      // 4. Fuzzy typo match
+      if (qWord.length >= 3) {
+        const distance = getLevenshteinDistance(w, qWord);
+        const maxDistance = qWord.length <= 4 ? 1 : 2;
+        return distance <= maxDistance;
+      }
+      return false;
+    });
+  });
+}
+
 export default function JobsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { jobs, user, likedJobs, likeJob, fetchJobs, setIsGuest, userCountry } = useAuth();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedJob, setSelectedJob] = useState(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+
+  const suggestions = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (q === '') return [];
+    const list = new Set();
+    
+    // Match titles, companies, categories
+    jobs.forEach(j => {
+      if (j.title && isFuzzyMatch(j.title, q)) list.add(j.title);
+      if (j.company && isFuzzyMatch(j.company, q)) list.add(j.company);
+      if (j.category && isFuzzyMatch(j.category, q)) list.add(j.category);
+    });
+    
+    // Static keywords matching
+    const staticKeywords = ['Remote', 'Full Time', 'Part Time', 'Daily Basis', 'Designer', 'Developer', 'Marketing', 'Contract'];
+    staticKeywords.forEach(k => {
+      if (isFuzzyMatch(k, q)) list.add(k);
+    });
+    
+    return Array.from(list).slice(0, 5);
+  }, [search, jobs]);
 
   const handleJobPress = (job) => {
     if (!user) {
@@ -910,16 +969,16 @@ export default function JobsScreen({ navigation }) {
     // 1. Category match
     const matchCat = activeCategory === 'All' || j.category === activeCategory;
 
-    // 2. Enhanced query search match (matches title, company, category, location, type, skills)
+    // 2. Enhanced query search match (matches title, company, category, location, type, skills with fuzzy matching)
     const q = search.trim().toLowerCase();
     const matchSearch = q === '' || (
-      (j.title && j.title.toLowerCase().includes(q)) ||
-      (j.company && j.company.toLowerCase().includes(q)) ||
-      (j.category && j.category.toLowerCase().includes(q)) ||
-      (j.location && j.location.toLowerCase().includes(q)) ||
-      (j.type && j.type.toLowerCase().includes(q)) ||
-      (j.description && j.description.toLowerCase().includes(q)) ||
-      (j.skills && j.skills.some(skill => skill.toLowerCase().includes(q)))
+      (j.title && isFuzzyMatch(j.title, q)) ||
+      (j.company && isFuzzyMatch(j.company, q)) ||
+      (j.category && isFuzzyMatch(j.category, q)) ||
+      (j.location && isFuzzyMatch(j.location, q)) ||
+      (j.type && isFuzzyMatch(j.type, q)) ||
+      (j.description && isFuzzyMatch(j.description, q)) ||
+      (j.skills && j.skills.some(skill => isFuzzyMatch(skill, q)))
     );
 
     // 3. Job Type multi-select filter
@@ -965,21 +1024,54 @@ export default function JobsScreen({ navigation }) {
     return matchCat && matchSearch && matchType && matchLoc && matchSalary && matchCountryTarget;
   });
 
-  // ─── Geo-Sort: Push user's country jobs to the top ─────────────────────────
+  // ─── Geo-Sort & Search Relevance Sort: Push most relevant & user's country jobs to the top ─────────────────────────
   const geoSortedFiltered = React.useMemo(() => {
-    if (!userCountry || selectedLocations.length > 0) return filtered; // Skip if user filtered by location already
-    const countryLower = userCountry.toLowerCase();
-    const local = [];
-    const others = [];
-    filtered.forEach(j => {
-      if (j.location && j.location.toLowerCase().includes(countryLower)) {
-        local.push(j);
-      } else {
-        others.push(j);
-      }
-    });
-    return [...local, ...others];
-  }, [filtered, userCountry, selectedLocations]);
+    let list = [...filtered];
+    
+    const q = search.trim().toLowerCase();
+    if (q !== '') {
+      const getRelevanceScore = (j) => {
+        let score = 0;
+        const titleLower = j.title?.toLowerCase() || '';
+        const companyLower = j.company?.toLowerCase() || '';
+        
+        // 1. Exact match in title (Highest priority)
+        if (titleLower === q) score += 100;
+        // 2. Starts with query in title (E.g. "React" -> "React Native Developer")
+        else if (titleLower.startsWith(q)) score += 50;
+        // 3. Word starts with query in title (E.g. "Native" -> "React Native Developer")
+        else {
+          const words = titleLower.split(/[\s\-_,\./\\]+/);
+          if (words.some(w => w.startsWith(q))) score += 25;
+        }
+        
+        // 4. Substring match in title
+        if (titleLower.includes(q)) score += 10;
+        // 5. Match in company name
+        if (companyLower.startsWith(q)) score += 5;
+        else if (companyLower.includes(q)) score += 2;
+        
+        return score;
+      };
+      
+      list.sort((a, b) => getRelevanceScore(b) - getRelevanceScore(a));
+    } else if (userCountry && selectedLocations.length === 0) {
+      // Geo-sort only if not searching
+      const countryLower = userCountry.toLowerCase();
+      const local = [];
+      const others = [];
+      list.forEach(j => {
+        if (j.location && j.location.toLowerCase().includes(countryLower)) {
+          local.push(j);
+        } else {
+          others.push(j);
+        }
+      });
+      list = [...local, ...others];
+    }
+    
+    return list;
+  }, [filtered, userCountry, selectedLocations, search]);
 
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -1132,24 +1224,48 @@ export default function JobsScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Search Wrapper */}
-        <View style={styles.searchWrapper}>
-          <Ionicons name="search-outline" size={18} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search titles, skills or companies..."
-            placeholderTextColor={COLORS.textLight}
-            value={search}
-            onChangeText={setSearch}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')} style={{ marginRight: 8 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="close-circle" size={18} color={COLORS.textSecondary} />
+        {/* Search Container with zIndex to overlay suggestions */}
+        <View style={{ zIndex: 99, position: 'relative' }}>
+          <View style={styles.searchWrapper}>
+            <Ionicons name="search-outline" size={18} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search titles, skills or companies..."
+              placeholderTextColor={COLORS.textLight}
+              value={search}
+              onChangeText={setSearch}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')} style={{ marginRight: 8 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close-circle" size={18} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.searchFilterBtn} onPress={() => setFilterModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="options-outline" size={18} color={COLORS.textPrimary} />
             </TouchableOpacity>
+          </View>
+          
+          {/* Search Suggestions Dropdown Overlay */}
+          {searchFocused && suggestions.length > 0 && (
+            <View style={styles.suggestionsDropdown}>
+              {suggestions.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.suggestionItem}
+                  onPressIn={() => {
+                    setSearch(item);
+                    setSearchFocused(false);
+                  }}
+                >
+                  <Ionicons name="search-outline" size={14} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
+                  <Text style={styles.suggestionText}>{item}</Text>
+                  <Ionicons name="arrow-up-sharp" size={12} color={COLORS.textLight} style={{ marginLeft: 'auto', transform: [{ rotate: '-45deg' }] }} />
+                </TouchableOpacity>
+              ))}
+            </View>
           )}
-          <TouchableOpacity style={styles.searchFilterBtn} onPress={() => setFilterModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="options-outline" size={18} color={COLORS.textPrimary} />
-          </TouchableOpacity>
         </View>
 
         {/* Quick Tag Recommendations */}
@@ -1249,6 +1365,7 @@ export default function JobsScreen({ navigation }) {
         keyExtractor={(j, idx) => j.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -1301,7 +1418,7 @@ export default function JobsScreen({ navigation }) {
               {/* Job Type Section */}
               <Text style={styles.filterSectionTitle}>Job Type</Text>
               <View style={styles.filterPillsContainer}>
-                {['Full-time', 'Part-time', 'Contract', 'Remote'].map((type) => {
+                {['Full Time', 'Part Time', 'Remote', 'Contract', 'Daily Basis'].map((type) => {
                   const selected = selectedJobTypes.includes(type);
                   return (
                     <TouchableOpacity
@@ -1971,6 +2088,7 @@ const styles = StyleSheet.create({
   upworkCategoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     marginBottom: 8,
   },
   upworkCategoryText: {
@@ -2029,39 +2147,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     marginVertical: 18,
   },
-  upworkSpecsGrid: {
+  specsChipsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 8,
+    marginTop: 14,
   },
-  upworkSpecItem: {
+  specChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    minWidth: 100,
-  },
-  upworkSpecIconContainer: {
-    width: 36,
-    height: 36,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 10,
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
   },
-  upworkSpecLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#94A3B8',
-    textTransform: 'uppercase',
-  },
-  upworkSpecValue: {
-    fontSize: 13,
+  specChipText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
-    marginTop: 1,
   },
   upworkStatsContainer: {
     flexDirection: 'row',
@@ -2748,5 +2849,33 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#DC2626',
     marginRight: 2,
+  },
+  suggestionsDropdown: {
+    position: 'absolute',
+    top: 56,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#EEF2F0',
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+    zIndex: 999,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  suggestionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0A2417',
   },
 });

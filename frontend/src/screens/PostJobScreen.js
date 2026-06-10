@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import LottieView from 'lottie-react-native';
 import SplashScreen from '../components/splashscreen';
 
-const JOB_TYPES = ['Full Time', 'Part Time', 'Remote', 'Contract'];
+const JOB_TYPES = ['Full Time', 'Part Time', 'Remote', 'Contract', 'Daily Basis'];
 const CATEGORIES = [
   'Technology',
   'Design',

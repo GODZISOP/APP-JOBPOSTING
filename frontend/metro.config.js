@@ -21,7 +21,11 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   }
 
   // Fallback to default resolver
-  return context.resolveRequest(context, moduleName, platform);
+  return context.resolveRequest(
+    { ...context, resolveRequest: undefined },
+    moduleName,
+    platform
+  );
 };
 
 module.exports = config;

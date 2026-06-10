@@ -1192,6 +1192,7 @@ export default function ProfileScreen() {
         </View>
 
         <Text style={styles.footerVersion}>BKJ v1.0.0</Text>
+        <Text style={styles.developerCredit}>Developed by Babar Thakur</Text>
         <AdBanner />
       </ScrollView>
 
@@ -2656,5 +2657,14 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 16,
+  },
+  developerCredit: {
+    textAlign: 'center',
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    marginTop: 4,
+    marginBottom: 16,
+    opacity: 0.8,
   },
 });
