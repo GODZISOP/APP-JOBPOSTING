@@ -109,6 +109,75 @@ const COUNTRIES = [
   { name: 'Nepal', flag: '🇳🇵', cities: ['All over the country', 'Kathmandu', 'Pokhara', 'Lalitpur'] },
 ];
 
+const CURRENCY_SYMBOLS = {
+  'Global (All over the world)': '$',
+  'Pakistan': 'Rs',
+  'India': '₹',
+  'United Arab Emirates': 'AED',
+  'Saudi Arabia': 'SAR',
+  'Qatar': 'QAR',
+  'Kuwait': 'KWD',
+  'Bahrain': 'BHD',
+  'Oman': 'OMR',
+  'United States': '$',
+  'Canada': '$',
+  'United Kingdom': '£',
+  'Germany': '€',
+  'France': '€',
+  'Italy': '€',
+  'Spain': '€',
+  'Netherlands': '€',
+  'Switzerland': 'CHF',
+  'Sweden': 'kr',
+  'Norway': 'kr',
+  'Denmark': 'kr',
+  'Ireland': '€',
+  'Australia': '$',
+  'New Zealand': '$',
+  'China': '¥',
+  'Japan': '¥',
+  'South Korea': '₩',
+  'Singapore': '$',
+  'Malaysia': 'RM',
+  'Indonesia': 'Rp',
+  'Philippines': '₱',
+  'Thailand': '฿',
+  'Vietnam': '₫',
+  'Bangladesh': '৳',
+  'Sri Lanka': 'Rs',
+  'Turkey': '₺',
+  'Egypt': 'EGP',
+  'South Africa': 'R',
+  'Nigeria': '₦',
+  'Kenya': 'KSh',
+  'Morocco': 'DH',
+  'Brazil': 'R$',
+  'Mexico': '$',
+  'Argentina': '$',
+  'Colombia': '$',
+  'Chile': '$',
+  'Russia': '₽',
+  'Poland': 'zł',
+  'Portugal': '€',
+  'Belgium': '€',
+  'Austria': '€',
+  'Greece': '€',
+  'Czech Republic': 'Kč',
+  'Romania': 'lei',
+  'Hungary': 'Ft',
+  'Finland': '€',
+  'Iraq': 'IQD',
+  'Jordan': 'JOD',
+  'Lebanon': 'LBP',
+  'Afghanistan': '؋',
+  'Iran': 'IRR',
+  'Nepal': 'Rs',
+};
+
+const getCurrencySymbol = (countryName) => {
+  return CURRENCY_SYMBOLS[countryName] || '$';
+};
+
 const QUICK_SKILLS = {
   Technology: ['React Native', 'Node.js', 'Python', 'React.js', 'SQL', 'TypeScript', 'Docker', 'AWS'],
   Design: ['Figma', 'Adobe XD', 'UI Design', 'UX Research', 'Illustrator', 'Prototyping', 'Branding'],
@@ -265,9 +334,10 @@ export default function PostJobScreen({ navigation }) {
     setLoading(true);
 
     const formattedLocation = `${selectedCity}, ${selectedCountry.name}`;
+    const currencySymbol = getCurrencySymbol(selectedCountry.name);
     const formattedSalary = salaryType === 'Hourly Rate'
-      ? `$${salaryMin}-$${salaryMax}/hr`
-      : `$${salaryMin}-$${salaryMax}/mo`;
+      ? `${currencySymbol}${salaryMin}-${currencySymbol}${salaryMax}/hr`
+      : `${currencySymbol}${salaryMin}-${currencySymbol}${salaryMax}/mo`;
 
     const finalRequirements = selectedSkills.length > 0
       ? selectedSkills
@@ -467,12 +537,12 @@ export default function PostJobScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Salary Amount Range (strictly in dollars) */}
+          {/* Salary Amount Range */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Salary range (USD $) *</Text>
+            <Text style={styles.label}>Salary range ({getCurrencySymbol(selectedCountry.name)}) *</Text>
             <View style={styles.salaryInputRow}>
               <View style={[styles.inputWrapper, { flex: 1 }]}>
-                <Text style={styles.currencySymbol}>$</Text>
+                <Text style={styles.currencySymbol}>{getCurrencySymbol(selectedCountry.name)}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Min"
@@ -484,7 +554,7 @@ export default function PostJobScreen({ navigation }) {
               </View>
               <Text style={styles.salarySeparator}>to</Text>
               <View style={[styles.inputWrapper, { flex: 1 }]}>
-                <Text style={styles.currencySymbol}>$</Text>
+                <Text style={styles.currencySymbol}>{getCurrencySymbol(selectedCountry.name)}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Max"

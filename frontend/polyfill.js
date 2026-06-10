@@ -46,3 +46,42 @@ if (!globalThis.expo.modules['ExpoAsset']) {
   };
   console.log('⚡ Native module ExpoAsset successfully polyfilled in JS!');
 }
+
+// Disable system font scaling globally to ensure layout consistency across all devices
+try {
+  const { Text, TextInput } = require('react-native');
+  const React = require('react');
+
+  // Method 1: For older React Native versions
+  if (Text.defaultProps) {
+    Text.defaultProps.allowFontScaling = false;
+  } else {
+    Text.defaultProps = { allowFontScaling: false };
+  }
+  if (TextInput.defaultProps) {
+    TextInput.defaultProps.allowFontScaling = false;
+  } else {
+    TextInput.defaultProps = { allowFontScaling: false };
+  }
+
+  // Method 2: For React 19 / React Native 0.81+ (where defaultProps are ignored)
+  if (Text.render) {
+    const originalTextRender = Text.render;
+    Text.render = function (...args) {
+      const origin = originalTextRender.apply(this, args);
+      return origin ? React.cloneElement(origin, { allowFontScaling: false }) : origin;
+    };
+  }
+
+  if (TextInput.render) {
+    const originalTextInputRender = TextInput.render;
+    TextInput.render = function (...args) {
+      const origin = originalTextInputRender.apply(this, args);
+      return origin ? React.cloneElement(origin, { allowFontScaling: false }) : origin;
+    };
+  }
+
+  console.log('⚡ Global font scaling disabled successfully!');
+} catch (err) {
+  console.warn('Failed to disable font scaling globally:', err);
+}

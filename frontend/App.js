@@ -29,14 +29,14 @@ import NetworkBarrier from './src/components/NetworkBarrier';
 import SplashScreen from './src/components/splashscreen';
 
 import GettingStartedScreen from './src/screens/GettingStartedScreen';
-import LoginScreen   from './src/screens/LoginScreen';
-import SignupScreen  from './src/screens/SignupScreen';
-import JobsScreen    from './src/screens/JobsScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import SignupScreen from './src/screens/SignupScreen';
+import JobsScreen from './src/screens/JobsScreen';
 import PostJobScreen from './src/screens/PostJobScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 
 const Stack = createStackNavigator();
-const Tab   = createBottomTabNavigator();
+const Tab = createBottomTabNavigator();
 
 // ─── Tab Icon ──────────────────────────────────────────────────────────────────
 function TabIcon({ name, focused, color }) {
@@ -60,7 +60,7 @@ function MainTabs() {
         tabBarShowLabel: true,
         tabBarStyle: [
           styles.tabBar,
-          { 
+          {
             bottom: insets.bottom > 0 ? insets.bottom + 10 : 24,
             height: 74,
             paddingBottom: 8,
@@ -98,11 +98,11 @@ function MainTabs() {
                 'You must create an account or sign in to post job opportunities.',
                 [
                   { text: 'Cancel', style: 'cancel' },
-                  { 
-                    text: 'Sign In / Sign Up', 
+                  {
+                    text: 'Sign In / Sign Up',
                     onPress: () => {
                       setIsGuest(false);
-                    } 
+                    }
                   }
                 ]
               );
@@ -166,9 +166,9 @@ function RootNavigator() {
     splashSubMessage = "Welcome back!";
     splashShowLottie = true;
   } else if (transitioningToDashboard) {
-    splashMessage = "Welcome to BKJ! 🚀";
+    splashMessage = "Welcome to BKJ!";
     splashSubMessage = "Setting up your premium experience...";
-    splashShowLottie = false;
+    splashShowLottie = true;
   } else if (loading && !isInitialLoad) {
     // Show the login/signup style loader (door Lottie) in the dashboard
     splashMessage = "Loading...";
@@ -206,7 +206,7 @@ function RootNavigator() {
                   />
                 )}
               </Stack.Screen>
-              <Stack.Screen name="Login"  component={LoginScreen}  />
+              <Stack.Screen name="Login" component={LoginScreen} />
               <Stack.Screen name="Signup" component={SignupScreen} />
             </>
           )}
@@ -216,11 +216,11 @@ function RootNavigator() {
       {/* Render Splash Screen as a smooth absolute overlay to prevent black background flashes */}
       {showSplash && (
         <View style={StyleSheet.absoluteFill}>
-          <SplashScreen 
-            message={splashMessage} 
-            subMessage={splashSubMessage} 
-            isSignOut={splashIsSignOut} 
-            showLottie={splashShowLottie} 
+          <SplashScreen
+            message={splashMessage}
+            subMessage={splashSubMessage}
+            isSignOut={splashIsSignOut}
+            showLottie={splashShowLottie}
           />
         </View>
       )}
@@ -284,14 +284,14 @@ function InAppNotification() {
   // If activeNotif is null, we just render an empty off-screen shell.
   const isLike = activeNotif?.type === 'like';
   const avatarUrl = activeNotif?.likerProfile?.avatar;
-  const initials = activeNotif?.likerProfile?.name 
-    ? activeNotif.likerProfile.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() 
+  const initials = activeNotif?.likerProfile?.name
+    ? activeNotif.likerProfile.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : 'U';
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.notificationContainer, 
+        styles.notificationContainer,
         { transform: [{ translateY: slideAnim }] }
       ]}
       pointerEvents={notification ? "auto" : "none"}
@@ -336,6 +336,9 @@ export default function App() {
       }
     };
     preload();
+
+    // Navigation bar is already configured natively via app.json edgeToEdgeEnabled
+    // Removing the imperative NavigationBar calls to prevent native crashes.
 
     if (Platform.OS === 'web') {
       return;

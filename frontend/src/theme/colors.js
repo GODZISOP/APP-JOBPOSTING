@@ -1,38 +1,68 @@
 
-export const COLORS = {
-  // Backgrounds
-  bgPrimary: '#D4EAD7',      // Mint green main bg
-  bgSecondary: '#E8F5E9',    // Lighter mint
-  bgCard: '#FFFFFF',         // White cards
-  bgDark: '#1A1A1A',         // Dark bg elements
+// ─── Light Colors ─────────────────────────────────────────────────────────────
+export const LIGHT_COLORS = {
+  bgPrimary: '#D4EAD7',
+  bgSecondary: '#E8F5E9',
+  bgCard: '#FFFFFF',
+  bgDark: '#1A1A1A',
 
-  // Accents
-  accentYellow: '#E8F542',   // Lime yellow - primary action
-  accentYellowDark: '#C8D900', // Darker yellow for pressed
-  accentGreen: '#5C9E6A',    // Deeper green
+  accentYellow: '#E8F542',
+  accentYellowDark: '#C8D900',
+  accentGreen: '#5C9E6A',
 
-  // Text
-  textPrimary: '#1A1A1A',    // Near black
-  textSecondary: '#6B7280',  // Gray
-  textLight: '#9CA3AF',      // Light gray
+  textPrimary: '#1A1A1A',
+  textSecondary: '#6B7280',
+  textLight: '#9CA3AF',
   textWhite: '#FFFFFF',
 
-  // Status
   success: '#4CAF50',
   error: '#EF4444',
   warning: '#F59E0B',
 
-  // Borders
   border: '#D1D5DB',
   borderLight: '#E5E7EB',
 
-  // Toggle / Switch
   toggleOff: '#CBD5E1',
   toggleOn: '#E8F542',
 
-  // Shadow
   shadow: 'rgba(0,0,0,0.08)',
 };
+
+// ─── Dark Colors ──────────────────────────────────────────────────────────────
+export const DARK_COLORS = {
+  bgPrimary: '#0F1610',
+  bgSecondary: '#162119',
+  bgCard: '#1C2B20',
+  bgDark: '#000000',
+
+  accentYellow: '#E8F542',
+  accentYellowDark: '#C8D900',
+  accentGreen: '#6ABF7B',
+
+  textPrimary: '#EDF5EE',
+  textSecondary: '#9DB3A0',
+  textLight: '#6B7B6E',
+  textWhite: '#FFFFFF',
+
+  success: '#4CAF50',
+  error: '#EF4444',
+  warning: '#F59E0B',
+
+  border: '#2D3D31',
+  borderLight: '#253329',
+
+  toggleOff: '#3A4D3D',
+  toggleOn: '#E8F542',
+
+  shadow: 'rgba(0,0,0,0.30)',
+};
+
+// ─── Backward-compat export (still used by App.js tab bar init) ───────────────
+export const COLORS = LIGHT_COLORS;
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+export const getColors = (isDark) => isDark ? DARK_COLORS : LIGHT_COLORS;
+
 
 export const FONTS = {
   regular: 'System',

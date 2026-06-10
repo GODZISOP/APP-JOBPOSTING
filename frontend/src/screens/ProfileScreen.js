@@ -842,8 +842,8 @@ export default function ProfileScreen() {
           </View>
         ) : (
           <>
-            <Text style={styles.userName}>{user?.name || 'BKJ User'}</Text>
-            <Text style={styles.userEmail}>{user?.email || ''}</Text>
+            <Text style={styles.userName} numberOfLines={1} adjustsFontSizeToFit>{user?.name || 'BKJ User'}</Text>
+            <Text style={styles.userEmail} numberOfLines={1} adjustsFontSizeToFit>{user?.email || ''}</Text>
 
             <TouchableOpacity
               style={styles.uploadPhotoBtn}
@@ -873,16 +873,16 @@ export default function ProfileScreen() {
               <View style={[styles.infoIconWrap, { backgroundColor: '#F0FDF4' }]}>
                 <Ionicons name="briefcase" size={16} color="#15803D" />
               </View>
-              <Text style={styles.infoLabel}>Jobs Posted</Text>
-              <Text style={styles.infoValue}>{myJobs.length}</Text>
+              <Text style={styles.infoLabel} numberOfLines={1} adjustsFontSizeToFit>Jobs Posted</Text>
+              <Text style={styles.infoValue} numberOfLines={1} adjustsFontSizeToFit>{myJobs.length}</Text>
             </View>
 
             <View style={styles.infoCard}>
               <View style={[styles.infoIconWrap, { backgroundColor: '#EFF6FF' }]}>
                 <Ionicons name="call" size={16} color="#3B82F6" />
               </View>
-              <Text style={styles.infoLabel}>Phone</Text>
-              <Text style={styles.infoValue} numberOfLines={1}>
+              <Text style={styles.infoLabel} numberOfLines={1} adjustsFontSizeToFit>Phone</Text>
+              <Text style={styles.infoValue} numberOfLines={1} adjustsFontSizeToFit>
                 {user?.phone || 'Not set'}
               </Text>
             </View>
@@ -891,8 +891,8 @@ export default function ProfileScreen() {
               <View style={[styles.infoIconWrap, { backgroundColor: '#FFF7ED' }]}>
                 <Ionicons name="calendar-outline" size={16} color="#F97316" />
               </View>
-              <Text style={styles.infoLabel}>Member</Text>
-              <Text style={styles.infoValue} numberOfLines={1}>
+              <Text style={styles.infoLabel} numberOfLines={1} adjustsFontSizeToFit>Member</Text>
+              <Text style={styles.infoValue} numberOfLines={1} adjustsFontSizeToFit>
                 {user?.joinDate || 'Jan 2026'}
               </Text>
             </View>
@@ -901,14 +901,16 @@ export default function ProfileScreen() {
         {/* Job Title Info */}
         {!editing && user?.title && (
           <View style={styles.titleCard}>
-            <Ionicons name="briefcase-outline" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.titleCardText}>{user.title}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
+              <Ionicons name="briefcase-outline" size={16} color={COLORS.textSecondary} />
+              <Text style={styles.titleCardText} numberOfLines={1} adjustsFontSizeToFit>{user.title}</Text>
+            </View>
             {user?.location && (
-              <>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
                 <View style={styles.titleDot} />
                 <Ionicons name="location-outline" size={14} color={COLORS.textSecondary} />
-                <Text style={styles.titleCardText}>{user.location}</Text>
-              </>
+                <Text style={styles.titleCardText} numberOfLines={1} adjustsFontSizeToFit>{user.location}</Text>
+              </View>
             )}
           </View>
         )}
@@ -1027,7 +1029,7 @@ export default function ProfileScreen() {
                 {notif && <View style={styles.blueDot} />}
               </View>
             </View>
-            <Text style={styles.gridCardLabel}>Notifications</Text>
+            <Text style={styles.gridCardLabel} numberOfLines={1} adjustsFontSizeToFit>Notifications</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1046,7 +1048,7 @@ export default function ProfileScreen() {
                 <Ionicons name="help-circle" size={16} color="#60A5FA" />
               </View>
             </View>
-            <Text style={styles.gridCardLabel}>How It Works</Text>
+            <Text style={styles.gridCardLabel} numberOfLines={1} adjustsFontSizeToFit>How It Works</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.gridCard} activeOpacity={0.8}>
@@ -1055,7 +1057,7 @@ export default function ProfileScreen() {
                 <Ionicons name="chatbubble" size={15} color="#8B5CF6" />
               </View>
             </View>
-            <Text style={styles.gridCardLabel}>Rate us</Text>
+            <Text style={styles.gridCardLabel} numberOfLines={1} adjustsFontSizeToFit>Rate us</Text>
           </TouchableOpacity>
         </View>
 
@@ -1080,11 +1082,11 @@ export default function ProfileScreen() {
                   onPress={() => setSelectedJob(job)}
                 >
                   <View style={styles.jobRowLeft}>
-                    <Text style={styles.jobRowTitle}>{job.title}</Text>
-                    <Text style={styles.jobRowSub}>{job.type} • {job.location}</Text>
+                    <Text style={styles.jobRowTitle} numberOfLines={1} adjustsFontSizeToFit>{job.title}</Text>
+                    <Text style={styles.jobRowSub} numberOfLines={1}>{job.type} • {job.location}</Text>
                   </View>
                   <View style={[styles.jobRowBadge, { backgroundColor: '#E8F5E9' }]}>
-                    <Text style={[styles.jobRowBadgeText, { color: '#2E7D32' }]}>{job.salary}</Text>
+                    <Text style={[styles.jobRowBadgeText, { color: '#2E7D32' }]} numberOfLines={1} adjustsFontSizeToFit>{job.salary}</Text>
                   </View>
                 </TouchableOpacity>
               ))
@@ -1119,11 +1121,11 @@ export default function ProfileScreen() {
                     onPress={() => setSelectedJob(job)}
                   >
                     <View style={styles.jobRowLeft}>
-                      <Text style={styles.jobRowTitle}>{job.title}</Text>
-                      <Text style={styles.jobRowSub}>{job.company} • Applied on {appliedDate}</Text>
+                      <Text style={styles.jobRowTitle} numberOfLines={1} adjustsFontSizeToFit>{job.title}</Text>
+                      <Text style={styles.jobRowSub} numberOfLines={1}>{job.company} • Applied on {appliedDate}</Text>
                     </View>
                     <View style={[styles.jobRowBadge, { backgroundColor: '#E8F5E9' }]}>
-                      <Text style={[styles.jobRowBadgeText, { color: COLORS.accentGreen, fontWeight: '700' }]}>{job.salary}</Text>
+                      <Text style={[styles.jobRowBadgeText, { color: COLORS.accentGreen, fontWeight: '700' }]} numberOfLines={1} adjustsFontSizeToFit>{job.salary}</Text>
                     </View>
                   </TouchableOpacity>
                 );
@@ -1153,11 +1155,11 @@ export default function ProfileScreen() {
                   onPress={() => setSelectedJob(job)}
                 >
                   <View style={styles.jobRowLeft}>
-                    <Text style={styles.jobRowTitle}>{job.title}</Text>
-                    <Text style={styles.jobRowSub}>{job.company} • {job.location}</Text>
+                    <Text style={styles.jobRowTitle} numberOfLines={1} adjustsFontSizeToFit>{job.title}</Text>
+                    <Text style={styles.jobRowSub} numberOfLines={1}>{job.company} • {job.location}</Text>
                   </View>
                   <View style={[styles.jobRowBadge, { backgroundColor: '#FEE2E2' }]}>
-                    <Text style={[styles.jobRowBadgeText, { color: '#EF4444' }]}>❤️ {job.likes || 0}</Text>
+                    <Text style={[styles.jobRowBadgeText, { color: '#EF4444' }]} numberOfLines={1} adjustsFontSizeToFit>❤️ {job.likes || 0}</Text>
                   </View>
                 </TouchableOpacity>
               ))
@@ -1205,7 +1207,7 @@ export default function ProfileScreen() {
             {/* Modal Header */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Notifications</Text>
-              <TouchableOpacity style={styles.closeBtn} onPress={() => setShowNotifModal(false)}>
+              <TouchableOpacity style={styles.closeBtn} onPress={() => setShowNotifModal(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
                 <Ionicons name="close" size={20} color={COLORS.textPrimary} />
               </TouchableOpacity>
             </View>
@@ -1340,7 +1342,7 @@ export default function ProfileScreen() {
             {/* Header */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Candidate Profile</Text>
-              <TouchableOpacity style={styles.closeBtn} onPress={() => setShowLikerModal(false)}>
+              <TouchableOpacity style={styles.closeBtn} onPress={() => setShowLikerModal(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
                 <Ionicons name="close" size={20} color={COLORS.textPrimary} />
               </TouchableOpacity>
             </View>
@@ -1360,8 +1362,8 @@ export default function ProfileScreen() {
                 </View>
 
                 {/* Name & Title */}
-                <Text style={styles.likerName}>{selectedLiker.name}</Text>
-                <Text style={styles.likerTitle}>{selectedLiker.title || 'Job Seeker'}</Text>
+                <Text style={styles.likerName} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker.name}</Text>
+                <Text style={styles.likerTitle} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker.title || 'Job Seeker'}</Text>
 
                 {/* Divider */}
                 <View style={styles.likerDivider} />
@@ -1370,17 +1372,17 @@ export default function ProfileScreen() {
                 <View style={styles.likerInfoContainer}>
                   <View style={styles.likerInfoRow}>
                     <Ionicons name="location" size={16} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
-                    <Text style={styles.likerInfoText}>{selectedLiker.location || 'Lahore, Pakistan'}</Text>
+                    <Text style={styles.likerInfoText} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker.location || 'Lahore, Pakistan'}</Text>
                   </View>
 
                   <View style={styles.likerInfoRow}>
                     <Ionicons name="call" size={16} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
-                    <Text style={styles.likerInfoText}>{selectedLiker.phone || '+92 300 1234567'}</Text>
+                    <Text style={styles.likerInfoText} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker.phone || '+92 300 1234567'}</Text>
                   </View>
 
                   <View style={styles.likerInfoRow}>
                     <Ionicons name="mail" size={16} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
-                    <Text style={styles.likerInfoText}>{selectedLiker.email || 'candidate@gmail.com'}</Text>
+                    <Text style={styles.likerInfoText} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker.email || 'candidate@gmail.com'}</Text>
                   </View>
                 </View>
 
@@ -1417,7 +1419,7 @@ export default function ProfileScreen() {
         <ScrollView style={styles.modalContainer} contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
           {/* Nav */}
           <View style={styles.detailNav}>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setSelectedJob(null)}>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => setSelectedJob(null)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
               <Ionicons name="arrow-back" size={20} color={COLORS.textPrimary} />
             </TouchableOpacity>
             <Text style={styles.detailNavTitle}>Job Details</Text>
@@ -1608,6 +1610,7 @@ export default function ProfileScreen() {
                   setShowHowItWorksModal(false);
                 }}
                 activeOpacity={0.8}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
                 <Ionicons name="arrow-back" size={20} color={COLORS.textPrimary} />
               </TouchableOpacity>
@@ -1807,7 +1810,7 @@ const styles = StyleSheet.create({
   // Info Row Cards
   infoRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   infoCard: {
-    flex: 1, backgroundColor: COLORS.bgCard, borderRadius: 18, padding: 14,
+    flex: 1, width: 0, backgroundColor: COLORS.bgCard, borderRadius: 18, padding: 14,
     alignItems: 'center',
     borderWidth: 1, borderColor: '#E2E8F0',
     shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
@@ -1818,8 +1821,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 8,
   },
   infoInitialsText: { fontSize: 13, fontWeight: '800', color: COLORS.accentGreen },
-  infoLabel: { fontSize: 10, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 2 },
-  infoValue: { fontSize: 12, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center' },
+  infoLabel: { fontSize: 10, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 2, lineHeight: 14 },
+  infoValue: { fontSize: 12, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center', lineHeight: 16 },
 
   // Title card
   titleCard: {
@@ -1945,7 +1948,7 @@ const styles = StyleSheet.create({
   // Feature Grid
   featureGrid: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginBottom: 20 },
   gridCard: {
-    flex: 1, backgroundColor: COLORS.bgCard, borderRadius: 20, padding: 16, alignItems: 'flex-start',
+    flex: 1, width: 0, backgroundColor: COLORS.bgCard, borderRadius: 20, padding: 16, alignItems: 'flex-start',
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 2,
   },
   gridCardHeader: { marginBottom: 24 },
@@ -1953,7 +1956,7 @@ const styles = StyleSheet.create({
   blueDot: { position: 'absolute', top: 2, right: 2, width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#EF4444', borderWidth: 1.5, borderColor: '#FFFFFF' },
   iconCircleBlueLight: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F0F9FF', alignItems: 'center', justifyContent: 'center' },
   iconCirclePurple: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F5F3FF', alignItems: 'center', justifyContent: 'center' },
-  gridCardLabel: { fontSize: FONTS.sizes.xs + 1, fontWeight: '700', color: COLORS.textPrimary },
+  gridCardLabel: { fontSize: FONTS.sizes.xs + 1, fontWeight: '700', color: COLORS.textPrimary, lineHeight: 18 },
 
   // Job Section
   section: { marginBottom: 20 },

@@ -820,6 +820,7 @@ export const AuthProvider = ({ children }) => {
       setJobs(INITIAL_JOBS);
       // Restore persisted mock session
       const restoreMockSession = async () => {
+        const startTime = Date.now();
         try {
           const saved = await AsyncStorage.getItem(SESSION_KEY);
           if (saved) {
@@ -830,7 +831,12 @@ export const AuthProvider = ({ children }) => {
         } catch (e) {
           console.warn('Failed to restore mock session:', e);
         } finally {
-          setLoading(false);
+          const elapsedTime = Date.now() - startTime;
+          const minimumDelay = 10000; // 10 seconds
+          const remainingDelay = Math.max(0, minimumDelay - elapsedTime);
+          setTimeout(() => {
+            setLoading(false);
+          }, remainingDelay);
         }
       };
       restoreMockSession();
@@ -1057,7 +1063,7 @@ export const AuthProvider = ({ children }) => {
       } finally {
         isInitialLoadRef.current = false; // Mark initial check as completed to allow subsequent onAuthStateChange SIGNED_IN events
         const elapsedTime = Date.now() - startTime;
-        const minimumDelay = 2500; // 2.5 seconds for a premium splash animation
+        const minimumDelay = 10000; // 10 seconds
         const remainingDelay = Math.max(0, minimumDelay - elapsedTime);
 
         setTimeout(() => {

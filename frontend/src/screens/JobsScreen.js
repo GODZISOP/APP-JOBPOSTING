@@ -223,11 +223,11 @@ function JobCard({ job, onPress, isLiked, onLike }) {
         )}
         <View style={styles.metaBadge}>
           <Ionicons name="briefcase-outline" size={11} color={COLORS.accentGreen} style={{ marginRight: 4 }} />
-          <Text style={styles.metaBadgeText}>{job.type}</Text>
+          <Text style={styles.metaBadgeText} numberOfLines={1} adjustsFontSizeToFit>{job.type}</Text>
         </View>
         <View style={styles.metaBadge}>
           <Ionicons name="location-outline" size={11} color="#6B7280" style={{ marginRight: 4 }} />
-          <Text style={[styles.metaBadgeText, { color: '#6B7280' }]}>{job.location}</Text>
+          <Text style={[styles.metaBadgeText, { color: '#6B7280' }]} numberOfLines={1} adjustsFontSizeToFit>{job.location}</Text>
         </View>
       </View>
 
@@ -248,6 +248,7 @@ function JobCard({ job, onPress, isLiked, onLike }) {
               onLike(job.id);
             }}
             activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Ionicons
@@ -350,15 +351,15 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
       {/* Floating navigation header */}
       <View style={styles.detailNav}>
-        <TouchableOpacity style={styles.iconBtn} onPress={onBack}>
+        <TouchableOpacity style={styles.iconBtn} onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="arrow-back" size={20} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.detailNavTitle}>Job Details</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => onLike(job.id)}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => onLike(job.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name={isLiked ? "heart" : "heart-outline"} size={20} color={isLiked ? "#EF4444" : COLORS.textPrimary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn}>
+          <TouchableOpacity style={styles.iconBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="share-outline" size={20} color={COLORS.textPrimary} />
           </TouchableOpacity>
         </View>
@@ -404,9 +405,9 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
             <View style={styles.upworkSpecIconContainer}>
               <Ionicons name="wallet-outline" size={18} color="#15803D" />
             </View>
-            <View>
-              <Text style={styles.upworkSpecLabel}>Salary/Budget</Text>
-              <Text style={styles.upworkSpecValue}>{job.salary}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.upworkSpecLabel} numberOfLines={1} adjustsFontSizeToFit>Salary/Budget</Text>
+              <Text style={styles.upworkSpecValue} numberOfLines={1} adjustsFontSizeToFit>{job.salary}</Text>
             </View>
           </View>
 
@@ -415,9 +416,9 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
             <View style={styles.upworkSpecIconContainer}>
               <Ionicons name="briefcase-outline" size={18} color="#0284C7" />
             </View>
-            <View>
-              <Text style={styles.upworkSpecLabel}>Job Type</Text>
-              <Text style={styles.upworkSpecValue}>{job.type}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.upworkSpecLabel} numberOfLines={1} adjustsFontSizeToFit>Job Type</Text>
+              <Text style={styles.upworkSpecValue} numberOfLines={1} adjustsFontSizeToFit>{job.type}</Text>
             </View>
           </View>
 
@@ -426,9 +427,9 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
             <View style={styles.upworkSpecIconContainer}>
               <Ionicons name="school-outline" size={18} color="#7C3AED" />
             </View>
-            <View>
-              <Text style={styles.upworkSpecLabel}>Experience Level</Text>
-              <Text style={styles.upworkSpecValue}>{experienceReq}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.upworkSpecLabel} numberOfLines={1} adjustsFontSizeToFit>Experience Level</Text>
+              <Text style={styles.upworkSpecValue} numberOfLines={1} adjustsFontSizeToFit>{experienceReq}</Text>
             </View>
           </View>
         </View>
@@ -486,23 +487,23 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
               )}
             </View>
             <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
-                <Text style={styles.upworkClientName}>{job.posterProfile.name || 'Anonymous Employer'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2, flexWrap: 'wrap', gap: 4 }}>
+                <Text style={styles.upworkClientName} numberOfLines={1} adjustsFontSizeToFit>{job.posterProfile.name || 'Anonymous Employer'}</Text>
                 <View style={styles.verifiedBadge}>
                   <Ionicons name="checkmark-circle" size={12} color="#15803D" style={{ marginRight: 2 }} />
                   <Text style={styles.verifiedBadgeText}>Verified</Text>
                 </View>
               </View>
-              <Text style={styles.upworkClientTitle}>{job.posterProfile.title || 'HR Manager / Employer'}</Text>
-              
+              <Text style={styles.upworkClientTitle} numberOfLines={1} adjustsFontSizeToFit>{job.posterProfile.title || 'HR Manager / Employer'}</Text>
+
               <View style={styles.upworkClientMetaRow}>
                 <Ionicons name="mail-outline" size={12} color="#64748B" style={{ marginRight: 4 }} />
-                <Text style={styles.upworkClientMetaText}>{job.posterProfile.email || 'employer@joblink.com'}</Text>
+                <Text style={styles.upworkClientMetaText} numberOfLines={1} adjustsFontSizeToFit>{job.posterProfile.email || 'employer@joblink.com'}</Text>
               </View>
               {job.posterProfile.location ? (
                 <View style={[styles.upworkClientMetaRow, { marginTop: 2 }]}>
                   <Ionicons name="location-outline" size={12} color="#64748B" style={{ marginRight: 4 }} />
-                  <Text style={styles.upworkClientMetaText}>{job.posterProfile.location}</Text>
+                  <Text style={styles.upworkClientMetaText} numberOfLines={1} adjustsFontSizeToFit>{job.posterProfile.location}</Text>
                 </View>
               ) : null}
             </View>
@@ -776,7 +777,7 @@ export default function JobsScreen({ navigation }) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedJob, setSelectedJob] = useState(null);
-  
+
   const handleJobPress = (job) => {
     if (!user) {
       Alert.alert(
@@ -784,11 +785,11 @@ export default function JobsScreen({ navigation }) {
         'You must create an account or sign in to view job details.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Sign In / Sign Up', 
+          {
+            text: 'Sign In / Sign Up',
             onPress: () => {
               setIsGuest(false);
-            } 
+            }
           }
         ]
       );
@@ -804,11 +805,11 @@ export default function JobsScreen({ navigation }) {
         'You must create an account or sign in to bookmark/like job listings.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Sign In / Sign Up', 
+          {
+            text: 'Sign In / Sign Up',
             onPress: () => {
               setIsGuest(false);
-            } 
+            }
           }
         ]
       );
@@ -851,7 +852,7 @@ export default function JobsScreen({ navigation }) {
     }
   });
 
-  const filteredCountryOptions = availableLocations.filter(loc => 
+  const filteredCountryOptions = availableLocations.filter(loc =>
     loc.toLowerCase().includes(countrySearchQuery.toLowerCase())
   );
 
@@ -908,12 +909,12 @@ export default function JobsScreen({ navigation }) {
   const filtered = jobs.filter((j) => {
     // 1. Category match
     const matchCat = activeCategory === 'All' || j.category === activeCategory;
-    
+
     // 2. Enhanced query search match (matches title, company, category, location, type, skills)
     const q = search.trim().toLowerCase();
     const matchSearch = q === '' || (
-      (j.title && j.title.toLowerCase().includes(q)) || 
-      (j.company && j.company.toLowerCase().includes(q)) || 
+      (j.title && j.title.toLowerCase().includes(q)) ||
+      (j.company && j.company.toLowerCase().includes(q)) ||
       (j.category && j.category.toLowerCase().includes(q)) ||
       (j.location && j.location.toLowerCase().includes(q)) ||
       (j.type && j.type.toLowerCase().includes(q)) ||
@@ -925,7 +926,7 @@ export default function JobsScreen({ navigation }) {
     const matchType = selectedJobTypes.length === 0 || selectedJobTypes.includes(j.type);
 
     // 4. Location multi-select filter
-    const matchLoc = selectedLocations.length === 0 || 
+    const matchLoc = selectedLocations.length === 0 ||
       selectedLocations.some(loc => j.location && j.location.toLowerCase().includes(loc.toLowerCase()));
 
     // 5. Salary Range filter
@@ -982,7 +983,7 @@ export default function JobsScreen({ navigation }) {
 
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-    : 'LF';
+    : 'BK';
 
   if (selectedJob) {
     const freshJob = jobs.find(j => j.id === selectedJob.id) || selectedJob;
@@ -1015,13 +1016,13 @@ export default function JobsScreen({ navigation }) {
                 <Text style={styles.userAvatarText}>{initials}</Text>
               )}
             </View>
-            <View>
+            <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={styles.headerSub}>Welcome back,</Text>
-              <Text style={styles.headerTitle}>{user?.name?.split(' ')[0] || 'Guest User'}</Text>
+              <Text style={styles.headerTitle} numberOfLines={1} adjustsFontSizeToFit>{user?.name?.split(' ')[0] || 'BKJ'}</Text>
             </View>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.headerIconBtn} onPress={onRefresh}>
+            <TouchableOpacity style={styles.headerIconBtn} onPress={onRefresh} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="sync-outline" size={18} color="#1A1A1A" />
             </TouchableOpacity>
           </View>
@@ -1063,9 +1064,9 @@ export default function JobsScreen({ navigation }) {
           {/* Interactive Stats Grid */}
           <View style={styles.statsGridRow}>
             {/* Stat Box 1: Total Opportunities */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.statCardItem, 
+                styles.statCardItem,
                 (!filterLikedOnly && !filterMyJobsOnly) && styles.statCardItemActive
               ]}
               onPress={() => {
@@ -1077,14 +1078,14 @@ export default function JobsScreen({ navigation }) {
               <View style={styles.statIconBadge}>
                 <Ionicons name="briefcase" size={15} color="#5C9E6A" />
               </View>
-              <Text style={styles.statCountVal}>{totalJobsCount}</Text>
-              <Text style={styles.statLabelText}>Total Jobs</Text>
+              <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{totalJobsCount}</Text>
+              <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>Total Jobs</Text>
             </TouchableOpacity>
 
             {/* Stat Box 2: Liked / Saved Opportunities */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.statCardItem, 
+                styles.statCardItem,
                 filterLikedOnly && styles.statCardItemActive
               ]}
               onPress={() => {
@@ -1096,15 +1097,15 @@ export default function JobsScreen({ navigation }) {
               <View style={[styles.statIconBadge, { backgroundColor: '#FEE2E2' }]}>
                 <Ionicons name="heart" size={15} color="#EF4444" />
               </View>
-              <Text style={styles.statCountVal}>{likedJobsCount}</Text>
-              <Text style={styles.statLabelText}>Favorites</Text>
+              <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{likedJobsCount}</Text>
+              <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>Favorites</Text>
             </TouchableOpacity>
 
             {/* Stat Box 3: My Postings (Employer) / Verified Status (Job Seeker) */}
             {isEmployer ? (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
-                  styles.statCardItem, 
+                  styles.statCardItem,
                   filterMyJobsOnly && styles.statCardItemActive
                 ]}
                 onPress={() => {
@@ -1116,19 +1117,16 @@ export default function JobsScreen({ navigation }) {
                 <View style={[styles.statIconBadge, { backgroundColor: '#FEF3C7' }]}>
                   <Ionicons name="create" size={15} color="#D97706" />
                 </View>
-                <Text style={styles.statCountVal}>{myJobsCount}</Text>
-                <Text style={styles.statLabelText}>My Posts</Text>
+                <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{myJobsCount}</Text>
+                <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>My Posts</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.statCardItem}>
                 <View style={[styles.statIconBadge, { backgroundColor: '#E6F4EA' }]}>
                   <Ionicons name="checkmark-circle" size={16} color="#15803D" />
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, justifyContent: 'center', height: 18 }}>
-                  <Text style={[styles.statCountVal, { fontSize: 12, color: '#15803D', fontWeight: '800', lineHeight: 16 }]}>Verified</Text>
-                  <Ionicons name="checkmark-circle" size={13} color="#15803D" />
-                </View>
-                <Text style={styles.statLabelText}>Profile</Text>
+                <Text style={[styles.statCountVal, { fontSize: 12, color: '#15803D', fontWeight: '800', lineHeight: 22 }]} numberOfLines={1} adjustsFontSizeToFit>Verified</Text>
+                <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>Profile</Text>
               </View>
             )}
           </View>
@@ -1145,11 +1143,11 @@ export default function JobsScreen({ navigation }) {
             onChangeText={setSearch}
           />
           {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')} style={{ marginRight: 8 }}>
+            <TouchableOpacity onPress={() => setSearch('')} style={{ marginRight: 8 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="close-circle" size={18} color={COLORS.textSecondary} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.searchFilterBtn} onPress={() => setFilterModalVisible(true)}>
+          <TouchableOpacity style={styles.searchFilterBtn} onPress={() => setFilterModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="options-outline" size={18} color={COLORS.textPrimary} />
           </TouchableOpacity>
         </View>
@@ -1185,12 +1183,12 @@ export default function JobsScreen({ navigation }) {
           {CATEGORIES.map((cat) => {
             const count = cat === 'All' ? jobs.length : jobs.filter((j) => j.category === cat).length;
             const isActive = activeCategory === cat;
-            
+
             // Map modern Ionicons to categories
             let iconName = "briefcase-outline";
             let pillColor = "#E6F4EA";
             let iconColor = "#137333";
-            
+
             if (cat === 'Technology') { iconName = "laptop-outline"; pillColor = "#E0F2FE"; iconColor = "#0369A1"; }
             else if (cat === 'Design') { iconName = "brush-outline"; pillColor = "#FCE7F3"; iconColor = "#BE185D"; }
             else if (cat === 'Marketing') { iconName = "trending-up-outline"; pillColor = "#FEF3C7"; iconColor = "#B45309"; }
@@ -1198,7 +1196,7 @@ export default function JobsScreen({ navigation }) {
             else if (cat === 'Healthcare') { iconName = "heart-half-outline"; pillColor = "#FEE2E2"; iconColor = "#B91C1C"; }
             else if (cat === 'Education') { iconName = "book-outline"; pillColor = "#EDE9FE"; iconColor = "#6D28D9"; }
             else if (cat === 'Engineering') { iconName = "construct-outline"; pillColor = "#F1F5F9"; iconColor = "#475569"; }
-            
+
             return (
               <TouchableOpacity
                 key={cat}
@@ -1212,9 +1210,9 @@ export default function JobsScreen({ navigation }) {
                 <View style={[styles.categoryIconCircle, { backgroundColor: isActive ? COLORS.accentYellow : pillColor }]}>
                   <Ionicons name={iconName} size={15} color={isActive ? "#1A1A1A" : iconColor} />
                 </View>
-                <Text style={[styles.categoryPillText, isActive && styles.categoryPillTextActive]}>{cat}</Text>
+                <Text style={[styles.categoryPillText, isActive && styles.categoryPillTextActive]} numberOfLines={1} adjustsFontSizeToFit>{cat}</Text>
                 <View style={[styles.countBubble, isActive && { backgroundColor: '#E8F542' }]}>
-                  <Text style={[styles.countBubbleText, isActive && { color: '#1A1A1A' }]}>{count}</Text>
+                  <Text style={[styles.countBubbleText, isActive && { color: '#1A1A1A' }]} numberOfLines={1} adjustsFontSizeToFit>{count}</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -1290,11 +1288,11 @@ export default function JobsScreen({ navigation }) {
       >
         <View style={styles.filterModalOverlay}>
           <View style={styles.filterModalContent}>
-            
+
             {/* Modal Header */}
             <View style={styles.filterModalHeader}>
               <Text style={styles.filterModalTitle}>Filter Job Listings</Text>
-              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+              <TouchableOpacity onPress={() => setFilterModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Ionicons name="close-circle" size={24} color="#6B7280" />
               </TouchableOpacity>
             </View>
@@ -1325,8 +1323,8 @@ export default function JobsScreen({ navigation }) {
 
               {/* Location Section */}
               <Text style={styles.filterSectionTitle}>Select Country / Location</Text>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.dropdownSelector}
                 onPress={() => setCountryDropdownOpen(!countryDropdownOpen)}
                 activeOpacity={0.8}
@@ -1334,15 +1332,15 @@ export default function JobsScreen({ navigation }) {
                 <View style={styles.dropdownLeft}>
                   <Ionicons name="earth-outline" size={18} color="#4B5563" style={{ marginRight: 8 }} />
                   <Text style={styles.dropdownSelectedText} numberOfLines={1}>
-                    {selectedLocations.length === 0 
-                      ? "All Countries / Locations" 
+                    {selectedLocations.length === 0
+                      ? "All Countries / Locations"
                       : selectedLocations.join(', ')}
                   </Text>
                 </View>
-                <Ionicons 
-                  name={countryDropdownOpen ? "chevron-up" : "chevron-down"} 
-                  size={16} 
-                  color="#4B5563" 
+                <Ionicons
+                  name={countryDropdownOpen ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color="#4B5563"
                 />
               </TouchableOpacity>
 
@@ -1409,8 +1407,8 @@ export default function JobsScreen({ navigation }) {
               <TouchableOpacity style={styles.filterResetBtn} onPress={resetFilters}>
                 <Text style={styles.filterResetBtnText}>Reset All</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.filterApplyBtn} 
+              <TouchableOpacity
+                style={styles.filterApplyBtn}
                 onPress={() => setFilterModalVisible(false)}
               >
                 <Text style={styles.filterApplyBtnText}>Apply Filters</Text>
@@ -1660,11 +1658,13 @@ const styles = StyleSheet.create({
   },
   statCardItem: {
     flex: 1,
+    width: 0,
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: '#E5E7EB',
     borderRadius: 16,
-    padding: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
     alignItems: 'center',
     gap: 4,
   },
@@ -1690,12 +1690,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#1A1A1A',
+    textAlign: 'center',
+    lineHeight: 22,
   },
   statLabelText: {
     fontSize: 9,
     fontWeight: '700',
     color: '#6B7280',
     textTransform: 'uppercase',
+    textAlign: 'center',
   },
 
   // Opportunities Section Header
