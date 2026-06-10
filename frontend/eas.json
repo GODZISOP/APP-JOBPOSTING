@@ -15,7 +15,8 @@
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://mbmgulgrgxruptfaodus.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_37Xm5MbMyvgFKa5QkhA0eQ_zKCeXMcG"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_37Xm5MbMyvgFKa5QkhA0eQ_zKCeXMcG",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "production": {
