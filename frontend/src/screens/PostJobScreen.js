@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import LottieView from 'lottie-react-native';
 import SplashScreen from '../components/splashscreen';
 
@@ -259,6 +260,7 @@ function PostJobSkeleton() {
 }
 
 export default function PostJobScreen({ navigation }) {
+  const { t } = useTranslation();
   const { postJob, user } = useAuth();
   const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
@@ -290,8 +292,8 @@ export default function PostJobScreen({ navigation }) {
   const [screenLoading, setScreenLoading] = useState(true);
 
   useEffect(() => {
-    const t = setTimeout(() => setScreenLoading(false), 800);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setScreenLoading(false), 800);
+    return () => clearTimeout(timer);
   }, []);
 
   // Update city if country changes
@@ -454,14 +456,14 @@ export default function PostJobScreen({ navigation }) {
       <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top > 0 ? insets.top : 16 }]} showsVerticalScrollIndicator={false}>
 
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Post a Job</Text>
-          <Text style={styles.headerSub}>Publish a new job opportunity dynamically</Text>
+          <Text style={styles.headerTitle}>{t('post_job.post_job_title')}</Text>
+          <Text style={styles.headerSub}>{t('post_job.post_job_subtitle')}</Text>
         </View>
 
         <View style={styles.card}>
           {/* Job Title */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Job title *</Text>
+            <Text style={styles.label}>{t('post_job.job_title_label')}</Text>
             <View style={styles.inputWrapper}>
               <Ionicons name="briefcase-outline" size={18} color={COLORS.textSecondary} style={styles.inputIcon} />
               <TextInput
@@ -476,7 +478,7 @@ export default function PostJobScreen({ navigation }) {
 
           {/* Company */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Company name *</Text>
+            <Text style={styles.label}>{t('post_job.company_name_label')}</Text>
             <View style={styles.inputWrapper}>
               <Ionicons name="business-outline" size={18} color={COLORS.textSecondary} style={styles.inputIcon} />
               <TextInput
@@ -491,7 +493,7 @@ export default function PostJobScreen({ navigation }) {
 
           {/* Country Selection */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Country *</Text>
+            <Text style={styles.label}>{t('post_job.country_label')}</Text>
             <TouchableOpacity
               style={styles.dropdownTrigger}
               activeOpacity={0.8}
@@ -507,7 +509,7 @@ export default function PostJobScreen({ navigation }) {
 
           {/* City Selection */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>City / Location Selection *</Text>
+            <Text style={styles.label}>{t('post_job.city_label')}</Text>
             <TouchableOpacity
               style={styles.dropdownTrigger}
               activeOpacity={0.8}
@@ -523,7 +525,7 @@ export default function PostJobScreen({ navigation }) {
 
           {/* Budget/Salary Type Selector */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Budget / Salary Type</Text>
+            <Text style={styles.label}>{t('post_job.salary_type_label')}</Text>
             <View style={styles.selectorTabs}>
               {['Fixed Budget', 'Hourly Rate'].map((type) => (
                 <TouchableOpacity
@@ -539,7 +541,7 @@ export default function PostJobScreen({ navigation }) {
 
           {/* Salary Amount Range */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Salary range ({getCurrencySymbol(selectedCountry.name)}) *</Text>
+            <Text style={styles.label}>{t('post_job.salary_range_label')} ({getCurrencySymbol(selectedCountry.name)}) *</Text>
             <View style={styles.salaryInputRow}>
               <View style={[styles.inputWrapper, { flex: 1 }]}>
                 <Text style={styles.currencySymbol}>{getCurrencySymbol(selectedCountry.name)}</Text>
@@ -572,7 +574,7 @@ export default function PostJobScreen({ navigation }) {
 
           {/* Job Type Options */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Job schedule / type</Text>
+            <Text style={styles.label}>{t('post_job.job_type_label')}</Text>
             <View style={styles.chipsRow}>
               {JOB_TYPES.map((t) => (
                 <TouchableOpacity
@@ -588,7 +590,7 @@ export default function PostJobScreen({ navigation }) {
 
           {/* Experience Levels */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Experience Level Requirement</Text>
+            <Text style={styles.label}>{t('post_job.experience_label')}</Text>
             <View style={styles.chipsRow}>
               {EXPERIENCE_LEVELS.map((exp) => (
                 <TouchableOpacity
@@ -604,7 +606,7 @@ export default function PostJobScreen({ navigation }) {
 
           {/* Sector / Category Options */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Sector / Category</Text>
+            <Text style={styles.label}>{t('post_job.category_label')}</Text>
             <View style={styles.chipsRow}>
               {CATEGORIES.map((c) => (
                 <TouchableOpacity
@@ -620,7 +622,7 @@ export default function PostJobScreen({ navigation }) {
 
           {/* Skill Tags / Requirements */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Skills / Requirements</Text>
+            <Text style={styles.label}>{t('post_job.skills_label')}</Text>
 
             {/* Quick Skills list based on category */}
             <Text style={styles.skillHintText}>Add recommended skills for {selectedCategory}:</Text>
@@ -672,7 +674,7 @@ export default function PostJobScreen({ navigation }) {
           {/* Description with Char Counter */}
           <View style={styles.inputGroup}>
             <View style={styles.descriptionHeaderRow}>
-              <Text style={styles.label}>Full job description *</Text>
+              <Text style={styles.label}>{t('post_job.description_label')}</Text>
               <Text style={[
                 styles.charCounter,
                 description.length >= 30 ? { color: '#059669' } : { color: '#DC2626' }

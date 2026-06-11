@@ -2,20 +2,25 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   StatusBar, Alert, Dimensions, TextInput,
-  Animated, Easing, Modal, Image, Linking, RefreshControl,
+  Animated, Easing, Modal, Linking, RefreshControl, ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
+
+const blurhash = 'LKN]Rv%2Tw=w]~RBVZRi};RPxuwH';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import SplashScreen from '../components/splashscreen';
 import AdBanner from '../components/AdBanner';
 
 const { width } = Dimensions.get('window');
 
-function DottedColumn({ height, active, onPress }) {
+function SolidBar({ height, active, onPress }) {
   const heightAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -29,19 +34,13 @@ function DottedColumn({ height, active, onPress }) {
 
   return (
     <TouchableOpacity
-      style={styles.chartColumn}
+      style={styles.solidBarColumn}
       onPress={onPress}
       activeOpacity={0.85}
     >
-      {active && (
-        <View style={styles.peakIndicatorContainer}>
-          <View style={styles.peakRing} />
-          <View style={styles.peakCore} />
-        </View>
-      )}
       <Animated.View style={[
-        styles.barWrapper,
-        active ? styles.barActive : styles.barInactive,
+        styles.solidBarWrapper,
+        active ? styles.solidBarActive : styles.solidBarInactive,
         { height: heightAnim }
       ]} />
     </TouchableOpacity>
@@ -69,6 +68,7 @@ const parseSalary = (salaryStr) => {
 
 // ─── Profile Skeleton Component ──────────────────────────────────────────────
 function ProfileSkeleton() {
+  const { t } = useTranslation();
   const shimmerAnim = useRef(new Animated.Value(0.3)).current;
   const insets = useSafeAreaInsets();
 
@@ -101,7 +101,7 @@ function ProfileSkeleton() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerIconBtn} />
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={styles.headerTitle}>{t('profile.profile_title')}</Text>
         <View style={styles.headerIconBtn} />
       </View>
 
@@ -153,6 +153,7 @@ function ProfileSkeleton() {
 }
 
 function HowItWorksSkeleton({ onClose }) {
+  const { t } = useTranslation();
   const shimmerAnim = useRef(new Animated.Value(0.3)).current;
   const insets = useSafeAreaInsets();
 
@@ -184,7 +185,7 @@ function HowItWorksSkeleton({ onClose }) {
         <TouchableOpacity style={styles.guideBackBtn} onPress={onClose} activeOpacity={0.8}>
           <Ionicons name="arrow-back" size={20} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.guideScreenHeaderTitle}>How It Works</Text>
+        <Text style={styles.guideScreenHeaderTitle}>{t('profile.how_bkj_works')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -228,7 +229,8 @@ function HowItWorksSkeleton({ onClose }) {
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { user, logout, updateProfile, getMyJobs, getUserById, setIsGuest, jobs, likedJobs, appliedJobs, notifications, clearNotifications, fetchJobs, fetchRealNotifications } = useAuth();
+  const navigation = useNavigation();
+  const { user, logout, updateProfile, getMyJobs, getUserById, setIsGuest, jobs, likedJobs, appliedJobs, notifications, fetchJobs, fetchRealNotifications, deleteJob, updateJob, closeHiring } = useAuth();
   const myJobs = getMyJobs ? getMyJobs() : [];
   const bookmarkedJobs = (jobs || []).filter(j => likedJobs?.includes(j.id));
   const appliedJobsList = (jobs || []).reduce((acc, job) => {
@@ -247,7 +249,166 @@ export default function ProfileScreen() {
   }, []);
 
   // ─── ALL HOOKS MUST BE AT THE TOP (Rules of Hooks) ─────────────────────────
+  const { t, i18n } = useTranslation();
   const [notif, setNotif] = useState(true);
+  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const LANGUAGES = [
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'ur', name: 'Urdu', flag: '🇵🇰' }
+  ];
+
+  const [selectedManageJob, setSelectedManageJob] = useState(null);
+  const [showJobActionModal, setShowJobActionModal] = useState(false);
+  const [showEditJobModal, setShowEditJobModal] = useState(false);
+  const [showAllJobsModal, setShowAllJobsModal] = useState(false);
+  const [showAppliedModal, setShowAppliedModal] = useState(false);
+  const [showBookmarkedModal, setShowBookmarkedModal] = useState(false);
+  const listAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (showAllJobsModal) {
+      listAnim.setValue(0);
+      Animated.spring(listAnim, {
+        toValue: 1,
+        tension: 60,
+        friction: 10,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showAllJobsModal]);
+
+  const [editJobTitle, setEditJobTitle] = useState('');
+  const [editJobSalary, setEditJobSalary] = useState('');
+  const [editJobDesc, setEditJobDesc] = useState('');
+  const [editJobReqs, setEditJobReqs] = useState('');
+
+  const handleJobClick = (job) => {
+    setSelectedManageJob(job);
+    setShowJobActionModal(true);
+  };
+
+  const handleEditJob = () => {
+    setEditJobTitle(selectedManageJob?.title || '');
+    setEditJobSalary(selectedManageJob?.salary || '');
+    setEditJobDesc(selectedManageJob?.description || '');
+    setEditJobReqs(Array.isArray(selectedManageJob?.requirements) ? selectedManageJob.requirements.join('\n') : (selectedManageJob?.requirements || ''));
+    setShowJobActionModal(false);
+    setShowEditJobModal(true);
+  };
+
+  const handleCancelAction = () => {
+    setShowJobActionModal(false);
+  };
+
+  const handleSaveEditJob = async () => {
+    if (!selectedManageJob) return;
+    setShowEditJobModal(false);
+    setShowJobActionModal(false);
+    setShowAllJobsModal(false);
+    setLocalSplashMessage("Updating Job");
+    setLocalSplashSub("Applying your modifications...");
+    setLocalSplashSignOut(false);
+    setLocalSplashLottie(true);
+    setLocalSplash(true);
+
+    setTimeout(async () => {
+      const reqsArray = editJobReqs.split('\n').filter(r => r.trim() !== '');
+      const res = await updateJob(selectedManageJob.id, {
+        title: editJobTitle,
+        salary: editJobSalary,
+        description: editJobDesc,
+        requirements: reqsArray,
+      });
+
+      setTimeout(() => {
+        setLocalSplash(false);
+        if (res.success) {
+          setSelectedManageJob(null);
+        } else {
+          Alert.alert("Update Failed", "Could not update the job details.");
+        }
+      }, 1500);
+    }, 50);
+  };
+
+  const handleDeleteJob = async () => {
+    if (!selectedManageJob) return;
+    Alert.alert('Delete Job', 'Are you sure you want to delete this job?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          setShowJobActionModal(false);
+          setShowAllJobsModal(false);
+          setLocalSplashMessage("Deleting Job");
+          setLocalSplashSub("Removing the listing permanently...");
+          setLocalSplashSignOut(false);
+          setLocalSplashLottie(true);
+          setLocalSplash(true);
+
+          setTimeout(async () => {
+            const res = await deleteJob(selectedManageJob.id);
+
+            setTimeout(() => {
+              setLocalSplash(false);
+              if (res.success) {
+                setSelectedManageJob(null);
+              } else {
+                Alert.alert("Deletion Failed", "Could not delete the job.");
+              }
+            }, 1500);
+          }, 50);
+        }
+      }
+    ]);
+  };
+
+  const handleCloseHiring = async () => {
+    if (!selectedManageJob) return;
+    Alert.alert('Close Hiring', 'Are you sure you want to close hiring for this job?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Close', style: 'destructive', onPress: async () => {
+          setShowJobActionModal(false);
+          setShowAllJobsModal(false);
+          setLocalSplashMessage("Closing Hiring");
+          setLocalSplashSub("Archiving and closing the position...");
+          setLocalSplashSignOut(false);
+          setLocalSplashLottie(true);
+          setLocalSplash(true);
+
+          setTimeout(async () => {
+            const res = await closeHiring(selectedManageJob.id);
+
+            setTimeout(() => {
+              setLocalSplash(false);
+              if (res.success) {
+                setSelectedManageJob(null);
+              } else {
+                Alert.alert("Action Failed", "Could not close hiring.");
+              }
+            }, 1500);
+          }, 50);
+        }
+      }
+    ]);
+  };
+
+  useEffect(() => {
+    const loadLang = async () => {
+      try {
+        const lang = await AsyncStorage.getItem('@app_lang');
+        if (lang) setSelectedLanguage(lang);
+      } catch (e) { }
+    };
+    loadLang();
+  }, []);
+
+  const handleSelectLanguage = (langObj) => {
+    setSelectedLanguage(langObj.name);
+    setShowLanguageModal(false);
+    i18n.changeLanguage(langObj.code);
+  };
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [selectedLiker, setSelectedLiker] = useState(null);
   const [showLikerModal, setShowLikerModal] = useState(false);
@@ -259,11 +420,17 @@ export default function ProfileScreen() {
   const [editLocation, setEditLocation] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
   const [showAvatarError, setShowAvatarError] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showHowItWorksModal, setShowHowItWorksModal] = useState(false);
   const [guideLoading, setGuideLoading] = useState(false);
+  const [localSplash, setLocalSplash] = useState(false);
+  const [localSplashMessage, setLocalSplashMessage] = useState('');
+  const [localSplashSub, setLocalSplashSub] = useState('');
+  const [localSplashSignOut, setLocalSplashSignOut] = useState(false);
+  const [localSplashLottie, setLocalSplashLottie] = useState(false);
 
   const isFocused = useIsFocused();
   const [lastAvatar, setLastAvatar] = useState(user?.avatar || '');
@@ -338,7 +505,6 @@ export default function ProfileScreen() {
 
   // Upload overlay states
   const [uploadOverlay, setUploadOverlay] = useState('hidden'); // 'hidden' | 'uploading' | 'success' | 'error'
-  const [uploadErrorMessage, setUploadErrorMessage] = useState('');
   const uploadSpinAnim = useRef(new Animated.Value(0)).current;
   const uploadScaleAnim = useRef(new Animated.Value(0)).current;
   const uploadCheckAnim = useRef(new Animated.Value(0)).current;
@@ -360,75 +526,35 @@ export default function ProfileScreen() {
     : 'JL';
 
   const handleLogout = () => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: logout },
+    Alert.alert(t('profile.logout_confirmation_title'), t('profile.logout_confirmation_body'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.log_out'), style: 'destructive', onPress: logout },
     ]);
   };
 
   const requestGalleryPermission = async () => {
     try {
-      // 1. Get current permission status
       const existingPermission = await ImagePicker.getMediaLibraryPermissionsAsync();
-
-      // If already granted, return true
-      if (existingPermission.granted) {
-        return true;
-      }
-
-      // 2. Request permission if we can ask again
+      if (existingPermission.granted) return true;
       if (existingPermission.canAskAgain) {
         const response = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (response.granted) {
-          return true;
-        }
+        if (response.granted) return true;
       }
-
-      // 3. If denied or cannot ask again, show settings redirect alert
       Alert.alert(
-        'Gallery Access Blocked 🚫',
-        'Gallery access is currently disabled. Please enable Photos/Media permission in your device settings to select and upload a profile photo.',
+        t('profile.gallery_access_blocked'),
+        t('profile.gallery_access_msg'),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Open Settings',
+            text: t('profile.open_settings'),
             style: 'default',
-            onPress: () => {
-              Linking.openSettings().catch(() => {
-                Alert.alert('Error', 'Unable to open system settings. Please open Settings manually.');
-              });
-            }
+            onPress: () => Linking.openSettings()
           }
         ]
       );
       return false;
     } catch (error) {
-      console.warn('Error checking gallery permission:', error);
       return false;
-    }
-  };
-
-  const handlePickAvatar = async () => {
-    try {
-      const hasPermission = await requestGalleryPermission();
-      if (!hasPermission) return;
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-        base64: false,
-        exif: false,
-      });
-
-      if (!result.canceled && result.assets && result.assets[0]) {
-        const localUri = result.assets[0].uri;
-        setEditAvatar(localUri);
-      }
-    } catch (e) {
-      console.warn('Error picking image:', e);
-      Alert.alert('Error', 'Failed to select image.');
     }
   };
 
@@ -441,94 +567,45 @@ export default function ProfileScreen() {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.5,
-        base64: false,
-        exif: false,
+        quality: 0.2, // Aggressively compress image for faster CDN delivery
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
-        const asset = result.assets[0];
-        const localUri = asset.uri;
-
-        console.log('📸 [AVATAR] Image selected:', localUri);
-
+        const localUri = result.assets[0].uri;
         setEditAvatar(localUri);
-        setUploadOverlay('uploading');
-        uploadSpinAnim.setValue(0);
-        uploadScaleAnim.setValue(0);
-        uploadCheckAnim.setValue(0);
 
-        Animated.loop(
-          Animated.timing(uploadSpinAnim, {
-            toValue: 1,
-            duration: 1000,
-            easing: Easing.linear,
-            useNativeDriver: true,
-          })
-        ).start();
+        setLocalSplashMessage("Updating Avatar");
+        setLocalSplashSub("Uploading your profile photo...");
+        setLocalSplashSignOut(false);
+        setLocalSplashLottie(true);
+        setLocalSplash(true);
 
-        Animated.spring(uploadScaleAnim, {
-          toValue: 1,
-          friction: 6,
-          tension: 80,
-          useNativeDriver: true,
-        }).start();
+        const res = await updateProfile({
+          ...user,
+          avatar: localUri,
+        });
 
-        console.log('🚀 [AVATAR] Calling updateProfile...');
-
-        let res;
-        try {
-          res = await updateProfile({
-            name: user?.name,
-            title: user?.title,
-            phone: user?.phone,
-            location: user?.location,
-            avatar: localUri,
-          });
-          console.log('✅ [AVATAR] updateProfile response:', JSON.stringify(res));
-        } catch (dbErr) {
-          console.warn('❌ [AVATAR] updateProfile exception:', dbErr?.message || dbErr);
-          res = { success: false, message: dbErr?.message };
-        }
-
-        uploadSpinAnim.stopAnimation();
-        console.log('🎯 [AVATAR] Upload result success:', res?.success);
-
-        if (res?.success) {
-          setUploadOverlay('success');
-          uploadCheckAnim.setValue(0);
-          Animated.sequence([
-            Animated.spring(uploadCheckAnim, {
-              toValue: 1.2,
-              friction: 3,
-              tension: 100,
-              useNativeDriver: true,
-            }),
-            Animated.spring(uploadCheckAnim, {
-              toValue: 1,
-              friction: 5,
-              useNativeDriver: true,
-            }),
-          ]).start();
-          setTimeout(() => setUploadOverlay('hidden'), 1800);
-        } else {
-          console.warn('❌ [AVATAR] Upload failed:', res?.message);
-          setUploadErrorMessage(res?.message || 'Upload failed');
-          setUploadOverlay('error');
-          setTimeout(() => setUploadOverlay('hidden'), 3000);
-        }
-      } else {
-        console.log('📸 [AVATAR] Image picker cancelled');
+        setTimeout(() => {
+          setLocalSplash(false);
+          if (!res?.success) {
+            Alert.alert("Upload Failed", "Could not upload profile photo.");
+          }
+        }, 1500);
       }
     } catch (e) {
-      console.warn('❌ [AVATAR] Image picker error:', e?.message || e);
-      setUploadErrorMessage(e?.message || 'An unexpected error occurred');
-      setUploadOverlay('error');
-      setTimeout(() => setUploadOverlay('hidden'), 3000);
+      setLocalSplash(false);
+      Alert.alert("Upload Failed", "Something went wrong.");
     }
   };
+
   const handleSaveProfile = async () => {
     setSaving(true);
+    setLocalSplashMessage("Saving Profile");
+    setLocalSplashSub("Updating your professional details...");
+    setLocalSplashSignOut(false);
+    setLocalSplashLottie(true);
+    setLocalSplash(true);
+
     const res = await updateProfile({
       name: editName,
       title: editTitle,
@@ -536,12 +613,16 @@ export default function ProfileScreen() {
       location: editLocation,
       avatar: editAvatar,
     });
-    setSaving(false);
-    if (res?.success) {
-      setEditing(false);
-    } else {
-      Alert.alert('Update Failed', res?.message || 'Could not update profile details.');
-    }
+
+    setTimeout(() => {
+      setLocalSplash(false);
+      setSaving(false);
+      if (res?.success) {
+        setEditing(false);
+      } else {
+        Alert.alert(t('profile.update_failed'), res?.message || t('profile.update_error_body'));
+      }
+    }, 1500);
   };
 
   // ─── Conditional renders (after all hooks) ─────────────────────────────────
@@ -551,24 +632,23 @@ export default function ProfileScreen() {
         <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
         <View style={[styles.header, { paddingTop: 12 }]}>
           <View style={{ width: 40 }} />
-          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={styles.headerTitle}>{t('profile.profile_title')}</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.guestContainer}>
           <View style={styles.guestIconCircle}>
-            <Ionicons name="person-outline" size={42} color={COLORS.textPrimary} />
+            <Ionicons name="person-circle-outline" size={80} color={COLORS.accentGreen} />
           </View>
-          <Text style={styles.guestTitle}>Professional Profile</Text>
+          <Text style={styles.guestTitle}>{t('profile.professional_profile')}</Text>
           <Text style={styles.guestSub}>
-            Create an account or sign in to set up your profile, showcase your skills, track job applications, and post career opportunities.
+            {t('profile.guest_description')}
           </Text>
           <TouchableOpacity
             style={styles.guestBtn}
-            onPress={() => setIsGuest(false)}
-            activeOpacity={0.88}
+            onPress={() => navigation.navigate('GettingStarted')}
+            activeOpacity={0.85}
           >
-            <Text style={styles.guestBtnText}>Create Account / Sign In</Text>
-            <Ionicons name="arrow-forward" size={16} color={COLORS.textPrimary} style={{ marginLeft: 6 }} />
+            <Text style={styles.guestBtnText}>{t('profile.create_account_signin')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -577,30 +657,6 @@ export default function ProfileScreen() {
 
   if (profileLoading) {
     return <ProfileSkeleton />;
-  }
-
-  if (uploadOverlay === 'uploading') {
-    return (
-      <Modal visible={true} transparent={false} animationType="fade" statusBarTranslucent={true}>
-        <SplashScreen
-          message="Uploading profile photo..."
-          subMessage="Saving your beautiful avatar to servers dynamically"
-          showLottie={true}
-        />
-      </Modal>
-    );
-  }
-
-  if (saving) {
-    return (
-      <Modal visible={true} transparent={false} animationType="fade" statusBarTranslucent={true}>
-        <SplashScreen
-          message="Saving profile changes..."
-          subMessage="Updating your professional details in the database"
-          showLottie={true}
-        />
-      </Modal>
-    );
   }
 
   const userRole = user?.role || 'jobseeker';
@@ -616,34 +672,31 @@ export default function ProfileScreen() {
   let chartData = [];
   if (isEmployer) {
     if (activeList.length > 0) {
-      const listToUse = activeList.slice(-15); // limit to last 15 items
+      const listToUse = activeList.slice(-15);
       const parsedValues = listToUse.map(job => parseSalary(job.salary));
       const maxVal = Math.max(...parsedValues, 1);
 
       chartData = listToUse.map((job, idx) => {
         const val = parsedValues[idx];
-        // Map value to height percentage (15 to 80)
-        const height = Math.max(15, Math.min(80, Math.round((val / maxVal) * 80)));
+        const height = Math.max(25, Math.min(150, Math.round((val / maxVal) * 150)));
         return {
           height,
           job,
           val,
           label: `J${idx + 1}`,
-          dateLabel: job.title,
+          dateLabel: job?.title || 'Job',
           appCount: 1
         };
       });
     } else {
-      // Fallback placeholder wave when empty
       chartData = [
-        { height: 15 }, { height: 20 }, { height: 25 }, { height: 22 },
-        { height: 18 }, { height: 30 }, { height: 35 }, { height: 40 },
-        { height: 32 }, { height: 25 }, { height: 20 }, { height: 18 },
-        { height: 22 }, { height: 28 }, { height: 15 }
+        { height: 45 }, { height: 60 }, { height: 75 }, { height: 66 },
+        { height: 54 }, { height: 90 }, { height: 105 }, { height: 120 },
+        { height: 96 }, { height: 75 }, { height: 60 }, { height: 54 },
+        { height: 66 }, { height: 84 }, { height: 45 }
       ].map((d, i) => ({ ...d, label: `${i}`, dateLabel: '', appCount: 0 }));
     }
   } else {
-    // Job Seeker: 7-day Application Timeline
     const getLast7Days = () => {
       const days = [];
       const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -660,15 +713,22 @@ export default function ProfileScreen() {
     };
 
     const daysList = getLast7Days();
-    chartData = daysList.map((day) => {
+    chartData = daysList.map((day, index) => {
       const jobsOnDay = appliedJobsList.filter(job => {
         const jobDate = new Date(job.appliedAtDate).toDateString();
         return jobDate === day.dateString;
       });
 
       const appCount = jobsOnDay.length;
-      // 0 apps -> 15% height, 1 app -> 45% height, 2 apps -> 65%, 3+ apps -> 80%
-      const height = appCount === 0 ? 15 : Math.min(80, 25 + appCount * 20);
+
+      // Create a nice smooth escalating slope for the background bars
+      let height = 40 + (index * 11);
+
+      if (appCount === 1) height = Math.max(height, 70);
+      else if (appCount === 2) height = Math.max(height, 100);
+      else if (appCount > 2) height = Math.max(height, 100 + (appCount - 2) * 20);
+
+      height = Math.min(150, height);
 
       return {
         height,
@@ -679,6 +739,10 @@ export default function ProfileScreen() {
       };
     });
   }
+
+  const dynamicTrendPercentage = isEmployer
+    ? `+${Math.min(100, Math.max(12, myJobs.length * 8))}%`
+    : `+${Math.min(100, Math.max(0, appliedJobsList.length * 19))}%`;
 
   return (
     <View style={styles.container}>
@@ -700,7 +764,7 @@ export default function ProfileScreen() {
         ) : (
           <View style={{ width: 40 }} />
         )}
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={styles.headerTitle}>{t('profile.profile_title')}</Text>
         <TouchableOpacity
           style={styles.headerIconBtn}
           onPress={() => {
@@ -725,122 +789,29 @@ export default function ProfileScreen() {
 
       {/* Static Profile Section (Unscrollable Top Part on Green Background) */}
       <View style={styles.avatarSection}>
-        {editing ? (
-          <TouchableOpacity
-            style={styles.avatarBorder}
-            onPress={handlePickAvatar}
-            activeOpacity={0.8}
-          >
+        <TouchableOpacity
+          style={styles.avatarBorder}
+          onPress={editing ? handlePickAvatarAndSave : handlePickAvatarAndSave}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.avatarCircle, { overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }]}>
+            <Text style={[styles.avatarText, { position: 'absolute' }]}>{initials}</Text>
             {editAvatar ? (
-              <Image source={{ uri: editAvatar }} style={styles.avatarImage} resizeMode="cover" />
-            ) : (
-              <View style={styles.avatarCircle}>
-                <Text style={styles.avatarText}>{initials}</Text>
-              </View>
-            )}
-            <View style={styles.avatarEditBadge}>
-              <Ionicons name="camera" size={14} color="#FFFFFF" />
-            </View>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.avatarBorder}
-            onPress={handlePickAvatarAndSave}
-            activeOpacity={0.8}
-          >
-            {/* Layer 1: Base image (last active image, cached and immediate) */}
-            {lastAvatar ? (
-              <Image
-                source={{ uri: lastAvatar }}
-                style={styles.avatarImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={styles.avatarCircle}>
-                <Text style={styles.avatarText}>{initials}</Text>
-              </View>
-            )}
-
-            {/* Layer 2: Incoming avatar image (loading on top absolute) */}
-            {newAvatarUri && newAvatarUri !== lastAvatar && (
-              <Image
-                source={{ uri: newAvatarUri }}
-                style={[styles.avatarImage, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }]}
-                resizeMode="cover"
-                onLoad={() => {
-                  setLastAvatar(newAvatarUri);
-                  setNewAvatarUri(null);
-                  setShowAvatarError(false);
-                }}
-                onError={() => {
-                  setNewAvatarUri(null);
-                  setShowAvatarError(true);
-                }}
-              />
-            )}
-
-            {showAvatarError && !lastAvatar && !newAvatarUri && (
-              <View style={[styles.avatarCircle, { position: 'absolute', backgroundColor: '#E5E7EB' }]}>
-                <Text style={styles.avatarText}>{initials}</Text>
-              </View>
-            )}
-            <View style={styles.avatarEditBadge}>
-              <Ionicons name="camera" size={14} color="#FFFFFF" />
-            </View>
-          </TouchableOpacity>
-        )}
+              <Image source={{ uri: editAvatar }} style={styles.avatarImage} contentFit="cover" transition={200} placeholder={{ blurhash }} />
+            ) : null}
+          </View>
+          <View style={styles.avatarEditBadge}>
+            <Ionicons name="camera" size={14} color="#FFFFFF" />
+          </View>
+        </TouchableOpacity>
 
         {editing && (
-          <TouchableOpacity onPress={handlePickAvatar} style={{ marginBottom: 12 }}>
-            <Text style={{ color: COLORS.accentGreen, fontSize: 13, fontWeight: '700' }}>Change Profile Photo</Text>
+          <TouchableOpacity onPress={handlePickAvatarAndSave} style={{ marginTop: 20, padding: 10 }}>
+            <Text style={{ color: COLORS.accentGreen, fontSize: 13, fontWeight: '700' }}>{t('profile.change_profile_photo')}</Text>
           </TouchableOpacity>
         )}
 
-        {editing ? (
-          <View style={styles.editFields}>
-            <View style={styles.editRow}>
-              <Ionicons name="person-outline" size={16} color={COLORS.textSecondary} style={styles.editIcon} />
-              <TextInput
-                style={styles.editInput}
-                value={editName}
-                onChangeText={setEditName}
-                placeholder="Full name"
-                placeholderTextColor={COLORS.textLight}
-              />
-            </View>
-            <View style={styles.editRow}>
-              <Ionicons name="briefcase-outline" size={16} color={COLORS.textSecondary} style={styles.editIcon} />
-              <TextInput
-                style={styles.editInput}
-                value={editTitle}
-                onChangeText={setEditTitle}
-                placeholder="Job title / Role"
-                placeholderTextColor={COLORS.textLight}
-              />
-            </View>
-            <View style={styles.editRow}>
-              <Ionicons name="call-outline" size={16} color={COLORS.textSecondary} style={styles.editIcon} />
-              <TextInput
-                style={styles.editInput}
-                value={editPhone}
-                onChangeText={setEditPhone}
-                placeholder="+92 300 1234567"
-                placeholderTextColor={COLORS.textLight}
-                keyboardType="phone-pad"
-              />
-            </View>
-            <View style={styles.editRow}>
-              <Ionicons name="location-outline" size={16} color={COLORS.textSecondary} style={styles.editIcon} />
-              <TextInput
-                style={styles.editInput}
-                value={editLocation}
-                onChangeText={setEditLocation}
-                placeholder="Location"
-                placeholderTextColor={COLORS.textLight}
-              />
-            </View>
-          </View>
-        ) : (
+        {!editing && (
           <>
             <Text style={styles.userName} numberOfLines={1} adjustsFontSizeToFit>{user?.name || 'BKJ User'}</Text>
             <Text style={styles.userEmail} numberOfLines={1} adjustsFontSizeToFit>{user?.email || ''}</Text>
@@ -850,8 +821,7 @@ export default function ProfileScreen() {
               onPress={handlePickAvatarAndSave}
               activeOpacity={0.85}
             >
-              <Ionicons name="camera-outline" size={15} color="#111111" style={{ marginRight: 6 }} />
-              <Text style={styles.uploadPhotoText}>Upload Profile Photo</Text>
+              <Text style={styles.uploadPhotoText}>{t('profile.upload_profile_photo')}</Text>
             </TouchableOpacity>
           </>
         )}
@@ -866,115 +836,121 @@ export default function ProfileScreen() {
         }
       >
 
+        {editing && (
+          <View style={styles.editFields}>
+            <View style={styles.editRow}>
+              <Ionicons name="person" size={18} color={COLORS.textSecondary} style={styles.editIcon} />
+              <TextInput
+                style={styles.editInput}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Full Name"
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
+            <View style={styles.editRow}>
+              <Ionicons name="briefcase" size={18} color={COLORS.textSecondary} style={styles.editIcon} />
+              <TextInput
+                style={styles.editInput}
+                value={editTitle}
+                onChangeText={setEditTitle}
+                placeholder="Professional Title"
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
+            <View style={styles.editRow}>
+              <Ionicons name="call" size={18} color={COLORS.textSecondary} style={styles.editIcon} />
+              <TextInput
+                style={styles.editInput}
+                value={editPhone}
+                onChangeText={setEditPhone}
+                placeholder="Phone Number"
+                placeholderTextColor="#94A3B8"
+                keyboardType="phone-pad"
+              />
+            </View>
+            <View style={styles.editRow}>
+              <Ionicons name="location" size={18} color={COLORS.textSecondary} style={styles.editIcon} />
+              <TextInput
+                style={styles.editInput}
+                value={editLocation}
+                onChangeText={setEditLocation}
+                placeholder="Location"
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
+          </View>
+        )}
+
         {/* Info Cards Row - Initials / Phone / Role */}
         {!editing && (
           <View style={styles.infoRow}>
             <View style={styles.infoCard}>
+              <View style={[styles.infoIconWrap, { backgroundColor: '#E3F2FD' }]}><Ionicons name="call" size={16} color="#1565C0" /></View>
+              <Text style={styles.infoLabel} numberOfLines={1} adjustsFontSizeToFit>{t('profile.phone')}</Text>
+              <Text style={styles.infoValue} numberOfLines={1} adjustsFontSizeToFit>
+                {user?.phone ? (user.phone.length > 10 ? user.phone.slice(0, 10) + '...' : user.phone) : t('common.none')}
+              </Text>
+            </View>
+
+            <View style={styles.infoCard}>
+              <View style={[styles.infoIconWrap, { backgroundColor: '#FFF3E0' }]}><Ionicons name="time" size={16} color="#E65100" /></View>
+              <Text style={styles.infoLabel} numberOfLines={1} adjustsFontSizeToFit>{t('profile.member')}</Text>
+              <Text style={styles.infoValue} numberOfLines={1} adjustsFontSizeToFit>
+                {user?.createdAt ? new Date(user.createdAt.seconds * 1000).getFullYear() : new Date().getFullYear()}
+              </Text>
+            </View>
+
+            <TouchableOpacity style={styles.infoCard} onPress={() => setShowAllJobsModal(true)} activeOpacity={0.7}>
               <View style={[styles.infoIconWrap, { backgroundColor: '#F0FDF4' }]}>
                 <Ionicons name="briefcase" size={16} color="#15803D" />
               </View>
-              <Text style={styles.infoLabel} numberOfLines={1} adjustsFontSizeToFit>Jobs Posted</Text>
+              <Text style={styles.infoLabel} numberOfLines={1} adjustsFontSizeToFit>{t('profile.jobs_posted')}</Text>
               <Text style={styles.infoValue} numberOfLines={1} adjustsFontSizeToFit>{myJobs.length}</Text>
-            </View>
-
-            <View style={styles.infoCard}>
-              <View style={[styles.infoIconWrap, { backgroundColor: '#EFF6FF' }]}>
-                <Ionicons name="call" size={16} color="#3B82F6" />
-              </View>
-              <Text style={styles.infoLabel} numberOfLines={1} adjustsFontSizeToFit>Phone</Text>
-              <Text style={styles.infoValue} numberOfLines={1} adjustsFontSizeToFit>
-                {user?.phone || 'Not set'}
-              </Text>
-            </View>
-
-            <View style={styles.infoCard}>
-              <View style={[styles.infoIconWrap, { backgroundColor: '#FFF7ED' }]}>
-                <Ionicons name="calendar-outline" size={16} color="#F97316" />
-              </View>
-              <Text style={styles.infoLabel} numberOfLines={1} adjustsFontSizeToFit>Member</Text>
-              <Text style={styles.infoValue} numberOfLines={1} adjustsFontSizeToFit>
-                {user?.joinDate || 'Jan 2026'}
-              </Text>
-            </View>
-          </View>
-        )}
-        {/* Job Title Info */}
-        {!editing && user?.title && (
-          <View style={styles.titleCard}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
-              <Ionicons name="briefcase-outline" size={16} color={COLORS.textSecondary} />
-              <Text style={styles.titleCardText} numberOfLines={1} adjustsFontSizeToFit>{user.title}</Text>
-            </View>
-            {user?.location && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
-                <View style={styles.titleDot} />
-                <Ionicons name="location-outline" size={14} color={COLORS.textSecondary} />
-                <Text style={styles.titleCardText} numberOfLines={1} adjustsFontSizeToFit>{user.location}</Text>
-              </View>
-            )}
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* Dotted Chart Card */}
+
+        {/* Modern Solid Chart Card */}
         <View style={styles.chartCard}>
-          <View style={styles.chartCardHeader}>
-            <Text style={styles.chartCardTitle}>
-              {isEmployer ? 'Hiring Budget' : 'Application Timeline'}
-            </Text>
-            <View style={styles.dropdownBtn}>
-              <Text style={styles.dropdownText}>
-                {isEmployer ? 'My Postings' : 'Last 7 Days'}
+          {/* Top Row: Title, Trend & Value */}
+          <View style={styles.chartTopRow}>
+            <View style={styles.chartTopLeft}>
+              <Text style={styles.chartCardTitle}>
+                {isEmployer ? t('profile.hiring_budget') : t('profile.application_timeline')}
               </Text>
+
+              <View style={styles.trendContainer}>
+                <Text style={styles.trendPercentage}>
+                  {dynamicTrendPercentage}
+                </Text>
+                <Text style={styles.trendSubtitle}>
+                  grow since last {isEmployer ? 'month' : 'week'} ↗
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.chartValueBadge}>
+              <Text style={styles.chartValueNumber}>
+                {isEmployer
+                  ? totalSpend.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                  : appliedJobsList.length}
+              </Text>
+              <View style={styles.chartValuePill}>
+                <Text style={styles.chartValuePillText}>
+                  {isEmployer ? 'USD' : (appliedJobsList.length === 1 ? 'APP' : 'APPS')}
+                </Text>
+              </View>
             </View>
           </View>
-          <View style={styles.rateBadge}>
-            <Text style={styles.rateValue}>
-              {isEmployer
-                ? `$${totalSpend.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-                : `${appliedJobsList.length} ${appliedJobsList.length === 1 ? 'Application' : 'Applications'}`}
-            </Text>
-            <Text style={styles.rateLabel}>
-              {isEmployer
-                ? 'Total Spend Rate / mo'
-                : 'Application History Timeline'}
-            </Text>
-          </View>
-          <View style={{ position: 'relative' }}>
-            {activeList.length > 0 && selectedIndex !== null && chartData[selectedIndex] && (
-              (() => {
-                const dayData = chartData[selectedIndex];
-                const totalColumns = chartData.length;
-                const tooltipLeft = totalColumns > 1
-                  ? `${(selectedIndex / (totalColumns - 1)) * 75 + 12.5}%`
-                  : '50%';
 
-                const titleText = isEmployer
-                  ? (dayData.job?.title || 'Job Posting')
-                  : dayData.dateLabel;
-
-                const subtitleText = isEmployer
-                  ? `${dayData.job?.company || 'Company'} • ${dayData.job?.salary || 'Salary'}`
-                  : (dayData.appCount === 0
-                    ? 'No applications'
-                    : dayData.jobs.map(j => `• ${j.title}`).join('\n'));
-
-                return (
-                  <View style={[styles.chartTooltip, { left: tooltipLeft }]}>
-                    <Text style={styles.chartTooltipTitle} numberOfLines={1}>
-                      {titleText}
-                    </Text>
-                    <Text style={[styles.chartTooltipSubtitle, !isEmployer && { textAlign: 'left', marginTop: 3 }]} numberOfLines={5}>
-                      {subtitleText}
-                    </Text>
-                    <View style={styles.chartTooltipArrow} />
-                  </View>
-                );
-              })()
-            )}
-
+          {/* Bottom Row: Bars Only */}
+          <View style={styles.chartBottomRow}>
+            {/* Right: Bars */}
             <View style={[styles.chartVisualizer, activeList.length === 0 && { opacity: 0.15 }]}>
               {chartData.map((data, index) => (
-                <DottedColumn
+                <SolidBar
                   key={index}
                   height={data.height}
                   active={activeList.length > 0 ? index === selectedIndex : false}
@@ -982,200 +958,116 @@ export default function ProfileScreen() {
                 />
               ))}
             </View>
-            {!isEmployer && activeList.length > 0 && (
-              <View style={styles.chartLabelsRow}>
-                {chartData.map((data, index) => (
-                  <Text
-                    key={index}
-                    style={[
-                      styles.chartLabelText,
-                      index === selectedIndex && styles.chartLabelTextActive
-                    ]}
-                  >
-                    {data.label}
-                  </Text>
-                ))}
+          </View>
+
+          {activeList.length === 0 && (
+            <View style={styles.chartPlaceholderOverlay}>
+              <Text style={styles.chartPlaceholderText}>
+                {isEmployer
+                  ? t('profile.no_jobs_analysis')
+                  : t('profile.no_applied_analysis')}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Activity & Support */}
+        <View style={styles.settingsSection}>
+          <Text style={styles.sectionHeader}>{t('profile.activity_help') || 'Activity & Support'}</Text>
+          <View style={styles.settingsCard}>
+            <TouchableOpacity style={styles.settingsRow} onPress={async () => {
+              if (fetchRealNotifications) await fetchRealNotifications();
+              setShowNotifModal(true);
+            }} activeOpacity={0.7}>
+              <View style={[styles.settingsIconWrap, { backgroundColor: '#E8F5E9' }]}>
+                <Ionicons name="notifications" size={16} color="#2E7D32" />
               </View>
-            )}
-            {activeList.length === 0 && (
-              <View style={styles.chartPlaceholderOverlay}>
-                <Ionicons
-                  name={isEmployer ? 'briefcase-outline' : 'paper-plane-outline'}
-                  size={20}
-                  color={COLORS.textSecondary}
-                  style={{ marginBottom: 6 }}
-                />
-                <Text style={styles.chartPlaceholderText}>
-                  {isEmployer
-                    ? 'Post a job with a budget to analyze spend'
-                    : 'Apply to jobs via WhatsApp or Email to visualize earning potential'}
-                </Text>
+              <Text style={styles.settingsLabel}>{t('profile.notifications')}</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.textLight} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity style={styles.settingsRow} onPress={() => setShowHowItWorksModal(true)} activeOpacity={0.7}>
+              <View style={[styles.settingsIconWrap, { backgroundColor: '#FFF3E0' }]}>
+                <Ionicons name="help-circle" size={16} color="#E65100" />
               </View>
-            )}
+              <Text style={styles.settingsLabel}>{t('profile.how_bkj_works')}</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.textLight} />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* 3-Grid Feature Cards */}
-        <View style={styles.featureGrid}>
-          <TouchableOpacity style={styles.gridCard} onPress={async () => {
-            if (fetchRealNotifications) {
-              await fetchRealNotifications();
-            }
-            setShowNotifModal(true);
-          }} activeOpacity={0.8}>
-            <View style={styles.gridCardHeader}>
-              <View style={styles.iconCircleBlue}>
-                <Ionicons name="notifications" size={16} color="#3B82F6" />
-                {notif && <View style={styles.blueDot} />}
-              </View>
-            </View>
-            <Text style={styles.gridCardLabel} numberOfLines={1} adjustsFontSizeToFit>Notifications</Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.gridCard}
-            onPress={() => {
-              setShowHowItWorksModal(true);
-              setGuideLoading(true);
-              setTimeout(() => {
-                setGuideLoading(false);
-              }, 1200);
-            }}
-            activeOpacity={0.8}
-          >
-            <View style={styles.gridCardHeader}>
-              <View style={styles.iconCircleBlueLight}>
-                <Ionicons name="help-circle" size={16} color="#60A5FA" />
-              </View>
-            </View>
-            <Text style={styles.gridCardLabel} numberOfLines={1} adjustsFontSizeToFit>How It Works</Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity style={styles.gridCard} activeOpacity={0.8}>
-            <View style={styles.gridCardHeader}>
-              <View style={styles.iconCirclePurple}>
-                <Ionicons name="chatbubble" size={15} color="#8B5CF6" />
-              </View>
-            </View>
-            <Text style={styles.gridCardLabel} numberOfLines={1} adjustsFontSizeToFit>Rate us</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* My Job Listings */}
-        {user && (
-          <View style={styles.section}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={styles.sectionTitle}>My Job Listings ({myJobs.length})</Text>
-              <Ionicons name="paper-plane" size={16} color={COLORS.accentGreen} />
-            </View>
-            {myJobs.length === 0 ? (
-              <View style={styles.emptyJobsCard}>
-                <Ionicons name="folder-open-outline" size={24} color={COLORS.textLight} />
-                <Text style={styles.emptyJobsText}>No jobs posted yet.</Text>
-              </View>
-            ) : (
-              myJobs.map(job => (
-                <TouchableOpacity
-                  key={job.id}
-                  style={styles.jobRow}
-                  activeOpacity={0.7}
-                  onPress={() => setSelectedJob(job)}
-                >
-                  <View style={styles.jobRowLeft}>
-                    <Text style={styles.jobRowTitle} numberOfLines={1} adjustsFontSizeToFit>{job.title}</Text>
-                    <Text style={styles.jobRowSub} numberOfLines={1}>{job.type} • {job.location}</Text>
-                  </View>
-                  <View style={[styles.jobRowBadge, { backgroundColor: '#E8F5E9' }]}>
-                    <Text style={[styles.jobRowBadgeText, { color: '#2E7D32' }]} numberOfLines={1} adjustsFontSizeToFit>{job.salary}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))
-            )}
-          </View>
-        )}
-
-        {/* Applied Opportunities */}
+        {/* My Opportunities Section */}
         {user && !isEmployer && (
           <View style={styles.section}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={styles.sectionTitle}>Applied Opportunities ({appliedJobsList.length})</Text>
-              <Ionicons name="paper-plane" size={16} color={COLORS.accentGreen} />
+              <Text style={styles.sectionTitle}>{t('profile.my_opportunities') || 'Opportunities'}</Text>
             </View>
-            {appliedJobsList.length === 0 ? (
-              <View style={styles.emptyJobsCard}>
-                <Ionicons name="paper-plane-outline" size={24} color={COLORS.textLight} />
-                <Text style={styles.emptyJobsText}>No applied jobs yet.</Text>
-              </View>
-            ) : (
-              appliedJobsList.map(job => {
-                const appliedDate = new Date(job.appliedAtDate).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                });
-                return (
-                  <TouchableOpacity
-                    key={job.id}
-                    style={styles.jobRow}
-                    activeOpacity={0.7}
-                    onPress={() => setSelectedJob(job)}
-                  >
-                    <View style={styles.jobRowLeft}>
-                      <Text style={styles.jobRowTitle} numberOfLines={1} adjustsFontSizeToFit>{job.title}</Text>
-                      <Text style={styles.jobRowSub} numberOfLines={1}>{job.company} • Applied on {appliedDate}</Text>
-                    </View>
-                    <View style={[styles.jobRowBadge, { backgroundColor: '#E8F5E9' }]}>
-                      <Text style={[styles.jobRowBadgeText, { color: COLORS.accentGreen, fontWeight: '700' }]} numberOfLines={1} adjustsFontSizeToFit>{job.salary}</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
-            )}
-          </View>
-        )}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
 
-        {/* Bookmarked Opportunities */}
-        {user && !isEmployer && (
-          <View style={styles.section}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={styles.sectionTitle}>Bookmarked Opportunities ({bookmarkedJobs.length})</Text>
-              <Ionicons name="heart" size={16} color="#E53935" />
-            </View>
-            {bookmarkedJobs.length === 0 ? (
-              <View style={styles.emptyJobsCard}>
-                <Ionicons name="heart-dislike-outline" size={24} color={COLORS.textLight} />
-                <Text style={styles.emptyJobsText}>No bookmarked jobs yet.</Text>
-              </View>
-            ) : (
-              bookmarkedJobs.map(job => (
-                <TouchableOpacity
-                  key={job.id}
-                  style={styles.jobRow}
-                  activeOpacity={0.7}
-                  onPress={() => setSelectedJob(job)}
-                >
-                  <View style={styles.jobRowLeft}>
-                    <Text style={styles.jobRowTitle} numberOfLines={1} adjustsFontSizeToFit>{job.title}</Text>
-                    <Text style={styles.jobRowSub} numberOfLines={1}>{job.company} • {job.location}</Text>
-                  </View>
-                  <View style={[styles.jobRowBadge, { backgroundColor: '#FEE2E2' }]}>
-                    <Text style={[styles.jobRowBadgeText, { color: '#EF4444' }]} numberOfLines={1} adjustsFontSizeToFit>❤️ {job.likes || 0}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))
-            )}
+              {/* Applied Box */}
+              <TouchableOpacity
+                style={{ width: 170, height: 210, backgroundColor: COLORS.accentGreen, borderRadius: 28, padding: 20, marginRight: 16, justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 }}
+                activeOpacity={0.8}
+                onPress={() => setShowAppliedModal(true)}
+              >
+                <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="paper-plane" size={22} color={COLORS.accentGreen} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 17, fontWeight: '800', color: '#FFFFFF', marginBottom: 6 }} numberOfLines={2}>{t('profile.applied_jobs') || 'Applied Jobs'}</Text>
+                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }} numberOfLines={2}>{appliedJobsList.length} {t('profile.applications_sent') || 'applications sent'}</Text>
+                </View>
+                <View style={{ alignSelf: 'flex-end', width: 34, height: 34, borderRadius: 17, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="chevron-forward" size={18} color={COLORS.accentGreen} />
+                </View>
+              </TouchableOpacity>
+
+              {/* Bookmarked Box */}
+              <TouchableOpacity
+                style={{ width: 170, height: 210, backgroundColor: '#F8FAFC', borderRadius: 28, padding: 20, marginRight: 16, justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2, borderWidth: 1, borderColor: '#F1F5F9' }}
+                activeOpacity={0.8}
+                onPress={() => setShowBookmarkedModal(true)}
+              >
+                <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2, borderWidth: 1, borderColor: '#F1F5F9' }}>
+                  <Ionicons name="heart" size={22} color="#EF4444" />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 17, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 6 }} numberOfLines={2}>{t('profile.saved_jobs') || 'Saved Jobs'}</Text>
+                  <Text style={{ fontSize: 13, color: COLORS.textSecondary }} numberOfLines={2}>{bookmarkedJobs.length} {t('profile.bookmarked_items') || 'bookmarked items'}</Text>
+                </View>
+                <View style={{ alignSelf: 'flex-end', width: 34, height: 34, borderRadius: 17, backgroundColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="chevron-forward" size={18} color={COLORS.textPrimary} />
+                </View>
+              </TouchableOpacity>
+
+            </ScrollView>
           </View>
         )}
 
         {/* Settings */}
         <View style={styles.settingsSection}>
-          <Text style={styles.sectionHeader}>Account & Utilities</Text>
+          <Text style={styles.sectionHeader}>{t('profile.account_utilities')}</Text>
           <View style={styles.settingsCard}>
+            <TouchableOpacity style={styles.settingsRow} onPress={() => setShowLanguageModal(true)} activeOpacity={0.7}>
+              <View style={[styles.settingsIconWrap, { backgroundColor: '#E0F2FE' }]}>
+                <Ionicons name="language" size={16} color="#0284C7" />
+              </View>
+              <Text style={styles.settingsLabel}>{t('profile.app_language')}</Text>
+              <Text style={{ fontSize: 13, color: COLORS.textSecondary, marginRight: 8, fontWeight: '600' }}>{selectedLanguage}</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.textLight} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
             <TouchableOpacity style={styles.settingsRow}>
               <View style={[styles.settingsIconWrap, { backgroundColor: '#E8F5E9' }]}>
                 <Ionicons name="lock-closed" size={16} color={COLORS.accentGreen} />
               </View>
-              <Text style={styles.settingsLabel}>Security & Privacy</Text>
+              <Text style={styles.settingsLabel}>{t('profile.security_privacy')}</Text>
               <Ionicons name="chevron-forward" size={16} color={COLORS.textLight} />
             </TouchableOpacity>
 
@@ -1185,7 +1077,7 @@ export default function ProfileScreen() {
               <View style={[styles.settingsIconWrap, { backgroundColor: '#FEE2E2' }]}>
                 <Ionicons name="log-out" size={16} color="#EF4444" />
               </View>
-              <Text style={[styles.settingsLabel, { color: '#EF4444' }]}>Log Out Account</Text>
+              <Text style={[styles.settingsLabel, { color: '#EF4444' }]}>{t('profile.logout_account')}</Text>
               <Ionicons name="chevron-forward" size={16} color={COLORS.textLight} />
             </TouchableOpacity>
           </View>
@@ -1277,7 +1169,7 @@ export default function ProfileScreen() {
                             {/* Avatar */}
                             {isLike ? (
                               n.likerProfile?.avatar && n.likerProfile.avatar.length > 5 ? (
-                                <Image source={{ uri: n.likerProfile.avatar }} style={styles.igAvatarImage} resizeMode="cover" />
+                                <Image source={{ uri: n.likerProfile.avatar }} style={styles.igAvatarImage} contentFit="cover" transition={200} placeholder={{ blurhash }} />
                               ) : (
                                 <View style={styles.igAvatar}>
                                   <Text style={styles.igAvatarText}>{avatarInitials}</Text>
@@ -1354,7 +1246,7 @@ export default function ProfileScreen() {
                 {/* Initials Avatar */}
                 <View style={styles.likerAvatarCircle}>
                   {selectedLiker?.avatar && selectedLiker.avatar.length > 5 ? (
-                    <Image source={{ uri: selectedLiker.avatar }} style={styles.likerAvatarImage} resizeMode="cover" />
+                    <Image source={{ uri: selectedLiker.avatar }} style={styles.likerAvatarImage} contentFit="cover" transition={200} placeholder={{ blurhash }} />
                   ) : (
                     <Text style={styles.likerAvatarText}>
                       {selectedLiker?.name ? selectedLiker.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'C'}
@@ -1363,8 +1255,8 @@ export default function ProfileScreen() {
                 </View>
 
                 {/* Name & Title */}
-                <Text style={styles.likerName} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker.name}</Text>
-                <Text style={styles.likerTitle} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker.title || 'Job Seeker'}</Text>
+                <Text style={styles.likerName} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker?.name}</Text>
+                <Text style={styles.likerTitle} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker?.title || 'Job Seeker'}</Text>
 
                 {/* Divider */}
                 <View style={styles.likerDivider} />
@@ -1373,17 +1265,17 @@ export default function ProfileScreen() {
                 <View style={styles.likerInfoContainer}>
                   <View style={styles.likerInfoRow}>
                     <Ionicons name="location" size={16} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
-                    <Text style={styles.likerInfoText} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker.location || 'Lahore, Pakistan'}</Text>
+                    <Text style={styles.likerInfoText} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker?.location || 'Lahore, Pakistan'}</Text>
                   </View>
 
                   <View style={styles.likerInfoRow}>
                     <Ionicons name="call" size={16} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
-                    <Text style={styles.likerInfoText} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker.phone || '+92 300 1234567'}</Text>
+                    <Text style={styles.likerInfoText} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker?.phone || '+92 300 1234567'}</Text>
                   </View>
 
                   <View style={styles.likerInfoRow}>
                     <Ionicons name="mail" size={16} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
-                    <Text style={styles.likerInfoText} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker.email || 'candidate@gmail.com'}</Text>
+                    <Text style={styles.likerInfoText} numberOfLines={1} adjustsFontSizeToFit>{selectedLiker?.email || 'candidate@gmail.com'}</Text>
                   </View>
                 </View>
 
@@ -1391,7 +1283,7 @@ export default function ProfileScreen() {
                 <View style={styles.likerActionsRow}>
                   <TouchableOpacity
                     style={[styles.likerActionButton, { backgroundColor: '#EFF6FF' }]}
-                    onPress={() => Alert.alert('Direct Call', `Dialing ${selectedLiker.phone || '+92 300 1234567'}...`)}
+                    onPress={() => Alert.alert('Direct Call', `Dialing ${selectedLiker?.phone || '+92 300 1234567'}...`)}
                   >
                     <Ionicons name="call" size={16} color="#3B82F6" style={{ marginRight: 6 }} />
                     <Text style={[styles.likerActionText, { color: '#3B82F6' }]}>Call Candidate</Text>
@@ -1399,7 +1291,7 @@ export default function ProfileScreen() {
 
                   <TouchableOpacity
                     style={[styles.likerActionButton, { backgroundColor: '#ECFDF5' }]}
-                    onPress={() => Alert.alert('Email Sent', `Opening mail client for ${selectedLiker.email || 'candidate@gmail.com'}...`)}
+                    onPress={() => Alert.alert('Email Sent', `Opening mail client for ${selectedLiker?.email || 'candidate@gmail.com'}...`)}
                   >
                     <Ionicons name="mail" size={16} color="#10B981" style={{ marginRight: 6 }} />
                     <Text style={[styles.likerActionText, { color: '#10B981' }]}>Email</Text>
@@ -1432,28 +1324,28 @@ export default function ProfileScreen() {
               {/* Hero */}
               <View style={styles.detailHeroCard}>
                 <View style={styles.detailAvatar}>
-                  <Text style={styles.detailAvatarText}>{(selectedJob.company || 'C')[0]}</Text>
+                  <Text style={styles.detailAvatarText}>{(selectedJob?.company || 'C')[0]}</Text>
                 </View>
-                <Text style={styles.detailTitle}>{selectedJob.title}</Text>
-                <Text style={styles.detailCompany}>{selectedJob.company || 'TechCorp'}</Text>
+                <Text style={styles.detailTitle}>{selectedJob?.title}</Text>
+                <Text style={styles.detailCompany}>{selectedJob?.company || 'TechCorp'}</Text>
                 <View style={styles.detailBadgeRow}>
                   <View style={[styles.typeBadge, { backgroundColor: COLORS.accentYellow }]}>
-                    <Text style={[styles.typeBadgeText, { color: COLORS.textPrimary }]}>{selectedJob.type}</Text>
+                    <Text style={[styles.typeBadgeText, { color: COLORS.textPrimary }]}>{selectedJob?.type}</Text>
                   </View>
                   <View style={styles.detailBadge}>
                     <Ionicons name="location-outline" size={12} color={COLORS.textSecondary} />
-                    <Text style={styles.detailBadgeText}> {selectedJob.location}</Text>
+                    <Text style={styles.detailBadgeText}> {selectedJob?.location}</Text>
                   </View>
                 </View>
-                <Text style={styles.detailSalary}>{selectedJob.salary}</Text>
+                <Text style={styles.detailSalary}>{selectedJob?.salary}</Text>
               </View>
 
               {/* Stats */}
               <View style={styles.statsRow}>
                 {[
-                  { value: selectedJob.applicants || 0, label: 'Applicants' },
-                  { value: selectedJob.likes || 0, label: 'Likes' },
-                  { value: selectedJob.postedAt || '2 days ago', label: 'Posted' },
+                  { value: selectedJob?.applicants || 0, label: 'Applicants' },
+                  { value: selectedJob?.likes || 0, label: 'Likes' },
+                  { value: selectedJob?.postedAt || '2 days ago', label: 'Posted' },
                 ].map((s) => (
                   <View key={s.label} style={styles.statCard}>
                     <Text style={styles.statValue}>{s.value}</Text>
@@ -1465,13 +1357,13 @@ export default function ProfileScreen() {
               {/* Description */}
               <View style={styles.sectionCard}>
                 <Text style={styles.sectionTitle}>Job Description</Text>
-                <Text style={styles.descText}>{selectedJob.description}</Text>
+                <Text style={styles.descText}>{selectedJob?.description}</Text>
               </View>
 
               {/* Requirements */}
               <View style={styles.sectionCard}>
                 <Text style={styles.sectionTitle}>Requirements</Text>
-                {selectedJob.requirements && selectedJob.requirements.length > 0 ? (
+                {selectedJob?.requirements && selectedJob.requirements.length > 0 ? (
                   selectedJob.requirements.map((req, i) => (
                     <View key={i} style={styles.reqItem}>
                       <View style={styles.reqDot} />
@@ -1487,29 +1379,29 @@ export default function ProfileScreen() {
               </View>
 
               {/* Poster Profile */}
-              {selectedJob.posterProfile && (
+              {selectedJob?.posterProfile && (
                 <View style={styles.sectionCard}>
                   <Text style={styles.sectionTitle}>Job Poster Profile</Text>
                   <View style={styles.posterRow}>
                     <View style={styles.posterAvatarCircle}>
-                      {selectedJob.posterProfile.avatar ? (
-                        <Image source={{ uri: selectedJob.posterProfile.avatar }} style={styles.posterAvatarImage} />
+                      {selectedJob.posterProfile?.avatar ? (
+                        <Image source={{ uri: selectedJob.posterProfile.avatar }} style={styles.posterAvatarImage} contentFit="cover" transition={200} placeholder={{ blurhash }} />
                       ) : (
                         <Text style={styles.posterAvatarText}>
-                          {selectedJob.posterProfile.name ? selectedJob.posterProfile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'EM'}
+                          {selectedJob.posterProfile?.name ? selectedJob.posterProfile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'EM'}
                         </Text>
                       )}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.posterName}>{selectedJob.posterProfile.name || 'Anonymous Employer'}</Text>
-                      <Text style={styles.posterTitle}>{selectedJob.posterProfile.title || 'HR Manager / Employer'}</Text>
+                      <Text style={styles.posterName}>{selectedJob.posterProfile?.name || 'Anonymous Employer'}</Text>
+                      <Text style={styles.posterTitle}>{selectedJob.posterProfile?.title || 'HR Manager / Employer'}</Text>
 
                       <View style={styles.posterContactRow}>
                         <Ionicons name="mail-outline" size={13} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
-                        <Text style={styles.posterContactText}>{selectedJob.posterProfile.email || 'employer@joblink.com'}</Text>
+                        <Text style={styles.posterContactText}>{selectedJob.posterProfile?.email || 'employer@joblink.com'}</Text>
                       </View>
 
-                      {selectedJob.posterProfile.location ? (
+                      {selectedJob.posterProfile?.location ? (
                         <View style={[styles.posterContactRow, { marginTop: 4 }]}>
                           <Ionicons name="location-outline" size={13} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
                           <Text style={styles.posterContactText}>{selectedJob.posterProfile.location}</Text>
@@ -1724,6 +1616,320 @@ export default function ProfileScreen() {
           </View>
         )}
       </Modal>
+
+      {/* Language Modal */}
+      <Modal visible={showLanguageModal} animationType="fade" transparent={true} onRequestClose={() => setShowLanguageModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { paddingHorizontal: 0, paddingBottom: 30, height: 'auto', maxHeight: '90%' }]}>
+            <View style={{ paddingHorizontal: 20, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={styles.modalTitle}>{t('profile.select_language')}</Text>
+              <TouchableOpacity onPress={() => setShowLanguageModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ paddingTop: 8 }}>
+              {LANGUAGES.map((langObj, index) => {
+                const isSelected = selectedLanguage === langObj.name;
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, marginHorizontal: 12, borderRadius: 14, marginBottom: 6 },
+                      isSelected ? { backgroundColor: '#F0FDF4' } : {}
+                    ]}
+                    onPress={() => handleSelectLanguage(langObj)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 20, marginRight: 14 }}>{langObj.flag}</Text>
+                      <Text style={{ fontSize: 16, fontWeight: isSelected ? '700' : '500', color: isSelected ? COLORS.accentGreen : COLORS.textPrimary }}>
+                        {langObj.name}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <Ionicons name="checkmark-circle" size={20} color={COLORS.accentGreen} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Unified All Jobs / Manage / Edit Modal */}
+      <Modal visible={showAllJobsModal} transparent animationType="slide" onRequestClose={() => {
+        if (showEditJobModal) setShowEditJobModal(false);
+        else if (showJobActionModal) setShowJobActionModal(false);
+        else setShowAllJobsModal(false);
+      }}>
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          {showEditJobModal ? (
+            <View style={[styles.modalContent, { height: '85%', paddingHorizontal: 20, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: COLORS.bgPrimary }]}>
+              <View style={{ width: 36, height: 4, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 2, alignSelf: 'center', marginTop: -10, marginBottom: 20 }} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <Text style={[styles.modalTitle, { fontSize: 22, color: COLORS.textPrimary }]}>Edit Job</Text>
+                <TouchableOpacity onPress={() => setShowEditJobModal(false)} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.5)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="close" size={20} color={COLORS.textPrimary} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView showsVerticalScrollIndicator={false} style={{ width: '100%' }}>
+
+                <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 6, marginLeft: 4 }}>Job Title</Text>
+                <TextInput style={{ backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 14, padding: 14, marginBottom: 16, fontSize: 14, color: COLORS.textPrimary, borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} value={editJobTitle} onChangeText={setEditJobTitle} placeholder="e.g. Senior React Developer" placeholderTextColor="#94A3B8" />
+
+                <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 6, marginLeft: 4 }}>Salary</Text>
+                <TextInput style={{ backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 14, padding: 14, marginBottom: 16, fontSize: 14, color: COLORS.textPrimary, borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} value={editJobSalary} onChangeText={setEditJobSalary} placeholder="e.g. $80k - $100k/year" placeholderTextColor="#94A3B8" />
+
+                <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 6, marginLeft: 4 }}>Description</Text>
+                <TextInput style={{ backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 14, padding: 14, marginBottom: 16, fontSize: 14, color: COLORS.textPrimary, height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} multiline value={editJobDesc} onChangeText={setEditJobDesc} placeholder="Describe the job role and responsibilities..." placeholderTextColor="#94A3B8" />
+
+                <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 6, marginLeft: 4 }}>Requirements (one per line)</Text>
+                <TextInput style={{ backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 14, padding: 14, marginBottom: 24, fontSize: 14, color: COLORS.textPrimary, height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} multiline value={editJobReqs} onChangeText={setEditJobReqs} placeholder="e.g. 3+ years React Native experience&#10;Strong communication skills" placeholderTextColor="#94A3B8" />
+
+                <TouchableOpacity style={{ backgroundColor: COLORS.accentGreen, padding: 16, borderRadius: 16, alignItems: 'center' }} onPress={handleSaveEditJob}>
+                  <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '800' }}>Save Changes</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={{ padding: 16, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.5)', alignItems: 'center', marginTop: 10, marginBottom: 40 }} onPress={() => setShowEditJobModal(false)}>
+                  <Text style={{ color: COLORS.textPrimary, fontSize: 15, fontWeight: '700' }}>Cancel</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          ) : showJobActionModal ? (
+            <View style={[styles.modalContent, { paddingHorizontal: 20, paddingBottom: 30, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: COLORS.bgPrimary }]}>
+              <View style={{ width: 36, height: 4, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 2, alignSelf: 'center', marginTop: -10, marginBottom: 20 }} />
+              <Text style={[styles.modalTitle, { fontSize: 22, textAlign: 'center', marginBottom: 4, color: COLORS.textPrimary }]}>Manage Job</Text>
+              <Text style={{ textAlign: 'center', marginBottom: 24, color: COLORS.textSecondary, fontSize: 14, fontWeight: '500' }}>{selectedManageJob?.title}</Text>
+
+              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.5)', padding: 14, borderRadius: 18, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} onPress={handleEditJob}>
+                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.8)', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+                  <Ionicons name="pencil" size={20} color="#166534" />
+                </View>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#166534', flex: 1 }}>Edit Job Details</Text>
+                <Ionicons name="chevron-forward" size={18} color="rgba(22, 101, 52, 0.3)" />
+              </TouchableOpacity>
+
+              {!selectedManageJob?.title?.startsWith('[CLOSED]') && (
+                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.5)', padding: 14, borderRadius: 18, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} onPress={handleCloseHiring}>
+                  <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.8)', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+                    <Ionicons name="lock-closed" size={20} color="#C2410C" />
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#C2410C', flex: 1 }}>Close Hiring</Text>
+                  <Ionicons name="chevron-forward" size={18} color="rgba(194, 65, 12, 0.3)" />
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.5)', padding: 14, borderRadius: 18, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} onPress={handleDeleteJob}>
+                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(239, 68, 68, 0.15)', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+                  <Ionicons name="trash" size={20} color="#EF4444" />
+                </View>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#EF4444', flex: 1 }}>Delete Job</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={{ padding: 16, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.4)', alignItems: 'center' }} onPress={handleCancelAction}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.textPrimary }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={[styles.modalContent, { height: '85%', paddingHorizontal: 0, paddingBottom: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: COLORS.bgPrimary }]}>
+              <View style={{ alignSelf: 'center', marginTop: -40, marginBottom: 15, width: 80, height: 80, borderRadius: 40, backgroundColor: '#FFFFFF', padding: 4, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
+                <View style={{ width: '100%', height: '100%', borderRadius: 36, backgroundColor: COLORS.accentGreen, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  <Text style={{ color: '#FFF', fontSize: 26, fontWeight: '700', position: 'absolute' }}>{initials}</Text>
+                  {(user?.avatar || editAvatar) ? (
+                    <Image source={{ uri: user?.avatar || editAvatar }} style={{ width: '100%', height: '100%', borderRadius: 36 }} contentFit="cover" transition={200} placeholder={{ blurhash }} />
+                  ) : null}
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 20 }}>
+                <Text style={[styles.modalTitle, { fontSize: 22, color: COLORS.textPrimary }]}>{t('profile.my_job_listings')} ({myJobs.length})</Text>
+                <TouchableOpacity onPress={() => setShowAllJobsModal(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.5)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="close" size={20} color={COLORS.textPrimary} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
+                {myJobs.length === 0 ? (
+                  <View style={[styles.emptyJobsContainer, { marginTop: 40 }]}>
+                    <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.5)', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                      <Ionicons name="briefcase-outline" size={32} color={COLORS.textSecondary} />
+                    </View>
+                    <Text style={[styles.emptyJobsText, { fontSize: 15, color: COLORS.textSecondary }]}>{t('profile.no_jobs_posted')}</Text>
+                  </View>
+                ) : (
+                  myJobs.map((job, index) => {
+                    const translateY = listAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [20, 0]
+                    });
+                    const opacity = listAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 1]
+                    });
+                    return (
+                      <Animated.View key={job.id} style={{ opacity, transform: [{ translateY }] }}>
+                        <TouchableOpacity style={{ padding: 16, backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} activeOpacity={0.7} onPress={() => handleJobClick(job)}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                            <View style={{ width: 46, height: 46, borderRadius: 12, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' }}>
+                              <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: COLORS.accentGreen, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700', position: 'absolute' }}>{initials}</Text>
+                                {(user?.avatar || editAvatar) ? (
+                                  <Image source={{ uri: user?.avatar || editAvatar }} style={{ width: '100%', height: '100%', borderRadius: 10 }} contentFit="cover" transition={200} placeholder={{ blurhash }} />
+                                ) : (
+                                  <Ionicons name="briefcase" size={22} color="#FFFFFF" />
+                                )}
+                              </View>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 16, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 2 }} numberOfLines={1}>{job?.title || 'Job'}</Text>
+                              <Text style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: '500' }} numberOfLines={1}>{job?.location} • {job?.type}</Text>
+                            </View>
+                          </View>
+
+                          {job.description && (
+                            <Text style={{ fontSize: 13, color: COLORS.textSecondary, lineHeight: 18, marginBottom: 12 }} numberOfLines={2}>
+                              {job.description}
+                            </Text>
+                          )}
+
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                            <View style={{ backgroundColor: 'rgba(0,0,0,0.06)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, marginRight: 8 }}>
+                              <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.textPrimary }}>{job.salary}</Text>
+                            </View>
+                            <View style={{ backgroundColor: 'rgba(0,0,0,0.06)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 }}>
+                              <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.textPrimary }}>{job.type}</Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      </Animated.View>
+                    );
+                  })
+                )}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+      </Modal>
+
+      {/* Applied Jobs Modal */}
+      <Modal visible={showAppliedModal} transparent animationType="slide" onRequestClose={() => setShowAppliedModal(false)}>
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[styles.modalContent, { height: '85%', paddingHorizontal: 0, paddingBottom: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: COLORS.bgPrimary }]}>
+            <View style={{ width: 36, height: 4, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 2, alignSelf: 'center', marginTop: -10, marginBottom: 20 }} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 20 }}>
+              <Text style={[styles.modalTitle, { fontSize: 22, color: COLORS.textPrimary }]}>{t('profile.applied_jobs') || 'Applied Jobs'} ({appliedJobsList.length})</Text>
+              <TouchableOpacity onPress={() => setShowAppliedModal(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.5)', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="close" size={20} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
+              {appliedJobsList.length === 0 ? (
+                <View style={[styles.emptyJobsContainer, { marginTop: 40 }]}>
+                  <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.5)', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                    <Ionicons name="paper-plane-outline" size={32} color={COLORS.textSecondary} />
+                  </View>
+                  <Text style={[styles.emptyJobsText, { fontSize: 15, color: COLORS.textSecondary }]}>{t('profile.no_applied_jobs') || 'No applied jobs yet.'}</Text>
+                </View>
+              ) : (
+                appliedJobsList.map((job) => {
+                  const appliedDate = new Date(job.appliedAtDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  return (
+                    <TouchableOpacity key={job.id} style={{ flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: 18, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} activeOpacity={0.7} onPress={() => { setShowAppliedModal(false); setTimeout(() => setSelectedJob(job), 100); }}>
+                      <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.8)', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+                        <Ionicons name="paper-plane" size={22} color={COLORS.accentGreen} />
+                      </View>
+                      <View style={{ flex: 1, marginRight: 8 }}>
+                        <Text style={{ fontSize: 16, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 4 }} numberOfLines={1}>{job?.title || 'Job'}</Text>
+                        <Text style={{ fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' }} numberOfLines={1}>{job?.company} • Applied {appliedDate}</Text>
+                      </View>
+                      <View style={{ paddingHorizontal: 4 }}>
+                        <Text style={{ color: COLORS.textPrimary, fontWeight: '700', fontSize: 14 }}>{job?.salary}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Bookmarked Jobs Modal */}
+      <Modal visible={showBookmarkedModal} transparent animationType="slide" onRequestClose={() => setShowBookmarkedModal(false)}>
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[styles.modalContent, { height: '85%', paddingHorizontal: 0, paddingBottom: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: COLORS.bgPrimary }]}>
+            <View style={{ width: 36, height: 4, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 2, alignSelf: 'center', marginTop: -10, marginBottom: 20 }} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 20 }}>
+              <Text style={[styles.modalTitle, { fontSize: 22, color: COLORS.textPrimary }]}>{t('profile.bookmarked_opportunities')} ({bookmarkedJobs.length})</Text>
+              <TouchableOpacity onPress={() => setShowBookmarkedModal(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.5)', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="close" size={20} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
+              {bookmarkedJobs.length === 0 ? (
+                <View style={[styles.emptyJobsContainer, { marginTop: 40 }]}>
+                  <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.5)', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                    <Ionicons name="heart-dislike-outline" size={32} color={COLORS.textSecondary} />
+                  </View>
+                  <Text style={[styles.emptyJobsText, { fontSize: 15, color: COLORS.textSecondary }]}>{t('profile.no_bookmarked_jobs')}</Text>
+                </View>
+              ) : (
+                bookmarkedJobs.map((job) => {
+                  const posterInitials = job.posterProfile?.name
+                    ? job.posterProfile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                    : (job.company ? job.company[0].toUpperCase() : 'J');
+
+                  return (
+                    <TouchableOpacity key={job.id} style={{ padding: 16, backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} activeOpacity={0.7} onPress={() => { setShowBookmarkedModal(false); setTimeout(() => setSelectedJob(job), 100); }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                        <View style={{ width: 46, height: 46, borderRadius: 12, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' }}>
+                          <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: COLORS.accentGreen, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                            <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700', position: 'absolute' }}>{posterInitials}</Text>
+                            {job.posterProfile?.avatar ? (
+                              <Image source={{ uri: job.posterProfile.avatar }} style={{ width: '100%', height: '100%', borderRadius: 10 }} contentFit="cover" transition={200} placeholder={{ blurhash }} />
+                            ) : null}
+                          </View>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 16, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 2 }} numberOfLines={1}>{job?.title || 'Job'}</Text>
+                          <Text style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: '500' }} numberOfLines={1}>{job?.company} • {job?.location}</Text>
+                        </View>
+                      </View>
+
+                      {job.description && (
+                        <Text style={{ fontSize: 13, color: COLORS.textSecondary, lineHeight: 18, marginBottom: 12 }} numberOfLines={2}>
+                          {job.description}
+                        </Text>
+                      )}
+
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
+                          <Ionicons name="wallet-outline" size={14} color={COLORS.accentGreen} style={{ marginRight: 6 }} />
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.accentGreen }}>{job.salary}</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Ionicons name="people" size={14} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
+                          <Text style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: '600' }}>{job.applicants || 0} applicants</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+      {localSplash && (
+        <Modal transparent animationType="fade" visible={localSplash}>
+          <SplashScreen
+            message={localSplashMessage}
+            subMessage={localSplashSub}
+            isSignOut={localSplashSignOut}
+            showLottie={localSplashLottie}
+          />
+        </Modal>
+      )}
+
     </View>
 
   );
@@ -1839,7 +2045,7 @@ const styles = StyleSheet.create({
   titleDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: COLORS.textLight },
 
   // Edit Mode
-  editFields: { width: '100%', gap: 10, marginTop: 4, marginBottom: 8 },
+  editFields: { width: '100%', gap: 10, marginTop: 8, marginBottom: 16 },
   editRow: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#F8FAF9', borderRadius: 14,
@@ -1851,46 +2057,95 @@ const styles = StyleSheet.create({
 
   // Chart Card
   chartCard: {
-    backgroundColor: COLORS.bgCard, borderRadius: 28, padding: 22,
+    backgroundColor: COLORS.bgCard, borderRadius: 28, padding: 24,
     shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06, shadowRadius: 18, elevation: 4, marginBottom: 16,
+    shadowOpacity: 0.06, shadowRadius: 18, elevation: 4, marginBottom: 20,
   },
-  chartCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  chartCardTitle: { fontSize: FONTS.sizes.md, fontWeight: '700', color: COLORS.textPrimary },
-  dropdownBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 5, backgroundColor: COLORS.bgSecondary, borderRadius: 12 },
-  dropdownText: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
-  rateBadge: {
-    backgroundColor: COLORS.accentYellow, alignSelf: 'flex-start',
-    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 10, marginBottom: 20,
-    shadowColor: COLORS.accentYellow, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15, shadowRadius: 8, elevation: 3,
+  chartTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 24,
   },
-  rateValue: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.5 },
-  rateLabel: { fontSize: FONTS.sizes.xs, color: '#5C6E12', fontWeight: '600', marginTop: 1 },
+  chartCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginTop: 4,
+  },
+  chartValueBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chartValueNumber: {
+    fontSize: 28,
+    fontWeight: '500',
+    color: COLORS.textPrimary,
+    letterSpacing: -0.5,
+  },
+  chartValuePill: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  chartValuePillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  chartTopLeft: {
+    flex: 1,
+  },
+  chartBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+  },
+  trendContainer: {
+    marginTop: 12,
+  },
+  trendPercentage: {
+    fontSize: 36,
+    fontWeight: '400',
+    color: COLORS.textPrimary,
+    letterSpacing: -1,
+  },
+  trendSubtitle: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+    marginTop: 4,
+  },
   chartVisualizer: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
-    height: 100, paddingHorizontal: 4,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    height: 160,
+    flex: 1.5,
+    gap: 8,
   },
-  chartColumn: { alignItems: 'center', width: 14, height: '100%', justifyContent: 'flex-end' },
-  barWrapper: {
-    width: 6,
-    borderRadius: 3,
+  solidBarColumn: {
+    alignItems: 'center',
+    width: 32,
+    height: '100%',
+    justifyContent: 'flex-end'
   },
-  barActive: {
-    backgroundColor: '#E8F542',
-    shadowColor: '#E8F542',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
-    elevation: 3,
+  solidBarWrapper: {
+    width: 32,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 6,
   },
-  barInactive: {
-    backgroundColor: '#9EAE9F',
-    opacity: 0.4,
+  solidBarActive: {
+    backgroundColor: '#1E293B', // Almost black/dark slate like the image
   },
-  peakIndicatorContainer: { alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  peakRing: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#E8F542', backgroundColor: '#FFFFFF', position: 'absolute' },
-  peakCore: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#E8F542' },
+  solidBarInactive: {
+    backgroundColor: COLORS.accentGreen,
+    opacity: 0.85,
+  },
   chartTooltip: {
     position: 'absolute',
     bottom: 115,

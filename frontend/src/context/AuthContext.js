@@ -6,6 +6,7 @@ import Constants from 'expo-constants';
 import { supabase } from '../config/supabase';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Alert, Platform, Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
 let Notifications;
@@ -124,6 +125,12 @@ const INITIAL_NOTIFICATIONS = [
 ];
 
 // ─── Helpers (defined outside component so they are stable) ──────────────────
+export const getTransformedAvatarUrl = (url, width = 150, height = 150) => {
+  // Supabase Image Transformations are failing (likely disabled on free tier or requires Pro plan)
+  // Reverting to standard public URL so images load again.
+  return url;
+};
+
 const retryAsync = async (fn, retries = 3, delay = 500) => {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -251,6 +258,15 @@ export const AuthProvider = ({ children }) => {
   const [signingUp, setSigningUp] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const [appliedJobs, setAppliedJobs] = useState([]);
+
+  // Prefetch avatar to disk cache for instant load
+  useEffect(() => {
+    if (user && user.avatar) {
+      Image.prefetch(user.avatar).catch((err) => {
+        console.log('Avatar prefetch failed:', err.message);
+      });
+    }
+  }, [user?.avatar]);
 
   // Geo-targeting: auto-detected country from IP
   const [userCountry, setUserCountry] = useState(null);
@@ -1016,7 +1032,7 @@ export const AuthProvider = ({ children }) => {
           title,
           location,
           phone,
-          avatar: data?.avatar_url || sessionUser?.user_metadata?.avatar_url || sessionUser?.user_metadata?.picture || null,
+          avatar: getTransformedAvatarUrl(data?.avatar_url || sessionUser?.user_metadata?.avatar_url || sessionUser?.user_metadata?.picture || null),
           joinDate: data?.join_date
             ? new Date(data.join_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
             : new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
@@ -1039,7 +1055,7 @@ export const AuthProvider = ({ children }) => {
             title: role === 'employer' ? 'Employer Profile' : 'Job Seeker Profile',
             location: 'Pakistan',
             phone,
-            avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || null,
+            avatar: getTransformedAvatarUrl(sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || null),
             joinDate: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
           });
         }
@@ -1477,7 +1493,7 @@ export const AuthProvider = ({ children }) => {
         return {
           id: job.id,
           title: job.title,
-          company: job.company,
+          company: employerName || job.company || 'Anonymous Employer',
           location: job.location,
           salary: job.salary,
           type: job.type,
@@ -1492,7 +1508,7 @@ export const AuthProvider = ({ children }) => {
             title: employerTitle,
             location: dbLocation,
             phone: employerPhone,
-            avatar: p.avatar_url || null,
+            avatar: getTransformedAvatarUrl(p.avatar_url || null),
           } : null,
           postedAt: formatTimeAgo(job.created_at),
           likes: likesCount,
@@ -1504,6 +1520,12 @@ export const AuthProvider = ({ children }) => {
         };
       });
       setJobs(rankJobs(mapped));
+      // Prefetch all avatars to disk cache to ensure instant rendering
+      mapped.forEach((job) => {
+        if (job.posterProfile?.avatar) {
+          Image.prefetch(job.posterProfile.avatar).catch(() => { });
+        }
+      });
       await fetchRealNotifications();
     } catch (err) {
       console.error('Error fetching jobs:', err.message);
@@ -1913,6 +1935,25 @@ export const AuthProvider = ({ children }) => {
           prevUsers.map(u => u.id === prev.id ? { ...u, ...updates } : u)
         );
 
+        // Update local jobs posted by this user instantly
+        setJobs((prevJobs) =>
+          prevJobs.map(j => {
+            if (j.postedBy === prev.id) {
+              return {
+                ...j,
+                company: updates.name || j.company,
+                posterProfile: {
+                  ...j.posterProfile,
+                  ...updates,
+                  name: updates.name || j.posterProfile?.name,
+                  avatar: updates.avatar || j.posterProfile?.avatar,
+                }
+              };
+            }
+            return j;
+          })
+        );
+
         return newUser;
       });
       return { success: true };
@@ -2065,8 +2106,10 @@ export const AuthProvider = ({ children }) => {
         ? `${updates.location}|phone:${updates.phone || ''}`
         : `Pakistan|phone:${updates.phone || ''}`;
 
+      const normalizedName = updates.name ? updates.name.replace(/\s+/g, ' ').trim() : updates.name;
+
       const profileUpdates = {
-        name: updates.name,
+        name: normalizedName,
         title: updates.title,
         location: packedLocation,
       };
@@ -2093,7 +2136,7 @@ export const AuthProvider = ({ children }) => {
       // Asynchronously sync Supabase Auth metadata for name/phone in the background to ensure session stays fully aligned
       supabase.auth.updateUser({
         data: {
-          name: updates.name,
+          name: normalizedName,
           phone: updates.phone
         }
       }).then(({ error: authErr }) => {
@@ -2109,6 +2152,7 @@ export const AuthProvider = ({ children }) => {
       setUser((prev) => ({
         ...prev,
         ...updates,
+        name: normalizedName,
         avatar: previewUrl || (avatarUrl !== undefined ? avatarUrl : prev.avatar),
       }));
 
@@ -2167,6 +2211,52 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       return handleError(err);
     }
+  };
+
+  // ─── Job Management ────────────────────────────────────────────────────────
+  const deleteJob = async (jobId) => {
+    if (isMockMode) {
+      setJobs((prev) => prev.filter((j) => j.id !== jobId));
+      addNotification('Job Deleted', 'Your job posting was deleted successfully.', 'system');
+      return { success: true };
+    }
+    try {
+      const { error } = await supabase.from('jobs').delete().eq('id', jobId);
+      if (error) throw error;
+      setJobs((prev) => prev.filter((j) => j.id !== jobId));
+      addNotification('Job Deleted', 'Your job posting was deleted successfully.', 'system');
+      return { success: true };
+    } catch (err) {
+      return handleError(err);
+    }
+  };
+
+  const updateJob = async (jobId, updates) => {
+    if (isMockMode) {
+      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, ...updates } : j)));
+      return { success: true };
+    }
+    try {
+      const { error } = await supabase.from('jobs').update(updates).eq('id', jobId);
+      if (error) throw error;
+      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, ...updates } : j)));
+      return { success: true };
+    } catch (err) {
+      return handleError(err);
+    }
+  };
+
+  const closeHiring = async (jobId) => {
+    const job = jobs.find((j) => j.id === jobId);
+    if (!job) return { success: false, message: 'Job not found' };
+
+    // We prepend [CLOSED] to the title as a safe fallback since we aren't sure if a status column exists.
+    const newTitle = job.title.startsWith('[CLOSED]') ? job.title : `[CLOSED] ${job.title}`;
+    const res = await updateJob(jobId, { title: newTitle });
+    if (res.success) {
+      addNotification('Hiring Closed', `Hiring for "${job.title}" has been closed.`, 'system');
+    }
+    return res;
   };
 
   const getMyJobs = () => jobs.filter((j) => j.postedBy === user?.id);
@@ -2258,6 +2348,9 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateProfile,
         postJob,
+        deleteJob,
+        updateJob,
+        closeHiring,
         getMyJobs,
         getUserById,
         fetchJobs,

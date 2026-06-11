@@ -2,8 +2,7 @@ import './polyfill';
 import * as Sentry from '@sentry/react-native';
 
 // Sentry initialization has been moved to index.js to catch early startup crashes.
-
-
+import './src/locales/i18n';
 import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -11,6 +10,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text, StyleSheet, Animated, Easing, Alert, Image, Platform } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Linking from 'expo-linking';
 let Notifications;
 try {
   Notifications = require('expo-notifications');
@@ -31,6 +31,7 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { COLORS, FONTS } from './src/theme/colors';
 import NetworkBarrier from './src/components/NetworkBarrier';
 import SplashScreen from './src/components/splashscreen';
+import { useTranslation } from 'react-i18next';
 
 import GettingStartedScreen from './src/screens/GettingStartedScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -41,6 +42,21 @@ import ProfileScreen from './src/screens/ProfileScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+
+// Define Linking configuration mapping
+const linking = {
+  prefixes: [Linking.createURL('/'), 'bkj://'],
+  config: {
+    screens: {
+      Main: {
+        screens: {
+          Jobs: 'job/:jobId',
+        },
+      },
+    },
+  },
+};
+
 
 // ─── Tab Icon ──────────────────────────────────────────────────────────────────
 function TabIcon({ name, focused, color }) {
@@ -55,6 +71,7 @@ function TabIcon({ name, focused, color }) {
 function MainTabs() {
   const { user, setIsGuest } = useAuth();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <Tab.Navigator
@@ -84,7 +101,7 @@ function MainTabs() {
         name="Jobs"
         component={JobsScreen}
         options={{
-          tabBarLabel: 'Home',
+          tabBarLabel: t('tabs.home'),
           tabBarIcon: ({ focused, color }) => (
             <TabIcon name={focused ? 'search' : 'search-outline'} focused={focused} color={color} />
           ),
@@ -114,7 +131,7 @@ function MainTabs() {
           }
         }}
         options={{
-          tabBarLabel: 'Post Job',
+          tabBarLabel: t('tabs.post_job'),
           tabBarIcon: ({ focused, color }) => (
             <TabIcon name={focused ? 'add-circle' : 'add-circle-outline'} focused={focused} color={color} />
           ),
@@ -124,7 +141,7 @@ function MainTabs() {
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarLabel: 'Profile',
+          tabBarLabel: t('tabs.profile'),
           tabBarIcon: ({ focused, color }) => (
             <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} color={color} />
           ),
@@ -182,7 +199,7 @@ function RootNavigator() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.bgPrimary }}>
-      <NavigationContainer>
+      <NavigationContainer linking={linking}>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {showDashboard ? (
             // ✅ Active session or guest browsing mode

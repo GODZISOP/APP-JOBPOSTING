@@ -6,8 +6,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 export default function SignupScreen({ navigation }) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -132,8 +134,8 @@ export default function SignupScreen({ navigation }) {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Create Account</Text>
-          <Text style={styles.cardSubtitle}>Join the premium job gateway</Text>
+          <Text style={styles.cardTitle}>{t('auth.signup_title')}</Text>
+          <Text style={styles.cardSubtitle}>{t('auth.signup_subtitle')}</Text>
 
 
 
@@ -143,7 +145,7 @@ export default function SignupScreen({ navigation }) {
             icon: 'person-outline',
             value: name,
             onChangeText: setName,
-            placeholder: 'Enter your full name',
+            placeholder: t('auth.name_placeholder'),
             errorKey: 'name',
             autoCapitalize: 'words',
           })}
@@ -154,7 +156,7 @@ export default function SignupScreen({ navigation }) {
             icon: 'mail-outline',
             value: email,
             onChangeText: setEmail,
-            placeholder: 'Enter email address',
+            placeholder: t('auth.email_placeholder'),
             keyboardType: 'email-address',
             errorKey: 'email',
           })}
@@ -176,7 +178,7 @@ export default function SignupScreen({ navigation }) {
             icon: 'lock-closed-outline',
             value: password,
             onChangeText: setPassword,
-            placeholder: 'Minimum 6 characters',
+            placeholder: t('auth.password_placeholder'),
             secureTextEntry: !showPass,
             errorKey: 'password',
             rightElement: (
@@ -188,13 +190,13 @@ export default function SignupScreen({ navigation }) {
 
           {/* Submit */}
           <TouchableOpacity style={styles.signupBtn} onPress={handleSignup} activeOpacity={0.88} disabled={loading}>
-            <Text style={styles.signupBtnText}>{loading ? 'Creating account...' : 'Confirm'}</Text>
+            <Text style={styles.signupBtnText}>{loading ? 'Creating account...' : t('auth.signup_button')}</Text>
             {!loading && <Ionicons name="arrow-forward" size={18} color={COLORS.textPrimary} style={{ marginLeft: 6 }} />}
           </TouchableOpacity>
 
           {/* Login Link */}
           <View style={styles.loginRow}>
-            <Text style={styles.loginText}>Already registered? </Text>
+            <Text style={styles.loginText}>{t('auth.already_have_account')} </Text>
             <TouchableOpacity 
               onPress={() => {
                 if (navigation.canGoBack()) {
@@ -205,7 +207,7 @@ export default function SignupScreen({ navigation }) {
               }}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Text style={styles.loginLink}>Sign In</Text>
+              <Text style={styles.loginLink}>{t('auth.login_link')}</Text>
             </TouchableOpacity>
           </View>
         </View>

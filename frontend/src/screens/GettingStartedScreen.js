@@ -7,31 +7,33 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LottieView from 'lottie-react-native';
 import { COLORS, FONTS } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 
 const { width, height } = Dimensions.get('window');
 
 const SLIDES = [
   {
     id: '1',
-    title: 'Remote Collaboration',
-    description: 'Work seamlessly with remote teams and hire experts worldwide instantly.',
+    titleKey: 'onboarding.slide1_title',
+    descKey: 'onboarding.slide1_desc',
     lottie: require('../../assets/onboarding1.json'),
   },
   {
     id: '2',
-    title: 'Smart Analytics',
-    description: 'Optimize your career matching and find roles using smart analytics and insights.',
+    titleKey: 'onboarding.slide2_title',
+    descKey: 'onboarding.slide2_desc',
     lottie: require('../../assets/onboarding2.json'),
   },
   {
     id: '3',
-    title: 'Achieve Career Success',
-    description: 'Connect with premium recruiters and discover job postings tailored to your skill set.',
+    titleKey: 'onboarding.slide3_title',
+    descKey: 'onboarding.slide3_desc',
     lottie: require('../../assets/onboarding3.json'),
   }
 ];
 
 export default function GettingStartedScreen({ onGetStarted, onReady }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -110,7 +112,7 @@ export default function GettingStartedScreen({ onGetStarted, onReady }) {
             activeOpacity={0.7}
             disabled={activeIndex === 2}
           >
-            <Text style={styles.skipButtonText}>Skip</Text>
+            <Text style={styles.skipButtonText}>{t('onboarding.skip')}</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -134,6 +136,7 @@ export default function GettingStartedScreen({ onGetStarted, onReady }) {
             slide={slide}
             index={i}
             scrollX={scrollX}
+            t={t}
           />
         ))}
       </Animated.ScrollView>
@@ -197,7 +200,7 @@ export default function GettingStartedScreen({ onGetStarted, onReady }) {
               ]}
               pointerEvents={isLastSlide ? 'none' : 'auto'}
             >
-              <Text style={styles.primaryBtnText}>Next</Text>
+              <Text style={styles.primaryBtnText}>{t('onboarding.next')}</Text>
               <Ionicons name="arrow-forward" size={18} color="#E8F542" style={{ marginLeft: 6 }} />
             </Animated.View>
 
@@ -212,7 +215,7 @@ export default function GettingStartedScreen({ onGetStarted, onReady }) {
               ]}
               pointerEvents={isLastSlide ? 'auto' : 'none'}
             >
-              <Text style={styles.primaryBtnText}>Get Started</Text>
+              <Text style={styles.primaryBtnText}>{t('onboarding.get_started')}</Text>
               <Ionicons name="rocket-outline" size={18} color="#E8F542" style={{ marginLeft: 6 }} />
             </Animated.View>
           </TouchableOpacity>
@@ -224,7 +227,7 @@ export default function GettingStartedScreen({ onGetStarted, onReady }) {
               activeOpacity={0.88}
               disabled={activeIndex !== 2}
             >
-              <Text style={styles.secondaryBtnText}>Sign In</Text>
+              <Text style={styles.secondaryBtnText}>{t('onboarding.sign_in')}</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>
@@ -234,7 +237,7 @@ export default function GettingStartedScreen({ onGetStarted, onReady }) {
   );
 }
 
-const OnboardingSlide = React.memo(({ slide, index, scrollX }) => {
+const OnboardingSlide = React.memo(({ slide, index, scrollX, t }) => {
   const opacity = scrollX.interpolate({
     inputRange: [
       (index - 0.75) * width,
@@ -267,8 +270,8 @@ const OnboardingSlide = React.memo(({ slide, index, scrollX }) => {
       </View>
 
       <Animated.View style={[styles.textWrapper, { opacity, transform: [{ translateY }] }]}>
-        <Text style={styles.title}>{slide.title}</Text>
-        <Text style={styles.description}>{slide.description}</Text>
+        <Text style={styles.title}>{t(slide.titleKey)}</Text>
+        <Text style={styles.description}>{t(slide.descKey)}</Text>
       </Animated.View>
     </View>
   );

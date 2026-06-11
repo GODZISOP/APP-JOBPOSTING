@@ -6,8 +6,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 export default function LoginScreen({ navigation }) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -99,8 +101,8 @@ export default function LoginScreen({ navigation }) {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Sign In</Text>
-          <Text style={styles.cardSubtitle}>Access your jobs & dashboard</Text>
+          <Text style={styles.cardTitle}>{t('auth.login_title')}</Text>
+          <Text style={styles.cardSubtitle}>{t('auth.login_subtitle')}</Text>
 
           {/* Google Sign In */}
           <TouchableOpacity
@@ -129,7 +131,7 @@ export default function LoginScreen({ navigation }) {
               <Ionicons name="mail-outline" size={18} color={fieldErrors.email ? '#EF4444' : COLORS.textSecondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Enter email address"
+                placeholder={t('auth.email_placeholder')}
                 placeholderTextColor={COLORS.textLight}
                 value={email}
                 onChangeText={(t) => { setEmail(t); clearError('email'); }}
@@ -152,7 +154,7 @@ export default function LoginScreen({ navigation }) {
               <Ionicons name="lock-closed-outline" size={18} color={fieldErrors.password ? '#EF4444' : COLORS.textSecondary} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, { flex: 1 }]}
-                placeholder="Enter password"
+                placeholder={t('auth.password_placeholder')}
                 placeholderTextColor={COLORS.textLight}
                 value={password}
                 onChangeText={(t) => { setPassword(t); clearError('password'); }}
@@ -171,7 +173,7 @@ export default function LoginScreen({ navigation }) {
           </View>
 
           <TouchableOpacity style={styles.forgotBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={styles.forgotText}>Reset passcode?</Text>
+            <Text style={styles.forgotText}>{t('auth.forgot_password')}</Text>
           </TouchableOpacity>
 
           {/* Login CTA */}
@@ -180,7 +182,7 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.loginBtnText}>Processing...</Text>
             ) : (
               <>
-                <Text style={styles.loginBtnText}>Continue</Text>
+                <Text style={styles.loginBtnText}>{t('auth.login_button')}</Text>
                 <Ionicons name="arrow-forward" size={18} color={COLORS.textPrimary} style={{ marginLeft: 6 }} />
               </>
             )}
@@ -188,9 +190,9 @@ export default function LoginScreen({ navigation }) {
 
           {/* Sign Up Link */}
           <View style={styles.signupRow}>
-            <Text style={styles.signupText}>Don't have an account? </Text>
+            <Text style={styles.signupText}>{t('auth.dont_have_account')} </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Signup')} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Text style={styles.signupLink}>Sign Up</Text>
+              <Text style={styles.signupLink}>{t('auth.sign_up_link')}</Text>
             </TouchableOpacity>
           </View>
         </View>

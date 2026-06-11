@@ -2,13 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   StatusBar, TextInput, FlatList, Dimensions, Alert,
-  Animated, Easing, Modal, Linking, Image, RefreshControl,
+  Animated, Easing, Modal, Linking, RefreshControl, Share,
 } from 'react-native';
+import { Image } from 'expo-image';
+
+const blurhash = 'LKN]Rv%2Tw=w]~RBVZRi};RPxuwH';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import AdBanner from '../components/AdBanner';
+import * as ExpoLinking from 'expo-linking';
+
 
 const { width } = Dimensions.get('window');
 
@@ -166,7 +172,7 @@ const TYPE_COLORS = {
   'Daily Basis': { bg: '#E0F7FA', text: '#00838F' },
 };
 
-function JobCard({ job, onPress, isLiked, onLike }) {
+function JobCard({ job, onPress, isLiked, onLike, t }) {
   const logoColors = ['#0D9488', '#2563EB', '#DC2626', '#D97706', '#7C3AED', '#DB2777', '#0891B2'];
   const logoIndex = job.company ? job.company.charCodeAt(0) % logoColors.length : 0;
   const logoBg = logoColors[logoIndex];
@@ -185,14 +191,13 @@ function JobCard({ job, onPress, isLiked, onLike }) {
       {/* Top Header Row: Company Logo & Info + Salary */}
       <View style={styles.cardHeaderRow}>
         <View style={styles.cardHeaderLeft}>
-          <View style={[styles.companyLogoSquare, { backgroundColor: logoBg }]}>
-            {job.posterProfile?.avatar ? (
-              <Image source={{ uri: job.posterProfile.avatar }} style={styles.companyLogoImage} resizeMode="cover" />
-            ) : (
-              <Text style={styles.companyLogoInitial}>
-                {job.company ? job.company[0].toUpperCase() : 'J'}
-              </Text>
-            )}
+          <View style={[styles.companyLogoSquare, { backgroundColor: logoBg, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }]}>
+            <Text style={[styles.companyLogoInitial, { position: 'absolute' }]}>
+              {job.company ? job.company[0].toUpperCase() : 'J'}
+            </Text>
+            {(job.posterProfile?.avatar || (user && job.postedBy === user.id && user.avatar)) ? (
+              <Image source={{ uri: job.posterProfile?.avatar || user?.avatar }} style={styles.companyLogoImage} contentFit="cover" transition={200} placeholder={{ blurhash }} />
+            ) : null}
           </View>
           <View style={styles.companyNameContainer}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -214,13 +219,13 @@ function JobCard({ job, onPress, isLiked, onLike }) {
         {isPremium && (
           <View style={[styles.metaBadge, { backgroundColor: '#E8F542', borderColor: '#C8D900', borderWidth: 1 }]}>
             <Ionicons name="sparkles" size={10} color="#1A1A1A" style={{ marginRight: 3 }} />
-            <Text style={[styles.metaBadgeText, { color: '#1A1A1A', fontWeight: '800' }]}>Featured 👑</Text>
+            <Text style={[styles.metaBadgeText, { color: '#1A1A1A', fontWeight: '800' }]}>{t ? t('jobs.featured') : 'Featured 👑'}</Text>
           </View>
         )}
         {isHot && (
           <View style={[styles.metaBadge, { backgroundColor: '#FFECEF', borderColor: '#FFCCD3', borderWidth: 1 }]}>
             <Ionicons name="flame" size={11} color="#EF4444" style={{ marginRight: 3 }} />
-            <Text style={[styles.metaBadgeText, { color: '#EF4444', fontWeight: '800' }]}>Hot 🔥</Text>
+            <Text style={[styles.metaBadgeText, { color: '#EF4444', fontWeight: '800' }]}>{t ? t('jobs.hot') : 'Hot 🔥'}</Text>
           </View>
         )}
         <View style={styles.metaBadge}>
@@ -265,7 +270,7 @@ function JobCard({ job, onPress, isLiked, onLike }) {
           </TouchableOpacity>
 
           <View style={styles.applyArrowBtn}>
-            <Text style={styles.applyBtnLabel}>Apply</Text>
+            <Text style={styles.applyBtnLabel}>{t ? t('jobs.apply_button') : 'Apply'}</Text>
             <Ionicons name="arrow-forward" size={12} color="#1A1A1A" />
           </View>
         </View>
@@ -275,8 +280,30 @@ function JobCard({ job, onPress, isLiked, onLike }) {
 }
 
 function JobDetailView({ job, onBack, isLiked, onLike }) {
+  const { t } = useTranslation();
   const { user, applyToJob } = useAuth();
   const [showApplyModal, setShowApplyModal] = useState(false);
+
+  const handleShare = async () => {
+    try {
+      // Configure your Vercel/website redirect URL here
+      // For now, using a placeholder bkj-jobs.vercel.app. You can change this to your Vercel domain once deployed!
+      const redirectDomain = "https://bkj-jobs.vercel.app"; 
+      
+      // If testing in Expo Go, append ?dev=true so the landing page redirects to the local Expo bundle
+      const isTestingOnExpo = true; 
+      const shareUrl = `${redirectDomain}/job/${job.id}${isTestingOnExpo ? '?dev=true' : ''}`;
+      
+      const message = `Check out this job on BKJ: "${job.title}" at "${job.company}"!\nSalary: ${job.salary}\nLocation: ${job.location}\n\nApply now: ${shareUrl}`;
+
+      await Share.share({
+        title: `BKJ Job: ${job.title}`,
+        message: message,
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to share the job.');
+    }
+  };
 
   // Applicant details (logged in user)
   const applicantName = user?.name || 'Job Seeker';
@@ -300,7 +327,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
       formattedPhone = '92' + cleaned;
     }
 
-    const message = `Hi ${name || 'Employer'},\n\nI am applying for the "${jobTitle}" position on Jobify. Here are my application details:\n\n👤 Name: ${applicantName}\n📧 Email: ${applicantEmail}\n📞 Phone: ${applicantPhone}\n\nPlease let me know if we can discuss this opportunity further. Thank you!`;
+    const message = `Hi ${name || 'Employer'},\n\nI am applying for the "${jobTitle}" position on BKJ. Here are my application details:\n\n👤 Name: ${applicantName}\n📧 Email: ${applicantEmail}\n📞 Phone: ${applicantPhone}\n\nPlease let me know if we can discuss this opportunity further. Thank you!`;
     const url = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
 
     Linking.canOpenURL(url)
@@ -323,7 +350,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
       applyToJob(job.id);
     }
     const subject = `Job Application - ${jobTitle}`;
-    const body = `Hi ${name || 'Employer'},\n\nI am interested in applying for the "${jobTitle}" position listed on Jobify.\n\nHere are my contact and application details:\n\n👤 Name: ${applicantName}\n📧 Email: ${applicantEmail}\n📞 Phone: ${applicantPhone}\n\nPlease find my contact details attached to my Jobify profile.\n\nBest regards,\n${applicantName}`;
+    const body = `Hi ${name || 'Employer'},\n\nI am interested in applying for the "${jobTitle}" position listed on BKJ.\n\nHere are my contact and application details:\n\n👤 Name: ${applicantName}\n📧 Email: ${applicantEmail}\n📞 Phone: ${applicantPhone}\n\nPlease find my contact details attached to my BKJ profile.\n\nBest regards,\n${applicantName}`;
     const url = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
     Linking.canOpenURL(url)
@@ -356,12 +383,12 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
         <TouchableOpacity style={styles.iconBtn} onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="arrow-back" size={20} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.detailNavTitle}>Job Details</Text>
+        <Text style={styles.detailNavTitle}>{t('jobs.job_details')}</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => onLike(job.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name={isLiked ? "heart" : "heart-outline"} size={20} color={isLiked ? "#EF4444" : COLORS.textPrimary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity style={styles.iconBtn} onPress={handleShare} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="share-outline" size={20} color={COLORS.textPrimary} />
           </TouchableOpacity>
         </View>
@@ -371,12 +398,11 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
       <View style={styles.upworkHeaderContainer}>
         {/* Poster Profile Image */}
         <View style={styles.upworkPosterRow}>
-          <View style={styles.upworkPosterAvatar}>
-            {job.posterProfile?.avatar ? (
-              <Image source={{ uri: job.posterProfile.avatar }} style={styles.upworkPosterAvatarImg} resizeMode="cover" />
-            ) : (
-              <Text style={styles.upworkPosterAvatarText}>{job.company ? job.company[0] : 'J'}</Text>
-            )}
+          <View style={[styles.upworkPosterAvatar, { overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }]}>
+            <Text style={[styles.upworkPosterAvatarText, { position: 'absolute' }]}>{job.company ? job.company[0].toUpperCase() : 'J'}</Text>
+            {(job.posterProfile?.avatar || (user && job.postedBy === user.id && user.avatar)) ? (
+              <Image source={{ uri: job.posterProfile?.avatar || user?.avatar }} style={styles.upworkPosterAvatarImg} contentFit="cover" transition={200} placeholder={{ blurhash }} />
+            ) : null}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.upworkPosterName}>{job.company}</Text>
@@ -458,17 +484,16 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
 
       {/* Recruiter profile information if exists */}
       {job.posterProfile && (
-        <View style={styles.upworkClientSection}>
+          <View style={styles.upworkClientSection}>
           <Text style={styles.upworkSectionTitle}>About the Recruiter</Text>
           <View style={styles.upworkClientRow}>
-            <View style={styles.upworkClientAvatar}>
-              {job.posterProfile.avatar ? (
-                <Image source={{ uri: job.posterProfile.avatar }} style={styles.upworkClientAvatarImage} resizeMode="cover" />
-              ) : (
-                <Text style={styles.upworkClientAvatarText}>
-                  {job.posterProfile.name ? job.posterProfile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'EM'}
-                </Text>
-              )}
+            <View style={[styles.upworkClientAvatar, { overflow: 'hidden', justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.accentGreen }]}>
+              <Text style={[styles.upworkClientAvatarText, { position: 'absolute', color: '#FFF' }]}>
+                {employerName ? employerName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'EM'}
+              </Text>
+              {(job.posterProfile?.avatar || (user && job.postedBy === user.id && user.avatar)) ? (
+                <Image source={{ uri: job.posterProfile?.avatar || user?.avatar }} style={styles.upworkClientAvatarImage} contentFit="cover" transition={200} placeholder={{ blurhash }} />
+              ) : null}
             </View>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2, flexWrap: 'wrap', gap: 4 }}>
@@ -502,7 +527,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
           activeOpacity={0.85}
           onPress={() => setShowApplyModal(true)}
         >
-          <Text style={styles.upworkApplyBtnText}>Apply Now</Text>
+          <Text style={styles.upworkApplyBtnText}>{t('jobs.apply_now')}</Text>
           <Ionicons name="paper-plane-outline" size={16} color="#1A1A1A" style={{ marginLeft: 6 }} />
         </TouchableOpacity>
       </View>
@@ -524,7 +549,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
             <View style={styles.modalHandle} />
 
             <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Apply Directly</Text>
+              <Text style={styles.modalTitle}>{t('jobs.apply_directly')}</Text>
               <TouchableOpacity
                 style={styles.modalCloseBtn}
                 onPress={() => setShowApplyModal(false)}
@@ -609,7 +634,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
                   }
                   Alert.alert(
                     'Application Submitted! 🎉',
-                    `Your Jobify profile has been successfully shared with ${job.company} for the "${job.title}" position. Good luck!`,
+                    `Your BKJ profile has been successfully shared with ${job.company} for the "${job.title}" position. Good luck!`,
                     [{ text: 'Perfect', onPress: onBack }]
                   );
                 }}
@@ -808,8 +833,9 @@ function isFuzzyMatch(str, query) {
   });
 }
 
-export default function JobsScreen({ navigation }) {
+export default function JobsScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { jobs, user, likedJobs, likeJob, fetchJobs, setIsGuest, userCountry } = useAuth();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -891,25 +917,13 @@ export default function JobsScreen({ navigation }) {
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
   const [countrySearchQuery, setCountrySearchQuery] = useState('');
 
-  // Extract all unique locations dynamically from existing jobs feed
-  const availableLocations = ['Remote', 'Pakistan', 'United States', 'United Kingdom', 'Canada', 'United Arab Emirates', 'Saudi Arabia', 'Australia'];
-  jobs.forEach(j => {
-    if (j.location) {
-      const loc = j.location.trim();
-      if (loc && !availableLocations.includes(loc)) {
-        availableLocations.push(loc);
-      }
-      // If location is "City, Country", also add the country/city parts dynamically
-      if (loc.includes(',')) {
-        const parts = loc.split(',').map(p => p.trim());
-        parts.forEach(p => {
-          if (p && !availableLocations.includes(p)) {
-            availableLocations.push(p);
-          }
-        });
-      }
-    }
-  });
+  // Use a predefined robust list of locations to avoid pulling user typos from job data
+  const availableLocations = [
+    'Remote', 'Pakistan', 'United States', 'United Kingdom', 'Canada', 
+    'United Arab Emirates', 'Saudi Arabia', 'Australia', 'Karachi', 
+    'Lahore', 'Islamabad', 'Dubai', 'London', 'New York', 'Riyadh', 
+    'Doha', 'Oman', 'Qatar', 'Bahrain', 'Kuwait', 'Malaysia', 'Singapore'
+  ].sort();
 
   const filteredCountryOptions = availableLocations.filter(loc =>
     loc.toLowerCase().includes(countrySearchQuery.toLowerCase())
@@ -948,6 +962,33 @@ export default function JobsScreen({ navigation }) {
     loadInitialData();
   }, []);
 
+  const routeJobId = route?.params?.jobId;
+  useEffect(() => {
+    if (routeJobId && jobs && jobs.length > 0) {
+      const job = jobs.find(j => String(j.id) === String(routeJobId));
+      if (job) {
+        if (!user) {
+          Alert.alert(
+            'Create Account First',
+            'You must create an account or sign in to view job details.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Sign In / Sign Up',
+                onPress: () => {
+                  setIsGuest(false);
+                }
+              }
+            ]
+          );
+        } else {
+          setSelectedJob(job);
+        }
+        navigation.setParams({ jobId: undefined });
+      }
+    }
+  }, [routeJobId, jobs, user]);
+
   // Professional Auto-refresh polling loop (fetches latest database postings every 30 seconds)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -982,7 +1023,9 @@ export default function JobsScreen({ navigation }) {
     );
 
     // 3. Job Type multi-select filter
-    const matchType = selectedJobTypes.length === 0 || selectedJobTypes.includes(j.type);
+    const matchType = selectedJobTypes.length === 0 || selectedJobTypes.some(type => 
+      j.type && j.type.toLowerCase().replace('-', ' ').includes(type.toLowerCase().replace('-', ' '))
+    );
 
     // 4. Location multi-select filter
     const matchLoc = selectedLocations.length === 0 ||
@@ -1011,7 +1054,7 @@ export default function JobsScreen({ navigation }) {
 
     // 6. Global vs Country Specific targeted display logic
     let matchCountryTarget = true;
-    if (j.location) {
+    if (j.location && selectedLocations.length === 0) { // Bypass user country restriction if explicit locations selected
       const isGlobal = j.location.toLowerCase().includes('global');
       if (!isGlobal && userCountry) {
         // If it's a specific country job, only show to users in that country
@@ -1103,14 +1146,14 @@ export default function JobsScreen({ navigation }) {
           <View style={styles.headerLeft}>
             <View style={styles.userAvatarCircle}>
               {user?.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.userAvatarImage} resizeMode="cover" />
+                <Image source={{ uri: user.avatar }} style={styles.userAvatarImage} contentFit="cover" transition={200} placeholder={{ blurhash }} />
               ) : (
                 <Text style={styles.userAvatarText}>{initials}</Text>
               )}
             </View>
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={styles.headerSub}>Welcome back,</Text>
-              <Text style={styles.headerTitle} numberOfLines={1} adjustsFontSizeToFit>{user?.name?.split(' ')[0] || 'BKJ'}</Text>
+              <Text style={styles.headerTitle} numberOfLines={1} adjustsFontSizeToFit>{user?.name?.replace(/\s+/g, ' ') || 'BKJ'}</Text>
             </View>
           </View>
           <View style={styles.headerRight}>
@@ -1132,7 +1175,7 @@ export default function JobsScreen({ navigation }) {
                 <Ionicons name="call" size={16} color="#DC2626" />
               </View>
               <View style={styles.warningTextContainer}>
-                <Text style={styles.warningTitle}>Complete Your Profile</Text>
+                <Text style={styles.sectionTitle}>{t('jobs.premium_opportunities')}</Text>
                 <Text style={styles.warningDesc}>Add a phone number to post job listings on BKJ.</Text>
               </View>
             </View>
@@ -1149,8 +1192,8 @@ export default function JobsScreen({ navigation }) {
             <View style={styles.heroTagBadge}>
               <Text style={styles.heroTagText}>PREMIUM ACCESS</Text>
             </View>
-            <Text style={styles.heroTitle}>Shape Your Professional Future 🚀</Text>
-            <Text style={styles.heroSubText}>Explore matched postings & connect directly with recruiters.</Text>
+            <Text style={styles.heroTitle}>{t('profile.shape_future') || 'Shape Your Professional Future 🚀'}</Text>
+            <Text style={styles.heroSubText}>{t('profile.explore_postings') || 'Explore matched postings & connect directly with recruiters.'}</Text>
           </View>
 
           {/* Interactive Stats Grid */}
@@ -1171,7 +1214,7 @@ export default function JobsScreen({ navigation }) {
                 <Ionicons name="briefcase" size={15} color="#5C9E6A" />
               </View>
               <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{totalJobsCount}</Text>
-              <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>Total Jobs</Text>
+              <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.total_jobs') || 'Total Jobs'}</Text>
             </TouchableOpacity>
 
             {/* Stat Box 2: Liked / Saved Opportunities */}
@@ -1190,7 +1233,7 @@ export default function JobsScreen({ navigation }) {
                 <Ionicons name="heart" size={15} color="#EF4444" />
               </View>
               <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{likedJobsCount}</Text>
-              <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>Favorites</Text>
+              <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.saved_jobs') || 'Favorites'}</Text>
             </TouchableOpacity>
 
             {/* Stat Box 3: My Postings (Employer) / Verified Status (Job Seeker) */}
@@ -1210,15 +1253,15 @@ export default function JobsScreen({ navigation }) {
                   <Ionicons name="create" size={15} color="#D97706" />
                 </View>
                 <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{myJobsCount}</Text>
-                <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>My Posts</Text>
+                <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.my_posts') || 'My Posts'}</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.statCardItem}>
                 <View style={[styles.statIconBadge, { backgroundColor: '#E6F4EA' }]}>
                   <Ionicons name="checkmark-circle" size={16} color="#15803D" />
                 </View>
-                <Text style={[styles.statCountVal, { fontSize: 12, color: '#15803D', fontWeight: '800', lineHeight: 22 }]} numberOfLines={1} adjustsFontSizeToFit>Verified</Text>
-                <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>Profile</Text>
+                <Text style={[styles.statCountVal, { fontSize: 12, color: '#15803D', fontWeight: '800', lineHeight: 22 }]} numberOfLines={1} adjustsFontSizeToFit>{t('profile.verified') || 'Verified'}</Text>
+                <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.profile_text') || 'Profile'}</Text>
               </View>
             )}
           </View>
@@ -1230,7 +1273,7 @@ export default function JobsScreen({ navigation }) {
             <Ionicons name="search-outline" size={18} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search titles, skills or companies..."
+              placeholder={t('jobs.search_placeholder')}
               placeholderTextColor={COLORS.textLight}
               value={search}
               onChangeText={setSearch}
@@ -1260,7 +1303,7 @@ export default function JobsScreen({ navigation }) {
                   }}
                 >
                   <Ionicons name="search-outline" size={14} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
-                  <Text style={styles.suggestionText}>{item}</Text>
+                  <Text style={styles.sectionTitle}>{t('jobs.categories_header')}</Text>
                   <Ionicons name="arrow-up-sharp" size={12} color={COLORS.textLight} style={{ marginLeft: 'auto', transform: [{ rotate: '-45deg' }] }} />
                 </TouchableOpacity>
               ))}
@@ -1378,12 +1421,13 @@ export default function JobsScreen({ navigation }) {
         ListFooterComponent={screenLoading ? null : <AdBanner />}
         renderItem={({ item }) =>
           screenLoading ? null : (
-            <JobCard
-              job={item}
-              onPress={handleJobPress}
-              isLiked={likedJobs?.includes(item.id)}
-              onLike={handleLikePress}
-            />
+              <JobCard
+                job={item}
+                onPress={handleJobPress}
+                isLiked={likedJobs?.includes(item.id)}
+                onLike={handleLikePress}
+                t={t}
+              />
           )
         }
         ListEmptyComponent={
@@ -1416,7 +1460,7 @@ export default function JobsScreen({ navigation }) {
 
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
               {/* Job Type Section */}
-              <Text style={styles.filterSectionTitle}>Job Type</Text>
+              <Text style={styles.sectionTitle}>{t('jobs.recent_posts')}</Text>
               <View style={styles.filterPillsContainer}>
                 {['Full Time', 'Part Time', 'Remote', 'Contract', 'Daily Basis'].map((type) => {
                   const selected = selectedJobTypes.includes(type);
@@ -1558,6 +1602,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
   },
   userAvatarCircle: {
     width: 42,

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BKJ - Job Connection</title>
+    <!-- Modern Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --mint-green: #B2E2B9;
+            --accent-green: #10B981;
+            --lime-yellow: #E8F542;
+            --bg-dark: #0F172A;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 450px;
+            width: 100%;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 28px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .logo-container {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--mint-green) 0%, var(--lime-yellow) 100%);
+            border-radius: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 20px rgba(232, 245, 66, 0.15);
+        }
+
+        .logo-text {
+            color: #0F172A;
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 800;
+            margin: 0 0 12px 0;
+            letter-spacing: -0.5px;
+        }
+
+        p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.5;
+            margin: 0 0 32px 0;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(232, 245, 66, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--lime-yellow);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 24px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            padding: 14px 24px;
+            border-radius: 16px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: var(--lime-yellow);
+            color: #0F172A;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(232, 245, 66, 0.2);
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="logo-container">
+            <span class="logo-text">B</span>
+        </div>
+        
+        <h1>Connecting to BKJ App</h1>
+        <div class="spinner" id="spinner"></div>
+        <p id="status-msg">We are opening the job details inside the BKJ App. Please wait a moment...</p>
+
+        <div class="btn-group">
+            <!-- Main redirection triggers -->
+            <a id="btn-app" class="btn btn-primary" href="#">Open in BKJ App</a>
+            <a id="btn-expo" class="btn btn-secondary" href="#" style="display: none;">Open in Expo Go (Dev)</a>
+            <a id="btn-playstore" class="btn btn-secondary" href="https://play.google.com/store/apps" target="_blank">Download BKJ on Google Play</a>
+        </div>
+
+        <div class="footer">
+            BKJ Job Board • Premium Experience
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const jobId = urlParams.get('jobId');
+        
+        // Define links
+        const nativeAppUrl = `bkj://job/${jobId}`;
+        const expoGoUrl = `exp://192.168.100.20:8081/--/job/${jobId}`;
+        
+        // Bind button actions
+        document.getElementById('btn-app').href = nativeAppUrl;
+        document.getElementById('btn-expo').href = expoGoUrl;
+
+        // Auto-detect environments & Redirect
+        if (jobId) {
+            // Check if user is testing development/Expo
+            const isDev = urlParams.get('dev') === 'true' || window.location.hostname === 'localhost';
+            const redirectUrl = isDev ? expoGoUrl : nativeAppUrl;
+
+            if (isDev) {
+                document.getElementById('btn-expo').style.display = 'flex';
+                document.getElementById('btn-app').textContent = "Open in BKJ App (Prod)";
+            }
+
+            // Auto redirect call
+            window.location.href = redirectUrl;
+
+            // Simple timeout fallback: if app isn't opened in 3 seconds, update message
+            setTimeout(() => {
+                document.getElementById('spinner').style.display = 'none';
+                document.getElementById('status-msg').innerHTML = "If the app didn't open automatically, you might need to download the BKJ App or tap one of the buttons below.";
+            }, 3000);
+        } else {
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('status-msg').textContent = "Welcome to BKJ. Access our job board on the official mobile app.";
+            document.getElementById('btn-app').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
