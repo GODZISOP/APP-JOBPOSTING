@@ -288,7 +288,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
     try {
       // Configure your Vercel/website redirect URL here
       // For now, using a placeholder bkj-jobs.vercel.app. You can change this to your Vercel domain once deployed!
-      const redirectDomain = "https://bkj-jobs.vercel.app"; 
+      const redirectDomain = "https://app-jobposting.vercel.app"; 
       
       // If testing in Expo Go, append ?dev=true so the landing page redirects to the local Expo bundle
       const isTestingOnExpo = true; 
