@@ -933,10 +933,16 @@ export default function JobsScreen({ navigation, route }) {
 
   // Use a predefined robust list of locations to avoid pulling user typos from job data
   const availableLocations = [
-    'Remote', 'Pakistan', 'United States', 'United Kingdom', 'Canada', 
-    'United Arab Emirates', 'Saudi Arabia', 'Australia', 'Karachi', 
-    'Lahore', 'Islamabad', 'Dubai', 'London', 'New York', 'Riyadh', 
-    'Doha', 'Oman', 'Qatar', 'Bahrain', 'Kuwait', 'Malaysia', 'Singapore'
+    'Remote', 'Global (All over the world)',
+    'Pakistan', 'India', 'United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain', 'Oman',
+    'United States', 'Canada', 'United Kingdom', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'Switzerland', 'Sweden', 'Norway', 'Denmark', 'Ireland',
+    'Australia', 'New Zealand',
+    'China', 'Japan', 'South Korea', 'Singapore', 'Malaysia', 'Indonesia', 'Philippines', 'Thailand', 'Vietnam', 'Bangladesh', 'Sri Lanka',
+    'Turkey', 'Egypt', 'South Africa', 'Nigeria', 'Kenya', 'Morocco',
+    'Brazil', 'Mexico', 'Argentina', 'Colombia', 'Chile',
+    'Russia', 'Poland', 'Portugal', 'Belgium', 'Austria', 'Greece', 'Czech Republic', 'Romania', 'Hungary', 'Finland',
+    'Iraq', 'Jordan', 'Lebanon', 'Afghanistan', 'Iran', 'Nepal',
+    'Karachi', 'Lahore', 'Islamabad', 'Dubai', 'London', 'New York', 'Riyadh', 'Doha'
   ].sort();
 
   const filteredCountryOptions = availableLocations.filter(loc =>

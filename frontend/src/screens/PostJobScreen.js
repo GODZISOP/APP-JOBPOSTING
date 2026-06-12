@@ -273,7 +273,7 @@ export default function PostJobScreen({ navigation }) {
   const [showCityModal, setShowCityModal] = useState(false);
 
   // Budget/Salary States (Strictly in Dollars USD)
-  const [salaryType, setSalaryType] = useState('Fixed Budget'); // 'Fixed Budget' | 'Hourly Rate'
+  const [salaryType, setSalaryType] = useState('Per Month'); // 'Per Hour' | 'Per Day' | 'Per Week' | 'Per Month'
   const [salaryMin, setSalaryMin] = useState('');
   const [salaryMax, setSalaryMax] = useState('');
 
@@ -337,9 +337,13 @@ export default function PostJobScreen({ navigation }) {
 
     const formattedLocation = `${selectedCity}, ${selectedCountry.name}`;
     const currencySymbol = getCurrencySymbol(selectedCountry.name);
-    const formattedSalary = salaryType === 'Hourly Rate'
-      ? `${currencySymbol}${salaryMin}-${currencySymbol}${salaryMax}/hr`
-      : `${currencySymbol}${salaryMin}-${currencySymbol}${salaryMax}/mo`;
+    let suffix = '/mo';
+    if (salaryType === 'Per Hour') suffix = '/hr';
+    if (salaryType === 'Per Day') suffix = '/day';
+    if (salaryType === 'Per Week') suffix = '/wk';
+    if (salaryType === 'Per Month') suffix = '/mo';
+
+    const formattedSalary = `${currencySymbol}${salaryMin}-${currencySymbol}${salaryMax}${suffix}`;
 
     const finalRequirements = selectedSkills.length > 0
       ? selectedSkills
@@ -374,7 +378,7 @@ export default function PostJobScreen({ navigation }) {
     setCompany('');
     setSelectedCountry(COUNTRIES[0]);
     setSelectedCity(COUNTRIES[0].cities[0]);
-    setSalaryType('Fixed Budget');
+    setSalaryType('Per Month');
     setSalaryMin('');
     setSalaryMax('');
     setSelectedType('Full Time');
@@ -527,7 +531,7 @@ export default function PostJobScreen({ navigation }) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t('post_job.salary_type_label')}</Text>
             <View style={styles.selectorTabs}>
-              {['Fixed Budget', 'Hourly Rate'].map((type) => (
+              {['Per Hour', 'Per Day', 'Per Week', 'Per Month'].map((type) => (
                 <TouchableOpacity
                   key={type}
                   style={[styles.selectorTabBtn, salaryType === type && styles.selectorTabBtnActive]}
@@ -567,7 +571,7 @@ export default function PostJobScreen({ navigation }) {
                 />
               </View>
               <Text style={styles.salaryUnit}>
-                {salaryType === 'Hourly Rate' ? '/hr' : '/mo'}
+                {salaryType === 'Per Hour' ? '/hr' : salaryType === 'Per Day' ? '/day' : salaryType === 'Per Week' ? '/wk' : '/mo'}
               </Text>
             </View>
           </View>
