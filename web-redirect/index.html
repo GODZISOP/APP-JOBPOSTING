@@ -164,11 +164,17 @@
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const jobId = urlParams.get('jobId');
+        let jobId = urlParams.get('jobId');
+        
+        // Extract jobId from path if it's in the format /job/:id
+        const pathParts = window.location.pathname.split('/');
+        if (!jobId && pathParts.length >= 3 && pathParts[1] === 'job') {
+            jobId = pathParts[2];
+        }
         
         // Define links
         const nativeAppUrl = `bkj://job/${jobId}`;
-        const expoGoUrl = `exp://192.168.100.20:8081/--/job/${jobId}`;
+        const expoGoUrl = `exp://192.168.100.22:8081/--/job/${jobId}`;
         
         // Bind button actions
         document.getElementById('btn-app').href = nativeAppUrl;
