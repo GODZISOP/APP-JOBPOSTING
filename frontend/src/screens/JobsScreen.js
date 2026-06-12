@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   StatusBar, TextInput, FlatList, Dimensions, Alert,
-  Animated, Easing, Modal, Linking, RefreshControl, Share,
+  Animated, Easing, Modal, Linking, RefreshControl, Share, Platform
 } from 'react-native';
 import { Image } from 'expo-image';
 
@@ -315,7 +315,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
   const employerEmail = job.posterProfile?.email || (isOwnJob ? user?.email : '') || 'employer@joblink.com';
   const employerName = job.posterProfile?.name || (isOwnJob ? user?.name : '') || 'Anonymous Employer';
 
-  const handleWhatsApp = (phone, name, jobTitle) => {
+  const handleWhatsApp = (phone, name, jobTitle, isBusiness = false) => {
     if (applyToJob) {
       applyToJob(job.id);
     }
@@ -328,21 +328,22 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
     }
 
     const message = `Hi ${name || 'Employer'},\n\nI am applying for the "${jobTitle}" position on BKJ. Here are my application details:\n\n👤 Name: ${applicantName}\n📧 Email: ${applicantEmail}\n📞 Phone: ${applicantPhone}\n\nPlease let me know if we can discuss this opportunity further. Thank you!`;
-    const url = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
+    
+    let url = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
+    
+    if (isBusiness && Platform.OS === 'android') {
+      // Force Android to open WhatsApp Business package specifically
+      url = `intent://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}#Intent;package=com.whatsapp.w4b;scheme=whatsapp;end;`;
+    }
 
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          // Fallback to web wa.me
-          const webUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
-          Linking.openURL(webUrl);
-        }
-      })
-      .catch(() => {
-        Alert.alert('Error', 'Could not open WhatsApp. Please check if WhatsApp is installed.');
+    // Try to open native app first
+    Linking.openURL(url).catch(() => {
+      // Fallback to web wa.me if the specific app isn't installed
+      const webUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+      Linking.openURL(webUrl).catch(() => {
+        Alert.alert('Error', 'Could not open WhatsApp. Please check if it is installed.');
       });
+    });
   };
 
   const handleEmail = (email, name, jobTitle) => {
@@ -607,6 +608,19 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
                 <View style={{ marginLeft: 12, flex: 1 }}>
                   <Text style={styles.whatsappBtnTitle}>Apply on WhatsApp</Text>
                   <Text style={styles.whatsappBtnSub}>Chat and apply directly via WhatsApp</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ opacity: 0.8 }} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.whatsappActionBtn, { backgroundColor: '#128C7E', marginTop: 12 }]}
+                activeOpacity={0.88}
+                onPress={() => handleWhatsApp(employerPhone, employerName, job.title, true)}
+              >
+                <Ionicons name="business-outline" size={24} color="#FFFFFF" />
+                <View style={{ marginLeft: 12, flex: 1 }}>
+                  <Text style={styles.whatsappBtnTitle}>Business WhatsApp</Text>
+                  <Text style={styles.whatsappBtnSub}>Apply via official Business Account</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ opacity: 0.8 }} />
               </TouchableOpacity>
