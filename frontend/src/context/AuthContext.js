@@ -252,6 +252,21 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
+  const [categoryPreferences, setCategoryPreferences] = useState({});
+
+  useEffect(() => {
+    const loadCategoryPreferences = async () => {
+      try {
+        const savedPrefs = await AsyncStorage.getItem('@bkj_category_preferences');
+        if (savedPrefs) {
+          setCategoryPreferences(JSON.parse(savedPrefs));
+        }
+      } catch (e) {
+        console.warn('Failed to load category preferences:', e);
+      }
+    };
+    loadCategoryPreferences();
+  }, []);
   const [likedJobs, setLikedJobs] = useState([]);
   const [notification, setNotification] = useState(null);
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
@@ -404,11 +419,7 @@ export const AuthProvider = ({ children }) => {
     lastLikeClickTimesRef.current.clear();
   }, [user?.id]);
 
-  const isMockMode =
-    !process.env.EXPO_PUBLIC_SUPABASE_URL ||
-    process.env.EXPO_PUBLIC_SUPABASE_URL.includes('your-project-id') ||
-    !process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY.includes('placeholder');
+  const isMockMode = false;
 
 
   // ✅ NAYA - popup bhi trigger hoga, likerProfile bhi pass hoga
@@ -597,6 +608,8 @@ export const AuthProvider = ({ children }) => {
             name,
             title,
             location,
+            phone,
+            email,
             avatar_url
           )
         `)
@@ -1316,8 +1329,13 @@ export const AuthProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [user, isMockMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const rankJobs = (jobList) => {
+  const rankJobs = (jobList, prefs = categoryPreferences) => {
     return [...jobList].sort((a, b) => {
+      const scoreA = prefs[a.category] || 0;
+      const scoreB = prefs[b.category] || 0;
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA;
+      }
       const timeA = a.createdAtTimestamp || 0;
       const timeB = b.createdAtTimestamp || 0;
       if (timeB !== timeA) {
@@ -1327,6 +1345,19 @@ export const AuthProvider = ({ children }) => {
       const likesB = b.likes || 0;
       return likesB - likesA;
     });
+  };
+
+  const trackCategoryView = async (category) => {
+    if (!category || category === 'All') return;
+    try {
+      const prefs = { ...categoryPreferences };
+      prefs[category] = (prefs[category] || 0) + 1;
+      setCategoryPreferences(prefs);
+      await AsyncStorage.setItem('@bkj_category_preferences', JSON.stringify(prefs));
+      setJobs(prevJobs => rankJobs(prevJobs, prefs));
+    } catch (e) {
+      console.warn('Failed to track category view:', e);
+    }
   };
 
   const triggerNotification = (title, message, type = 'system', likerProfile = null) => {
@@ -1357,7 +1388,9 @@ export const AuthProvider = ({ children }) => {
           }
         };
       });
-      setJobs(rankJobs(mapped));
+      const fifteenDaysAgo = Date.now() - 15 * 24 * 60 * 60 * 1000;
+      const activeJobs = mapped.filter(job => job.createdAtTimestamp >= fifteenDaysAgo);
+      setJobs(rankJobs(activeJobs));
       return;
     }
     try {
@@ -1519,7 +1552,9 @@ export const AuthProvider = ({ children }) => {
           appliedByUser: appliedIds.includes(job.id),
         };
       });
-      setJobs(rankJobs(mapped));
+      const fifteenDaysAgo = Date.now() - 15 * 24 * 60 * 60 * 1000;
+      const activeJobs = mapped.filter(job => job.createdAtTimestamp >= fifteenDaysAgo);
+      setJobs(rankJobs(activeJobs));
       // Prefetch all avatars to disk cache to ensure instant rendering
       mapped.forEach((job) => {
         if (job.posterProfile?.avatar) {
@@ -1838,20 +1873,6 @@ export const AuthProvider = ({ children }) => {
         await new Promise((res) => setTimeout(res, 1500));
         const exists = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
         if (exists) return { success: false, message: 'Email already registered' };
-        const newUser = {
-          id: String(Date.now()),
-          name,
-          email,
-          password,
-          role,
-          phone,
-          title: role === 'employer' ? 'Employer' : 'Job Seeker',
-          location: 'Pakistan',
-          avatar: null,
-          joinDate: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        };
-        setUsers((prev) => [...prev, newUser]);
-        setUser(newUser);
         return { success: true };
       }
       try {
@@ -1876,6 +1897,50 @@ export const AuthProvider = ({ children }) => {
       }
     } finally {
       setSigningUp(false);
+    }
+  };
+
+  // ─── Verify Email OTP ──────────────────────────────────────────────────────
+  const verifyEmailOtp = async (email, token, signupDetails = null) => {
+    try {
+      if (isMockMode) {
+        if (signupDetails) {
+          const newUser = {
+            id: String(Date.now()),
+            name: signupDetails.name,
+            email: signupDetails.email.toLowerCase(),
+            password: signupDetails.password,
+            role: signupDetails.role,
+            phone: signupDetails.phone,
+            title: signupDetails.role === 'employer' ? 'Employer' : 'Job Seeker',
+            location: 'Pakistan',
+            avatar: null,
+            joinDate: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          };
+          setUsers((prev) => [...prev, newUser]);
+          setUser(newUser);
+          await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(newUser));
+        }
+        return { success: true };
+      }
+
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'signup'
+      });
+      if (error) throw error;
+
+      // Fetch user profile to ensure state is hydrated properly
+      if (data?.user) {
+        // Fetch user profile (fetchUserProfile is defined in AuthProvider useEffect, but we can set session or trigger a reload)
+        // Actually, supabase.auth.setSession will trigger onAuthStateChange, but we can also manually call fetchUserProfile if needed.
+        // Wait, fetchUserProfile is inside the main useEffect. It is not directly accessible here. But since verifyOtp logs the user in,
+        // supabase's auth listener will automatically fetch the user profile.
+      }
+      return { success: true, session: data.session };
+    } catch (err) {
+      return handleError(err);
     }
   };
 
@@ -2101,10 +2166,9 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // 3. Profile table update
-      const packedLocation = updates.location
-        ? `${updates.location}|phone:${updates.phone || ''}`
-        : `Pakistan|phone:${updates.phone || ''}`;
+      // 3. Profile table update (Location is strictly auto-detected and cannot be manually modified)
+      const rawLocation = userCountry || (user?.location ? user.location.split('|')[0] : 'Pakistan');
+      const packedLocation = `${rawLocation}|phone:${updates.phone || ''}`;
 
       const normalizedName = updates.name ? updates.name.replace(/\s+/g, ' ').trim() : updates.name;
 
@@ -2260,7 +2324,34 @@ export const AuthProvider = ({ children }) => {
   };
 
   const getMyJobs = () => jobs.filter((j) => j.postedBy === user?.id);
-  const getUserById = (id) => users.find((u) => u.id === id) || INITIAL_USERS.find((u) => u.id === id);
+  const getUserById = async (id) => {
+    const local = users.find((u) => u.id === id) || INITIAL_USERS.find((u) => u.id === id);
+    if (local) return local;
+
+    if (!isMockMode) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', id)
+          .single();
+        if (!error && data) {
+          return {
+            id: data.id,
+            name: data.name,
+            email: data.email || '',
+            phone: data.phone || '',
+            location: data.location || '',
+            title: data.title || 'Job Seeker',
+            avatar: getTransformedAvatarUrl(data.avatar_url || null),
+          };
+        }
+      } catch (e) {
+        console.warn('Failed to fetch user by id from Supabase:', e);
+      }
+    }
+    return null;
+  };
 
   const applyToJob = async (jobId) => {
     const jobToUpdate = jobs.find(j => j.id === jobId);
@@ -2342,9 +2433,12 @@ export const AuthProvider = ({ children }) => {
         loggingOut,
         isGuest,
         setIsGuest,
+        categoryPreferences,
+        trackCategoryView,
         login,
         loginWithGoogle,
         signup,
+        verifyEmailOtp,
         logout,
         updateProfile,
         postJob,

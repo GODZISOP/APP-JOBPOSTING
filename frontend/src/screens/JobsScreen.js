@@ -10,10 +10,14 @@ const blurhash = 'LKN]Rv%2Tw=w]~RBVZRi};RPxuwH';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import AdBanner from '../components/AdBanner';
 import * as ExpoLinking from 'expo-linking';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as IntentLauncher from 'expo-intent-launcher';
 
 
 const { width } = Dimensions.get('window');
@@ -173,6 +177,8 @@ const TYPE_COLORS = {
 };
 
 function JobCard({ job, onPress, isLiked, onLike, t }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const logoColors = ['#0D9488', '#2563EB', '#DC2626', '#D97706', '#7C3AED', '#DB2777', '#0891B2'];
   const logoIndex = job.company ? job.company.charCodeAt(0) % logoColors.length : 0;
   const logoBg = logoColors[logoIndex];
@@ -229,12 +235,16 @@ function JobCard({ job, onPress, isLiked, onLike, t }) {
           </View>
         )}
         <View style={styles.metaBadge}>
-          <Ionicons name="briefcase-outline" size={11} color={COLORS.accentGreen} style={{ marginRight: 4 }} />
+          <Ionicons name="briefcase-outline" size={11} color={theme.accentGreen} style={{ marginRight: 4 }} />
           <Text style={styles.metaBadgeText} numberOfLines={1} adjustsFontSizeToFit>{job.type}</Text>
         </View>
         <View style={styles.metaBadge}>
-          <Ionicons name="location-outline" size={11} color="#6B7280" style={{ marginRight: 4 }} />
-          <Text style={[styles.metaBadgeText, { color: '#6B7280' }]} numberOfLines={1} adjustsFontSizeToFit>{job.location}</Text>
+          <Ionicons name="location-outline" size={11} color={theme.textSecondary} style={{ marginRight: 4 }} />
+          <Text style={[styles.metaBadgeText, { color: theme.textSecondary }]} numberOfLines={1} adjustsFontSizeToFit>{job.location}</Text>
+        </View>
+        <View style={styles.metaBadge}>
+          <Ionicons name="people-outline" size={11} color={theme.isDark ? '#FF8C00' : '#15803D'} style={{ marginRight: 4 }} />
+          <Text style={[styles.metaBadgeText, { color: theme.isDark ? '#FF8C00' : '#15803D' }]} numberOfLines={1} adjustsFontSizeToFit>{job.applicants || 0} {t ? t('jobs.applicants') : 'applicants'}</Text>
         </View>
       </View>
 
@@ -261,7 +271,7 @@ function JobCard({ job, onPress, isLiked, onLike, t }) {
               <Ionicons
                 name={isLiked ? "heart" : "heart-outline"}
                 size={13}
-                color={isLiked ? "#EF4444" : COLORS.textSecondary}
+                color={isLiked ? "#EF4444" : theme.textSecondary}
               />
               <Text style={[styles.rowHeartCountText, isLiked && styles.rowHeartCountTextActive]}>
                 {job.likes || 0}
@@ -280,9 +290,12 @@ function JobCard({ job, onPress, isLiked, onLike, t }) {
 }
 
 function JobDetailView({ job, onBack, isLiked, onLike }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const { t } = useTranslation();
   const { user, applyToJob } = useAuth();
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleShare = async () => {
     try {
@@ -315,7 +328,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
   const employerEmail = job.posterProfile?.email || (isOwnJob ? user?.email : '') || 'employer@joblink.com';
   const employerName = job.posterProfile?.name || (isOwnJob ? user?.name : '') || 'Anonymous Employer';
 
-  const handleWhatsApp = (phone, name, jobTitle, isBusiness = false) => {
+  const handleWhatsApp = async (phone, name, jobTitle, isBusiness = false) => {
     if (applyToJob) {
       applyToJob(job.id);
     }
@@ -329,21 +342,41 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
 
     const message = `Hi ${name || 'Employer'},\n\nI am applying for the "${jobTitle}" position on BKJ. Here are my application details:\n\n👤 Name: ${applicantName}\n📧 Email: ${applicantEmail}\n📞 Phone: ${applicantPhone}\n\nPlease let me know if we can discuss this opportunity further. Thank you!`;
     
-    let url = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
-    
-    if (isBusiness && Platform.OS === 'android') {
-      // Force Android to open WhatsApp Business package specifically
-      url = `intent://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}#Intent;package=com.whatsapp.w4b;scheme=whatsapp;end;`;
-    }
-
-    // Try to open native app first
-    Linking.openURL(url).catch(() => {
-      // Fallback to web wa.me if the specific app isn't installed
+    if (Platform.OS === 'android') {
+      const targetPackage = isBusiness ? 'com.whatsapp.w4b' : 'com.whatsapp';
+      const schemeUrl = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
       const webUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
-      Linking.openURL(webUrl).catch(() => {
-        Alert.alert('Error', 'Could not open WhatsApp. Please check if it is installed.');
-      });
-    });
+
+      try {
+        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+          data: schemeUrl,
+          packageName: targetPackage,
+        });
+      } catch (err) {
+        // Fallback for Expo Go client (where package visibility queries are blocked by Expo Go's manifest)
+        Linking.openURL(schemeUrl).catch(() => {
+          Linking.openURL(webUrl).catch(() => {
+            Alert.alert('Error', `Could not open ${isBusiness ? 'WhatsApp Business' : 'WhatsApp'}. Please check if it is installed.`);
+          });
+        });
+      }
+    } else {
+      const schemes = isBusiness ? ['whatsapp-business', 'whatsappw4b'] : ['whatsapp'];
+      const attemptLaunch = (index) => {
+        if (index >= schemes.length) {
+          const webUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+          Linking.openURL(webUrl).catch(() => {
+            Alert.alert('Error', `Could not open ${isBusiness ? 'WhatsApp Business' : 'WhatsApp'}. Please check if it is installed.`);
+          });
+          return;
+        }
+        const url = `${schemes[index]}://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
+        Linking.openURL(url).catch(() => {
+          attemptLaunch(index + 1);
+        });
+      };
+      attemptLaunch(0);
+    }
   };
 
   const handleEmail = (email, name, jobTitle) => {
@@ -382,15 +415,15 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
       {/* Floating navigation header */}
       <View style={styles.detailNav}>
         <TouchableOpacity style={styles.iconBtn} onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="arrow-back" size={20} color={COLORS.textPrimary} />
+          <Ionicons name="arrow-back" size={20} color={theme.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.detailNavTitle}>{t('jobs.job_details')}</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => onLike(job.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name={isLiked ? "heart" : "heart-outline"} size={20} color={isLiked ? "#EF4444" : COLORS.textPrimary} />
+            <Ionicons name={isLiked ? "heart" : "heart-outline"} size={20} color={isLiked ? "#EF4444" : theme.textPrimary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} onPress={handleShare} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="share-outline" size={20} color={COLORS.textPrimary} />
+            <Ionicons name="share-outline" size={20} color={theme.textPrimary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -429,19 +462,19 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
 
         {/* Key Job Specifications Block */}
         <View style={styles.specsChipsRow}>
-          <View style={[styles.specChip, { backgroundColor: '#F0FDF4', borderColor: '#DCFCE7', borderWidth: 1 }]}>
-            <Ionicons name="wallet-outline" size={14} color="#15803D" style={{ marginRight: 6 }} />
-            <Text style={[styles.specChipText, { color: '#15803D' }]}>{job.salary}</Text>
+          <View style={[styles.specChip, { backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#F0FDF4', borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.4)' : '#DCFCE7', borderWidth: 1 }]}>
+            <Ionicons name="wallet-outline" size={14} color={theme.isDark ? '#FF8C00' : '#15803D'} style={{ marginRight: 6 }} />
+            <Text style={[styles.specChipText, { color: theme.isDark ? '#FF8C00' : '#15803D' }]}>{job.salary}</Text>
           </View>
           
-          <View style={[styles.specChip, { backgroundColor: '#EFF6FF', borderColor: '#DBEAFE', borderWidth: 1 }]}>
-            <Ionicons name="briefcase-outline" size={14} color="#1D4ED8" style={{ marginRight: 6 }} />
-            <Text style={[styles.specChipText, { color: '#1D4ED8' }]}>{job.type}</Text>
+          <View style={[styles.specChip, { backgroundColor: theme.isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF', borderColor: theme.isDark ? 'rgba(59, 130, 246, 0.4)' : '#DBEAFE', borderWidth: 1 }]}>
+            <Ionicons name="briefcase-outline" size={14} color={theme.isDark ? '#60A5FA' : '#1D4ED8'} style={{ marginRight: 6 }} />
+            <Text style={[styles.specChipText, { color: theme.isDark ? '#60A5FA' : '#1D4ED8' }]}>{job.type}</Text>
           </View>
 
-          <View style={[styles.specChip, { backgroundColor: '#F5F3FF', borderColor: '#EDE9FE', borderWidth: 1 }]}>
-            <Ionicons name="school-outline" size={14} color="#6D28D9" style={{ marginRight: 6 }} />
-            <Text style={[styles.specChipText, { color: '#6D28D9' }]}>{experienceReq}</Text>
+          <View style={[styles.specChip, { backgroundColor: theme.isDark ? 'rgba(139, 92, 246, 0.15)' : '#F5F3FF', borderColor: theme.isDark ? 'rgba(139, 92, 246, 0.4)' : '#EDE9FE', borderWidth: 1 }]}>
+            <Ionicons name="school-outline" size={14} color={theme.isDark ? '#A78BFA' : '#6D28D9'} style={{ marginRight: 6 }} />
+            <Text style={[styles.specChipText, { color: theme.isDark ? '#A78BFA' : '#6D28D9' }]}>{experienceReq}</Text>
           </View>
         </View>
       </View>
@@ -488,7 +521,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
           <View style={styles.upworkClientSection}>
           <Text style={styles.upworkSectionTitle}>About the Recruiter</Text>
           <View style={styles.upworkClientRow}>
-            <View style={[styles.upworkClientAvatar, { overflow: 'hidden', justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.accentGreen }]}>
+            <View style={[styles.upworkClientAvatar, { overflow: 'hidden', justifyContent: 'center', alignItems: 'center', backgroundColor: theme.accentGreen }]}>
               <Text style={[styles.upworkClientAvatarText, { position: 'absolute', color: '#FFF' }]}>
                 {employerName ? employerName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'EM'}
               </Text>
@@ -555,108 +588,110 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
                 style={styles.modalCloseBtn}
                 onPress={() => setShowApplyModal(false)}
               >
-                <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+                <Ionicons name="close" size={22} color={theme.textPrimary} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalSubtitle}>
-              Connect with the recruiter directly via WhatsApp or Email to fast-track your job application!
-            </Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom > 0 ? insets.bottom + 20 : 30 }}>
+              <Text style={styles.modalSubtitle}>
+                Connect with the recruiter directly via WhatsApp or Email to fast-track your job application!
+              </Text>
 
-            {/* Recruiter Details Card */}
-            <View style={styles.modalRecruiterCard}>
-              <View style={styles.modalRecruiterAvatar}>
-                <Text style={styles.modalRecruiterAvatarText}>
-                  {employerName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.modalRecruiterName}>{employerName}</Text>
-                <Text style={styles.modalRecruiterTitle}>
-                  {job.posterProfile?.title || 'Recruitment Coordinator'} at {job.company}
-                </Text>
-              </View>
-            </View>
-
-            {/* Contact Information Displays */}
-            <View style={styles.modalContactGrid}>
-              <View style={styles.modalContactCard}>
-                <View style={styles.modalContactHeader}>
-                  <Ionicons name="call" size={15} color="#10B981" />
-                  <Text style={styles.modalContactLabel}>WhatsApp Contact</Text>
+              {/* Recruiter Details Card */}
+              <View style={styles.modalRecruiterCard}>
+                <View style={styles.modalRecruiterAvatar}>
+                  <Text style={styles.modalRecruiterAvatarText}>
+                    {employerName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </Text>
                 </View>
-                <Text style={styles.modalContactValue}>{employerPhone}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalRecruiterName}>{employerName}</Text>
+                  <Text style={styles.modalRecruiterTitle}>
+                    {job.posterProfile?.title || 'Recruitment Coordinator'} at {job.company}
+                  </Text>
+                </View>
               </View>
 
-              <View style={styles.modalContactCard}>
-                <View style={styles.modalContactHeader}>
-                  <Ionicons name="mail" size={15} color="#3B82F6" />
-                  <Text style={styles.modalContactLabel}>Official Email</Text>
+              {/* Contact Information Displays */}
+              <View style={styles.modalContactGrid}>
+                <View style={styles.modalContactCard}>
+                  <View style={styles.modalContactHeader}>
+                    <Ionicons name="call" size={15} color="#10B981" />
+                    <Text style={styles.modalContactLabel}>WhatsApp Contact</Text>
+                  </View>
+                  <Text style={styles.modalContactValue}>{employerPhone}</Text>
                 </View>
-                <Text style={styles.modalContactValue} numberOfLines={1}>{employerEmail}</Text>
+
+                <View style={styles.modalContactCard}>
+                  <View style={styles.modalContactHeader}>
+                    <Ionicons name="mail" size={15} color="#3B82F6" />
+                    <Text style={styles.modalContactLabel}>Official Email</Text>
+                  </View>
+                  <Text style={styles.modalContactValue} numberOfLines={1}>{employerEmail}</Text>
+                </View>
               </View>
-            </View>
 
-            {/* Premium Deep Linking Buttons */}
-            <View style={styles.modalActionsContainer}>
-              <TouchableOpacity
-                style={styles.whatsappActionBtn}
-                activeOpacity={0.88}
-                onPress={() => handleWhatsApp(employerPhone, employerName, job.title)}
-              >
-                <Ionicons name="logo-whatsapp" size={24} color="#FFFFFF" />
-                <View style={{ marginLeft: 12, flex: 1 }}>
-                  <Text style={styles.whatsappBtnTitle}>Apply on WhatsApp</Text>
-                  <Text style={styles.whatsappBtnSub}>Chat and apply directly via WhatsApp</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ opacity: 0.8 }} />
-              </TouchableOpacity>
+              {/* Premium Deep Linking Buttons */}
+              <View style={styles.modalActionsContainer}>
+                <TouchableOpacity
+                  style={styles.whatsappActionBtn}
+                  activeOpacity={0.88}
+                  onPress={() => handleWhatsApp(employerPhone, employerName, job.title)}
+                >
+                  <Ionicons name="logo-whatsapp" size={24} color="#FFFFFF" />
+                  <View style={{ marginLeft: 12, flex: 1 }}>
+                    <Text style={styles.whatsappBtnTitle}>Apply on WhatsApp</Text>
+                    <Text style={styles.whatsappBtnSub}>Chat and apply directly via WhatsApp</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ opacity: 0.8 }} />
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.whatsappActionBtn, { backgroundColor: '#128C7E', marginTop: 12 }]}
-                activeOpacity={0.88}
-                onPress={() => handleWhatsApp(employerPhone, employerName, job.title, true)}
-              >
-                <Ionicons name="business-outline" size={24} color="#FFFFFF" />
-                <View style={{ marginLeft: 12, flex: 1 }}>
-                  <Text style={styles.whatsappBtnTitle}>Business WhatsApp</Text>
-                  <Text style={styles.whatsappBtnSub}>Apply via official Business Account</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ opacity: 0.8 }} />
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.whatsappActionBtn, { backgroundColor: '#128C7E', marginTop: 12 }]}
+                  activeOpacity={0.88}
+                  onPress={() => handleWhatsApp(employerPhone, employerName, job.title, true)}
+                >
+                  <Ionicons name="business-outline" size={24} color="#FFFFFF" />
+                  <View style={{ marginLeft: 12, flex: 1 }}>
+                    <Text style={styles.whatsappBtnTitle}>Business WhatsApp</Text>
+                    <Text style={styles.whatsappBtnSub}>Apply via official Business Account</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ opacity: 0.8 }} />
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.emailActionBtn}
-                activeOpacity={0.88}
-                onPress={() => handleEmail(employerEmail, employerName, job.title)}
-              >
-                <Ionicons name="mail" size={22} color="#FFFFFF" />
-                <View style={{ marginLeft: 12, flex: 1 }}>
-                  <Text style={styles.emailBtnTitle}>Apply via Email</Text>
-                  <Text style={styles.emailBtnSub}>Send cover letter to official inbox</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ opacity: 0.8 }} />
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.emailActionBtn}
+                  activeOpacity={0.88}
+                  onPress={() => handleEmail(employerEmail, employerName, job.title)}
+                >
+                  <Ionicons name="mail" size={22} color="#FFFFFF" />
+                  <View style={{ marginLeft: 12, flex: 1 }}>
+                    <Text style={styles.emailBtnTitle}>Apply via Email</Text>
+                    <Text style={styles.emailBtnSub}>Send cover letter to official inbox</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ opacity: 0.8 }} />
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.appApplyBtn}
-                activeOpacity={0.85}
-                onPress={() => {
-                  setShowApplyModal(false);
-                  if (applyToJob) {
-                    applyToJob(job.id);
-                  }
-                  Alert.alert(
-                    'Application Submitted! 🎉',
-                    `Your BKJ profile has been successfully shared with ${job.company} for the "${job.title}" position. Good luck!`,
-                    [{ text: 'Perfect', onPress: onBack }]
-                  );
-                }}
-              >
-                <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.textPrimary} style={{ marginRight: 6 }} />
-                <Text style={styles.appApplyBtnText}>Formally Submit Profile via App</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={styles.appApplyBtn}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setShowApplyModal(false);
+                    if (applyToJob) {
+                      applyToJob(job.id);
+                    }
+                    Alert.alert(
+                      'Application Submitted! 🎉',
+                      `Your BKJ profile has been successfully shared with ${job.company} for the "${job.title}" position. Good luck!`,
+                      [{ text: 'Perfect', onPress: onBack }]
+                    );
+                  }}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={16} color={theme.isDark ? '#111111' : theme.textPrimary} style={{ marginRight: 6 }} />
+                  <Text style={styles.appApplyBtnText}>Formally Submit Profile via App</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -665,6 +700,8 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
 }
 
 function SkeletonCard() {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const shimmerAnim = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
@@ -692,22 +729,22 @@ function SkeletonCard() {
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', marginBottom: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
           {/* Company Logo Square */}
-          <Animated.View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#F1F5F9', opacity: shimmerAnim }} />
+          <Animated.View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', opacity: shimmerAnim }} />
           <View style={{ gap: 6, flex: 1 }}>
             {/* Company Name */}
-            <Animated.View style={{ width: '40%', height: 11, backgroundColor: '#F1F5F9', borderRadius: 4, opacity: shimmerAnim }} />
+            <Animated.View style={{ width: '40%', height: 11, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderRadius: 4, opacity: shimmerAnim }} />
             {/* Job Title */}
-            <Animated.View style={{ width: '75%', height: 14, backgroundColor: '#F1F5F9', borderRadius: 4, opacity: shimmerAnim }} />
+            <Animated.View style={{ width: '75%', height: 14, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderRadius: 4, opacity: shimmerAnim }} />
           </View>
         </View>
         {/* Salary Badge Pill */}
-        <Animated.View style={{ width: 75, height: 26, borderRadius: 10, backgroundColor: '#F1F5F9', opacity: shimmerAnim }} />
+        <Animated.View style={{ width: 75, height: 26, borderRadius: 10, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', opacity: shimmerAnim }} />
       </View>
 
       {/* 2. Middle Tags Row Skeleton */}
       <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-        <Animated.View style={{ width: 70, height: 22, borderRadius: 8, backgroundColor: '#F1F5F9', opacity: shimmerAnim }} />
-        <Animated.View style={{ width: 85, height: 22, borderRadius: 8, backgroundColor: '#F1F5F9', opacity: shimmerAnim }} />
+        <Animated.View style={{ width: 70, height: 22, borderRadius: 8, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', opacity: shimmerAnim }} />
+        <Animated.View style={{ width: 85, height: 22, borderRadius: 8, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', opacity: shimmerAnim }} />
       </View>
 
       {/* 3. Divider Line Skeleton */}
@@ -716,12 +753,12 @@ function SkeletonCard() {
       {/* 4. Footer Row Skeleton */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
         {/* Posted time */}
-        <Animated.View style={{ width: 90, height: 12, backgroundColor: '#F1F5F9', borderRadius: 4, opacity: shimmerAnim }} />
+        <Animated.View style={{ width: 90, height: 12, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderRadius: 4, opacity: shimmerAnim }} />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {/* Heart Button */}
-          <Animated.View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: '#F1F5F9', opacity: shimmerAnim }} />
+          <Animated.View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', opacity: shimmerAnim }} />
           {/* Apply Button */}
-          <Animated.View style={{ width: 80, height: 34, borderRadius: 10, backgroundColor: '#F1F5F9', opacity: shimmerAnim }} />
+          <Animated.View style={{ width: 80, height: 34, borderRadius: 10, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', opacity: shimmerAnim }} />
         </View>
       </View>
     </View>
@@ -730,6 +767,8 @@ function SkeletonCard() {
 
 // ─── Full Screen Skeleton ──────────────────────────────────────────────────
 function JobsSkeleton() {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const shimmerAnim = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
@@ -747,42 +786,42 @@ function JobsSkeleton() {
         {/* 1. Sleek Minimalist App Bar Skeleton */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Animated.View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#F1F5F9', opacity: shimmerAnim }} />
+            <Animated.View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', opacity: shimmerAnim }} />
             <View>
-              <Animated.View style={{ width: 80, height: 12, backgroundColor: '#F1F5F9', borderRadius: 4, marginBottom: 6, opacity: shimmerAnim }} />
-              <Animated.View style={{ width: 100, height: 16, backgroundColor: '#F1F5F9', borderRadius: 4, opacity: shimmerAnim }} />
+              <Animated.View style={{ width: 80, height: 12, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderRadius: 4, marginBottom: 6, opacity: shimmerAnim }} />
+              <Animated.View style={{ width: 100, height: 16, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderRadius: 4, opacity: shimmerAnim }} />
             </View>
           </View>
-          <Animated.View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: '#F1F5F9', opacity: shimmerAnim }} />
+          <Animated.View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', opacity: shimmerAnim }} />
         </View>
 
         {/* 2. Premium Hero Stats Card Skeleton */}
-        <Animated.View style={{ height: 180, backgroundColor: '#F1F5F9', borderRadius: 24, marginBottom: 24, opacity: shimmerAnim }} />
+        <Animated.View style={{ height: 180, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderRadius: 24, marginBottom: 24, opacity: shimmerAnim }} />
 
         {/* 3. Search Wrapper Skeleton */}
-        <Animated.View style={{ height: 52, backgroundColor: '#F1F5F9', borderRadius: 18, marginBottom: 20, opacity: shimmerAnim }} />
+        <Animated.View style={{ height: 52, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderRadius: 18, marginBottom: 20, opacity: shimmerAnim }} />
 
         {/* 4. Quick Tag Recommendations Scroll Skeleton */}
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 18 }}>
           {[80, 110, 90, 80].map((w, idx) => (
-            <Animated.View key={idx} style={{ width: w, height: 34, borderRadius: 14, backgroundColor: '#F1F5F9', opacity: shimmerAnim }} />
+            <Animated.View key={idx} style={{ width: w, height: 34, borderRadius: 14, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', opacity: shimmerAnim }} />
           ))}
         </View>
 
         {/* 5. Browse Category Label Skeleton */}
-        <Animated.View style={{ width: 130, height: 16, backgroundColor: '#F1F5F9', borderRadius: 4, marginBottom: 10, opacity: shimmerAnim }} />
+        <Animated.View style={{ width: 130, height: 16, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderRadius: 4, marginBottom: 10, opacity: shimmerAnim }} />
 
         {/* 6. Minimalistic Category Pills Scroll Skeleton */}
         <View style={{ flexDirection: 'row', gap: 10, marginBottom: 24 }}>
           {[90, 110, 85, 100].map((w, idx) => (
-            <Animated.View key={idx} style={{ width: w, height: 36, borderRadius: 16, backgroundColor: '#F1F5F9', opacity: shimmerAnim }} />
+            <Animated.View key={idx} style={{ width: w, height: 36, borderRadius: 16, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', opacity: shimmerAnim }} />
           ))}
         </View>
 
         {/* 7. Opportunities Header Row Skeleton */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Animated.View style={{ width: 180, height: 20, backgroundColor: '#F1F5F9', borderRadius: 4, opacity: shimmerAnim }} />
-          <Animated.View style={{ width: 60, height: 24, backgroundColor: '#F1F5F9', borderRadius: 12, opacity: shimmerAnim }} />
+          <Animated.View style={{ width: 180, height: 20, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderRadius: 4, opacity: shimmerAnim }} />
+          <Animated.View style={{ width: 60, height: 24, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderRadius: 12, opacity: shimmerAnim }} />
         </View>
       </View>
       <View style={{ paddingHorizontal: 20 }}>
@@ -800,9 +839,17 @@ function isFuzzyMatch(str, query) {
   str = str.toLowerCase().trim();
   query = query.toLowerCase().trim();
 
+  // Stop words to ignore in search queries for better recommendations
+  const stopWords = ['best', 'job', 'jobs', 'of', 'for', 'in', 'the', 'a', 'an', 'and', 'with', 'looking', 'need', 'wanted', 'chahiye', 'pakistan', 'online', 'work', 'from', 'home', 'top', 'milte', 'julte', 'like', 'ya', 'kisi', 'bh', 'mujhe', 'recommend', 'kre', 'category', 'ke', 'liye', 'koi', 'acha'];
+
   // Split both query and target string into clean word tokens
   const strWords = str.split(/[\s\-_,\./\\]+/).filter(Boolean);
-  const queryWords = query.split(/\s+/).filter(Boolean);
+  let queryWords = query.split(/\s+/).filter(Boolean);
+
+  const importantQueryWords = queryWords.filter(w => !stopWords.includes(w));
+  if (importantQueryWords.length > 0) {
+    queryWords = importantQueryWords;
+  }
 
   if (queryWords.length === 0) return false;
 
@@ -822,21 +869,16 @@ function isFuzzyMatch(str, query) {
     return tmp[a.length][b.length];
   };
 
-  // Every word in the query must match at least one word in the target string
-  return queryWords.every(qWord => {
-    return strWords.some(w => {
-      // 1. Exact or prefix match (e.g., "re" matches "react")
+  // Match if ANY important query word matches target string (allows showing related jobs)
+  let matchedCount = 0;
+  for (const qWord of queryWords) {
+    const isMatch = strWords.some(w => {
       if (w.startsWith(qWord)) return true;
-      // 2. Query contains the target word (e.g., user typed "react-native" matches "react")
       if (qWord.startsWith(w)) return true;
-      // 3. Substring match but only if they are related/meaningful (at least 3 characters)
       if (qWord.length >= 3 && w.length >= qWord.length && w.includes(qWord)) {
-        // Prevent matching unrelated words (like "contract" for "react") by ensuring it's not con-tract.
-        // If query is "react", we don't want "contract" to match.
         if (qWord === 'react' && w === 'contract') return false;
         return true;
       }
-      // 4. Fuzzy typo match
       if (qWord.length >= 3) {
         const distance = getLevenshteinDistance(w, qWord);
         const maxDistance = qWord.length <= 4 ? 1 : 2;
@@ -844,13 +886,18 @@ function isFuzzyMatch(str, query) {
       }
       return false;
     });
-  });
+    if (isMatch) matchedCount++;
+  }
+
+  return matchedCount > 0;
 }
 
 export default function JobsScreen({ navigation, route }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const { jobs, user, likedJobs, likeJob, fetchJobs, setIsGuest, userCountry } = useAuth();
+  const { jobs, user, likedJobs, likeJob, fetchJobs, setIsGuest, userCountry, trackCategoryView } = useAuth();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedJob, setSelectedJob] = useState(null);
@@ -893,6 +940,9 @@ export default function JobsScreen({ navigation, route }) {
         ]
       );
       return;
+    }
+    if (trackCategoryView && job.category) {
+      trackCategoryView(job.category);
     }
     setSelectedJob(job);
   };
@@ -1046,9 +1096,10 @@ export default function JobsScreen({ navigation, route }) {
     const matchType = selectedJobTypes.length === 0 || selectedJobTypes.some(type => 
       j.type && j.type.toLowerCase().replace('-', ' ').includes(type.toLowerCase().replace('-', ' '))
     );
+    const isGlobalSelected = selectedLocations.includes('Global (All over the world)');
 
     // 4. Location multi-select filter
-    const matchLoc = selectedLocations.length === 0 ||
+    const matchLoc = selectedLocations.length === 0 || isGlobalSelected ||
       selectedLocations.some(loc => j.location && j.location.toLowerCase().includes(loc.toLowerCase()));
 
     // 5. Salary Range filter
@@ -1074,7 +1125,7 @@ export default function JobsScreen({ navigation, route }) {
 
     // 6. Global vs Country Specific targeted display logic
     let matchCountryTarget = true;
-    if (j.location && selectedLocations.length === 0) { // Bypass user country restriction if explicit locations selected
+    if (j.location && selectedLocations.length === 0 && !isGlobalSelected) { // Bypass user country restriction if explicit locations selected
       const isGlobal = j.location.toLowerCase().includes('global');
       if (!isGlobal && userCountry) {
         // If it's a specific country job, only show to users in that country
@@ -1097,22 +1148,28 @@ export default function JobsScreen({ navigation, route }) {
         let score = 0;
         const titleLower = j.title?.toLowerCase() || '';
         const companyLower = j.company?.toLowerCase() || '';
-        
+        const descLower = j.description?.toLowerCase() || '';
+        const categoryLower = j.category?.toLowerCase() || '';
+        const locationLower = j.location?.toLowerCase() || '';
+        const skillsStr = j.skills ? j.skills.join(' ').toLowerCase() : '';
+
+        const stopWords = ['best', 'job', 'jobs', 'of', 'for', 'in', 'the', 'a', 'an', 'and', 'with', 'looking', 'need', 'wanted', 'chahiye', 'pakistan', 'online', 'work', 'from', 'home', 'top', 'milte', 'julte', 'like', 'ya', 'kisi', 'bh', 'mujhe', 'recommend', 'kre', 'category', 'ke', 'liye', 'koi', 'acha'];
+        let queryWords = q.split(/\s+/).filter(Boolean);
+        const importantWords = queryWords.filter(w => !stopWords.includes(w));
+        if (importantWords.length > 0) queryWords = importantWords;
+
         // 1. Exact match in title (Highest priority)
-        if (titleLower === q) score += 100;
-        // 2. Starts with query in title (E.g. "React" -> "React Native Developer")
-        else if (titleLower.startsWith(q)) score += 50;
-        // 3. Word starts with query in title (E.g. "Native" -> "React Native Developer")
-        else {
-          const words = titleLower.split(/[\s\-_,\./\\]+/);
-          if (words.some(w => w.startsWith(q))) score += 25;
-        }
+        if (titleLower === q) score += 1000;
         
-        // 4. Substring match in title
-        if (titleLower.includes(q)) score += 10;
-        // 5. Match in company name
-        if (companyLower.startsWith(q)) score += 5;
-        else if (companyLower.includes(q)) score += 2;
+        // 2. Keyword relevance
+        queryWords.forEach(qw => {
+          if (titleLower.includes(qw)) score += 50;
+          if (categoryLower.includes(qw)) score += 30;
+          if (skillsStr.includes(qw)) score += 20;
+          if (companyLower.includes(qw)) score += 15;
+          if (locationLower.includes(qw)) score += 10;
+          if (descLower.includes(qw)) score += 5;
+        });
         
         return score;
       };
@@ -1160,10 +1217,46 @@ export default function JobsScreen({ navigation, route }) {
     const isEmployer = user?.role === 'employer';
 
     return (
-      <View style={styles.headerContainer}>
-        {/* Sleek Minimalist App Bar */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
+      <View style={{ width: '100%', backgroundColor: theme.bgPrimary }}>
+        {/* Aura-Style Logo Header Bar */}
+        <View style={{
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingTop: insets.top + 4,
+          paddingBottom: 6,
+          backgroundColor: theme.isDark ? '#1A1A1A' : '#E8F5E9',
+          borderBottomWidth: 1,
+          borderBottomColor: theme.borderLight,
+          width: '100%',
+        }}>
+          {/* Center Logo branding */}
+          <View style={{ alignItems: 'center' }}>
+            <Text style={{
+              fontSize: 20,
+              fontWeight: '900',
+              color: theme.textPrimary,
+              letterSpacing: 4,
+              fontStyle: 'italic',
+              textTransform: 'uppercase',
+            }}>
+              BKJ
+            </Text>
+          </View>
+        </View>
+
+        {/* Start Header Content Wrapper with standard padding */}
+        <View style={styles.headerContainer}>
+
+        {/* Welcome Profile Bar */}
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingTop: 16,
+          paddingBottom: 16,
+          paddingHorizontal: 4,
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
             <View style={styles.userAvatarCircle}>
               {user?.avatar ? (
                 <Image source={{ uri: user.avatar }} style={styles.userAvatarImage} contentFit="cover" transition={200} placeholder={{ blurhash }} />
@@ -1172,15 +1265,17 @@ export default function JobsScreen({ navigation, route }) {
               )}
             </View>
             <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={styles.headerSub}>Welcome back,</Text>
-              <Text style={styles.headerTitle} numberOfLines={1} adjustsFontSizeToFit>{user?.name?.replace(/\s+/g, ' ') || 'BKJ'}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textSecondary }}>Welcome back,</Text>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: theme.textPrimary }} numberOfLines={1} adjustsFontSizeToFit>{user?.name?.replace(/\s+/g, ' ') || 'BKJ'}</Text>
             </View>
           </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.headerIconBtn} onPress={onRefresh} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="sync-outline" size={18} color="#1A1A1A" />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity 
+            style={styles.headerIconBtn} 
+            onPress={onRefresh} 
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="sync-outline" size={18} color={theme.textPrimary} />
+          </TouchableOpacity>
         </View>
 
         {/* Profile Warning Banner for Missing Phone Number */}
@@ -1207,106 +1302,260 @@ export default function JobsScreen({ navigation, route }) {
         )}
 
         {/* 🌟 NEXT-LEVEL HERO GRADIENT STATS CARD */}
-        <View style={styles.heroGradientCard}>
-          <View style={styles.heroCardHeader}>
-            <View style={styles.heroTagBadge}>
-              <Text style={styles.heroTagText}>PREMIUM ACCESS</Text>
-            </View>
-            <Text style={styles.heroTitle}>{t('profile.shape_future') || 'Shape Your Professional Future 🚀'}</Text>
-            <Text style={styles.heroSubText}>{t('profile.explore_postings') || 'Explore matched postings & connect directly with recruiters.'}</Text>
-          </View>
-
-          {/* Interactive Stats Grid */}
-          <View style={styles.statsGridRow}>
-            {/* Stat Box 1: Total Opportunities */}
-            <TouchableOpacity
-              style={[
-                styles.statCardItem,
-                (!filterLikedOnly && !filterMyJobsOnly) && styles.statCardItemActive
-              ]}
-              onPress={() => {
-                setFilterLikedOnly(false);
-                setFilterMyJobsOnly(false);
-              }}
-              activeOpacity={0.85}
-            >
-              <View style={styles.statIconBadge}>
-                <Ionicons name="briefcase" size={15} color="#5C9E6A" />
-              </View>
-              <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{totalJobsCount}</Text>
-              <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.total_jobs') || 'Total Jobs'}</Text>
-            </TouchableOpacity>
-
-            {/* Stat Box 2: Liked / Saved Opportunities */}
-            <TouchableOpacity
-              style={[
-                styles.statCardItem,
-                filterLikedOnly && styles.statCardItemActive
-              ]}
-              onPress={() => {
-                setFilterLikedOnly(!filterLikedOnly);
-                setFilterMyJobsOnly(false);
-              }}
-              activeOpacity={0.85}
-            >
-              <View style={[styles.statIconBadge, { backgroundColor: '#FEE2E2' }]}>
-                <Ionicons name="heart" size={15} color="#EF4444" />
-              </View>
-              <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{likedJobsCount}</Text>
-              <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.saved_jobs') || 'Favorites'}</Text>
-            </TouchableOpacity>
-
-            {/* Stat Box 3: My Postings (Employer) / Verified Status (Job Seeker) */}
-            {isEmployer ? (
-              <TouchableOpacity
-                style={[
-                  styles.statCardItem,
-                  filterMyJobsOnly && styles.statCardItemActive
-                ]}
-                onPress={() => {
-                  setFilterMyJobsOnly(!filterMyJobsOnly);
-                  setFilterLikedOnly(false);
+        <View style={{ position: 'relative', marginBottom: 24 }}>
+          {theme.isDark && (
+            <>
+              {/* Outer soft glow layer */}
+              <View
+                style={{
+                  position: 'absolute',
+                  top: -12,
+                  left: -12,
+                  right: -12,
+                  bottom: -12,
+                  borderRadius: 36,
+                  borderWidth: 6,
+                  borderColor: 'rgba(255, 140, 0, 0.03)',
                 }}
-                activeOpacity={0.85}
-              >
-                <View style={[styles.statIconBadge, { backgroundColor: '#FEF3C7' }]}>
-                  <Ionicons name="create" size={15} color="#D97706" />
-                </View>
-                <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{myJobsCount}</Text>
-                <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.my_posts') || 'My Posts'}</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.statCardItem}>
-                <View style={[styles.statIconBadge, { backgroundColor: '#E6F4EA' }]}>
-                  <Ionicons name="checkmark-circle" size={16} color="#15803D" />
-                </View>
-                <Text style={[styles.statCountVal, { fontSize: 12, color: '#15803D', fontWeight: '800', lineHeight: 22 }]} numberOfLines={1} adjustsFontSizeToFit>{t('profile.verified') || 'Verified'}</Text>
-                <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.profile_text') || 'Profile'}</Text>
+                pointerEvents="none"
+              />
+              {/* Mid glow layer */}
+              <View
+                style={{
+                  position: 'absolute',
+                  top: -6,
+                  left: -6,
+                  right: -6,
+                  bottom: -6,
+                  borderRadius: 30,
+                  borderWidth: 4,
+                  borderColor: 'rgba(255, 140, 0, 0.08)',
+                }}
+                pointerEvents="none"
+              />
+              {/* Inner intense glow layer */}
+              <View
+                style={{
+                  position: 'absolute',
+                  top: -2,
+                  left: -2,
+                  right: -2,
+                  bottom: -2,
+                  borderRadius: 26,
+                  borderWidth: 2,
+                  borderColor: 'rgba(255, 140, 0, 0.18)',
+                }}
+                pointerEvents="none"
+              />
+            </>
+          )}
+          <View style={[styles.heroGradientCard, { marginBottom: 0 }]}>
+            <View style={styles.heroCardHeader}>
+              <View style={styles.heroTagBadge}>
+                <Text style={styles.heroTagText}>PREMIUM ACCESS</Text>
               </View>
-            )}
+              <Text style={styles.heroTitle}>{t('profile.shape_future') || 'Shape Your Professional Future 🚀'}</Text>
+              <Text style={styles.heroSubText}>{t('profile.explore_postings') || 'Explore matched postings & connect directly with recruiters.'}</Text>
+            </View>
+
+            {/* Interactive Stats Grid */}
+            <View style={styles.statsGridRow}>
+              {/* Stat Box 1: Total Opportunities */}
+              <View style={{ flex: 1, position: 'relative', backgroundColor: 'transparent', borderRadius: 16 }}>
+                {theme.isDark && (
+                  <>
+                    {/* Outer soft glow */}
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: -6,
+                        left: -6,
+                        right: -6,
+                        bottom: -6,
+                        borderRadius: 22,
+                        borderWidth: 4,
+                        borderColor: 'rgba(255, 140, 0, 0.04)',
+                      }}
+                      pointerEvents="none"
+                    />
+                    {/* Inner intense glow */}
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: -2,
+                        left: -2,
+                        right: -2,
+                        bottom: -2,
+                        borderRadius: 18,
+                        borderWidth: 2,
+                        borderColor: 'rgba(255, 140, 0, 0.15)',
+                      }}
+                      pointerEvents="none"
+                    />
+                  </>
+                )}
+                <TouchableOpacity
+                  style={[
+                    styles.statCardItem,
+                    (!filterLikedOnly && !filterMyJobsOnly) && styles.statCardItemActive
+                  ]}
+                  onPress={() => {
+                    setFilterLikedOnly(false);
+                    setFilterMyJobsOnly(false);
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.statIconBadge}>
+                    <Ionicons name="briefcase" size={15} color={theme.isDark ? "#111111" : "#5C9E6A"} />
+                  </View>
+                  <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{totalJobsCount}</Text>
+                  <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.total_jobs') || 'Total Jobs'}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Stat Box 2: Liked / Saved Opportunities */}
+              <View style={{ flex: 1, position: 'relative', backgroundColor: 'transparent', borderRadius: 16 }}>
+                {theme.isDark && (
+                  <>
+                    {/* Outer soft glow */}
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: -6,
+                        left: -6,
+                        right: -6,
+                        bottom: -6,
+                        borderRadius: 22,
+                        borderWidth: 4,
+                        borderColor: 'rgba(255, 140, 0, 0.04)',
+                      }}
+                      pointerEvents="none"
+                    />
+                    {/* Inner intense glow */}
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: -2,
+                        left: -2,
+                        right: -2,
+                        bottom: -2,
+                        borderRadius: 18,
+                        borderWidth: 2,
+                        borderColor: 'rgba(255, 140, 0, 0.15)',
+                      }}
+                      pointerEvents="none"
+                    />
+                  </>
+                )}
+                <TouchableOpacity
+                  style={[
+                    styles.statCardItem,
+                    filterLikedOnly && styles.statCardItemActive
+                  ]}
+                  onPress={() => {
+                    setFilterLikedOnly(!filterLikedOnly);
+                    setFilterMyJobsOnly(false);
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <View style={[styles.statIconBadge, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
+                    <Ionicons name="heart" size={15} color={theme.isDark ? "#111111" : "#EF4444"} />
+                  </View>
+                  <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{likedJobsCount}</Text>
+                  <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.saved_jobs') || 'Favorites'}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Stat Box 3: My Postings (Employer) / Verified Status (Job Seeker) */}
+              <View style={{ flex: 1, position: 'relative', backgroundColor: 'transparent', borderRadius: 16 }}>
+                {theme.isDark && (
+                  <>
+                    {/* Outer soft glow */}
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: -6,
+                        left: -6,
+                        right: -6,
+                        bottom: -6,
+                        borderRadius: 22,
+                        borderWidth: 4,
+                        borderColor: 'rgba(255, 140, 0, 0.04)',
+                      }}
+                      pointerEvents="none"
+                    />
+                    {/* Inner intense glow */}
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: -2,
+                        left: -2,
+                        right: -2,
+                        bottom: -2,
+                        borderRadius: 18,
+                        borderWidth: 2,
+                        borderColor: 'rgba(255, 140, 0, 0.15)',
+                      }}
+                      pointerEvents="none"
+                    />
+                  </>
+                )}
+                {isEmployer ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.statCardItem,
+                      filterMyJobsOnly && styles.statCardItemActive
+                    ]}
+                    onPress={() => {
+                      setFilterMyJobsOnly(!filterMyJobsOnly);
+                      setFilterLikedOnly(false);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <View style={[styles.statIconBadge, { backgroundColor: '#FEF3C7' }]}>
+                      <Ionicons name="create" size={15} color={theme.isDark ? "#111111" : "#D97706"} />
+                    </View>
+                    <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{myJobsCount}</Text>
+                    <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.my_posts') || 'My Posts'}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.statCardItem}>
+                    <View style={[styles.statIconBadge, { backgroundColor: '#E6F4EA' }]}>
+                      <Ionicons name="checkmark-circle" size={16} color={theme.isDark ? "#111111" : "#15803D"} />
+                    </View>
+                    <Text style={[styles.statCountVal, { fontSize: 12, color: theme.isDark ? '#111111' : '#15803D', fontWeight: '800', lineHeight: 22 }]} numberOfLines={1} adjustsFontSizeToFit>{t('profile.verified') || 'Verified'}</Text>
+                    <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.profile_text') || 'Profile'}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
           </View>
         </View>
 
         {/* Search Container with zIndex to overlay suggestions */}
         <View style={{ zIndex: 99, position: 'relative' }}>
           <View style={styles.searchWrapper}>
-            <Ionicons name="search-outline" size={18} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
+            <Ionicons name="search-outline" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
             <TextInput
               style={styles.searchInput}
               placeholder={t('jobs.search_placeholder')}
-              placeholderTextColor={COLORS.textLight}
+              placeholderTextColor={theme.textLight}
               value={search}
               onChangeText={setSearch}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+              autoCorrect={false}
+              spellCheck={false}
+              autoComplete="off"
+              multiline={false}
             />
             {search.length > 0 && (
               <TouchableOpacity onPress={() => setSearch('')} style={{ marginRight: 8 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close-circle" size={18} color={COLORS.textSecondary} />
+                <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.searchFilterBtn} onPress={() => setFilterModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="options-outline" size={18} color={COLORS.textPrimary} />
+              <Ionicons name="options-outline" size={18} color={theme.textPrimary} />
             </TouchableOpacity>
           </View>
           
@@ -1322,9 +1571,9 @@ export default function JobsScreen({ navigation, route }) {
                     setSearchFocused(false);
                   }}
                 >
-                  <Ionicons name="search-outline" size={14} color={COLORS.textSecondary} style={{ marginRight: 10 }} />
-                  <Text style={styles.sectionTitle}>{t('jobs.categories_header')}</Text>
-                  <Ionicons name="arrow-up-sharp" size={12} color={COLORS.textLight} style={{ marginLeft: 'auto', transform: [{ rotate: '-45deg' }] }} />
+                  <Ionicons name="search-outline" size={14} color={theme.textSecondary} style={{ marginRight: 10 }} />
+                  <Text style={{ fontSize: 14, color: theme.textPrimary, flex: 1, fontWeight: '600' }}>{item}</Text>
+                  <Ionicons name="arrow-up-sharp" size={12} color={theme.textLight} style={{ marginLeft: 'auto', transform: [{ rotate: '-45deg' }] }} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -1383,10 +1632,15 @@ export default function JobsScreen({ navigation, route }) {
                   styles.categoryPill,
                   isActive && styles.categoryPillActive
                 ]}
-                onPress={() => setActiveCategory(cat)}
+                onPress={() => {
+                  setActiveCategory(cat);
+                  if (trackCategoryView) {
+                    trackCategoryView(cat);
+                  }
+                }}
                 activeOpacity={0.9}
               >
-                <View style={[styles.categoryIconCircle, { backgroundColor: isActive ? COLORS.accentYellow : pillColor }]}>
+                <View style={[styles.categoryIconCircle, { backgroundColor: isActive ? theme.accentYellow : pillColor }]}>
                   <Ionicons name={iconName} size={15} color={isActive ? "#1A1A1A" : iconColor} />
                 </View>
                 <Text style={[styles.categoryPillText, isActive && styles.categoryPillTextActive]} numberOfLines={1} adjustsFontSizeToFit>{cat}</Text>
@@ -1406,12 +1660,13 @@ export default function JobsScreen({ navigation, route }) {
             </Text>
             {userCountry && !filterLikedOnly && !filterMyJobsOnly && selectedLocations.length === 0 && (
               <View style={styles.nearYouBadge}>
-                <Ionicons name="location" size={11} color="#15803D" style={{ marginRight: 3 }} />
+                <Ionicons name="location" size={11} color={theme.isDark ? '#FF8C00' : '#15803D'} style={{ marginRight: 3 }} />
                 <Text style={styles.nearYouBadgeText}>Showing {userCountry} jobs first</Text>
               </View>
             )}
           </View>
           <Text style={styles.listSectionBadge}>{geoSortedFiltered.length} Jobs</Text>
+        </View>
         </View>
       </View>
     );
@@ -1420,8 +1675,23 @@ export default function JobsScreen({ navigation, route }) {
 
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
+    <View style={styles.container}>
+      <StatusBar barStyle={theme.isDark ? "light-content" : "dark-content"} backgroundColor={theme.isDark ? "#1A1A1A" : "#E8F5E9"} />
+
+      {theme.isDark && (
+        <LinearGradient
+          colors={['rgba(255, 140, 0, 0.3)', 'rgba(255, 140, 0, 0.06)', 'transparent']}
+          style={{
+            position: 'absolute',
+            top: -insets.top,
+            left: 0,
+            right: 0,
+            height: 180 + insets.top,
+            zIndex: 10,
+          }}
+          pointerEvents="none"
+        />
+      )}
 
       <FlatList
         data={screenLoading ? [] : geoSortedFiltered}
@@ -1433,7 +1703,9 @@ export default function JobsScreen({ navigation, route }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLORS.accentGreen}
+            tintColor={theme.isDark ? '#FF8C00' : '#15803D'}
+            colors={[theme.isDark ? '#FF8C00' : '#15803D']}
+            progressBackgroundColor={theme.isDark ? '#1C1C1E' : '#FFFFFF'}
             progressViewOffset={80}
           />
         }
@@ -1453,7 +1725,7 @@ export default function JobsScreen({ navigation, route }) {
         ListEmptyComponent={
           screenLoading ? null : (
             <View style={styles.emptyBox}>
-              <Ionicons name="briefcase-outline" size={44} color={COLORS.textLight} />
+              <Ionicons name="briefcase-outline" size={44} color={theme.textLight} />
               <Text style={styles.emptyText}>No job listings match your search.</Text>
             </View>
           )
@@ -1474,7 +1746,7 @@ export default function JobsScreen({ navigation, route }) {
             <View style={styles.filterModalHeader}>
               <Text style={styles.filterModalTitle}>Filter Job Listings</Text>
               <TouchableOpacity onPress={() => setFilterModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close-circle" size={24} color="#6B7280" />
+                <Ionicons name="close-circle" size={24} color={theme.isDark ? '#A3A3A3' : '#6B7280'} />
               </TouchableOpacity>
             </View>
 
@@ -1511,7 +1783,7 @@ export default function JobsScreen({ navigation, route }) {
                 activeOpacity={0.8}
               >
                 <View style={styles.dropdownLeft}>
-                  <Ionicons name="earth-outline" size={18} color="#4B5563" style={{ marginRight: 8 }} />
+                  <Ionicons name="earth-outline" size={18} color={theme.isDark ? '#A3A3A3' : '#4B5563'} style={{ marginRight: 8 }} />
                   <Text style={styles.dropdownSelectedText} numberOfLines={1}>
                     {selectedLocations.length === 0
                       ? "All Countries / Locations"
@@ -1521,7 +1793,7 @@ export default function JobsScreen({ navigation, route }) {
                 <Ionicons
                   name={countryDropdownOpen ? "chevron-up" : "chevron-down"}
                   size={16}
-                  color="#4B5563"
+                  color={theme.isDark ? '#A3A3A3' : '#4B5563'}
                 />
               </TouchableOpacity>
 
@@ -1557,7 +1829,7 @@ export default function JobsScreen({ navigation, route }) {
                           <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextActive]}>
                             {loc}
                           </Text>
-                          {isSelected && <Ionicons name="checkmark" size={14} color="#1A1A1A" />}
+                          {isSelected && <Ionicons name="checkmark" size={14} color={theme.isDark ? '#111111' : '#1A1A1A'} />}
                         </TouchableOpacity>
                       );
                     })}
@@ -1584,7 +1856,7 @@ export default function JobsScreen({ navigation, route }) {
             </ScrollView>
 
             {/* Modal Actions Footer */}
-            <View style={styles.filterModalFooter}>
+            <View style={[styles.filterModalFooter, { paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }]}>
               <TouchableOpacity style={styles.filterResetBtn} onPress={resetFilters}>
                 <Text style={styles.filterResetBtnText}>Reset All</Text>
               </TouchableOpacity>
@@ -1603,8 +1875,8 @@ export default function JobsScreen({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgPrimary },
+function getStyles(theme) { return StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.bgPrimary },
   listContent: {
     paddingBottom: 140, // Avoid overlapping floating navigation and AdBanner
   },
@@ -1642,8 +1914,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.5 },
-  headerSub: { fontSize: FONTS.sizes.xs, color: COLORS.textSecondary, fontWeight: '600' },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 },
+  headerSub: { fontSize: FONTS.sizes.xs, color: theme.textSecondary, fontWeight: '600' },
   headerRight: {
     flexDirection: 'row',
     gap: 8,
@@ -1652,11 +1924,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: theme.bgCard,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -1667,12 +1939,12 @@ const styles = StyleSheet.create({
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: theme.bgCard,
     borderRadius: 18,
     paddingHorizontal: 16,
     height: 52,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -1680,7 +1952,7 @@ const styles = StyleSheet.create({
     elevation: 0,
     marginBottom: 20,
   },
-  searchInput: { flex: 1, fontSize: FONTS.sizes.md, color: COLORS.textPrimary },
+  searchInput: { flex: 1, fontSize: FONTS.sizes.md, color: theme.textPrimary, paddingVertical: 0 },
   searchFilterBtn: {
     padding: 4,
     marginLeft: 6,
@@ -1689,7 +1961,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: theme.textPrimary,
     marginBottom: 10,
     paddingLeft: 2,
   },
@@ -1702,11 +1974,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 14,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6',
+    borderWidth: 1,
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
   },
   relatedTagText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.isDark ? '#E2E8F0' : '#6B7280',
     fontWeight: '600',
   },
 
@@ -1718,9 +1992,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
   },
   sortByTagActive: {
     backgroundColor: '#E6F4EA',
@@ -1743,9 +2017,9 @@ const styles = StyleSheet.create({
   categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1757,14 +2031,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   categoryPillActive: {
-    backgroundColor: '#1A1A1A',
-    borderColor: '#E8F542',
+    backgroundColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
+    borderColor: theme.isDark ? '#FF8C00' : '#E8F542',
     borderWidth: 1.5,
-    shadowColor: '#E8F542',
+    shadowColor: theme.isDark ? '#FF8C00' : '#E8F542',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 0,
+    shadowOpacity: theme.isDark ? 0.6 : 0.15,
+    shadowRadius: theme.isDark ? 12 : 8,
+    elevation: theme.isDark ? 4 : 0,
   },
   categoryIconCircle: {
     width: 28,
@@ -1776,13 +2050,13 @@ const styles = StyleSheet.create({
   categoryPillText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#334155',
+    color: theme.isDark ? '#FFFFFF' : '#334155',
   },
   categoryPillTextActive: {
-    color: '#FFFFFF',
+    color: theme.isDark ? '#111111' : '#FFFFFF',
   },
   countBubble: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -1790,26 +2064,28 @@ const styles = StyleSheet.create({
   countBubbleText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: theme.isDark ? '#E2E8F0' : '#64748B',
   },
 
   // 🌟 Premium Hero Gradient Card
   heroGradientCard: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: theme.isDark ? '#111111' : '#1A1A1A',
     borderRadius: 24,
     padding: 20,
     marginBottom: 24,
-    shadowColor: '#1A1A1A',
+    borderWidth: theme.isDark ? 2 : 0,
+    borderColor: theme.isDark ? '#FF8C00' : 'transparent',
+    shadowColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 0,
+    shadowOpacity: theme.isDark ? 0.45 : 0.15,
+    shadowRadius: theme.isDark ? 32 : 16,
+    elevation: theme.isDark ? 8 : 0,
   },
   heroCardHeader: {
     marginBottom: 16,
   },
   heroTagBadge: {
-    backgroundColor: '#E8F542',
+    backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -1840,10 +2116,10 @@ const styles = StyleSheet.create({
   },
   statCardItem: {
     flex: 1,
-    width: 0,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
+    width: '100%',
+    backgroundColor: theme.isDark ? '#FF8C00' : theme.bgCard,
+    borderWidth: 1,
+    borderColor: theme.isDark ? '#FF8C00' : theme.borderLight,
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 6,
@@ -1851,19 +2127,20 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statCardItemActive: {
-    borderColor: '#E8F542',
-    borderWidth: 2,
-    shadowColor: '#E8F542',
+    borderColor: theme.isDark ? '#FF8C00' : '#E8F542',
+    borderWidth: theme.isDark ? 1 : 2.5,
+    borderRadius: 16,
+    shadowColor: theme.isDark ? '#FF8C00' : '#E8F542',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
+    shadowOpacity: theme.isDark ? 0.4 : 0.15,
+    shadowRadius: theme.isDark ? 12 : 8,
     elevation: 3,
   },
   statIconBadge: {
     width: 28,
     height: 28,
     borderRadius: 10,
-    backgroundColor: '#E6F4EA',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 2,
@@ -1871,14 +2148,14 @@ const styles = StyleSheet.create({
   statCountVal: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1A1A1A',
+    color: theme.isDark ? '#111111' : theme.textPrimary,
     textAlign: 'center',
     lineHeight: 22,
   },
   statLabelText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#6B7280',
+    color: theme.isDark ? '#111111' : '#6B7280',
     textTransform: 'uppercase',
     textAlign: 'center',
   },
@@ -1894,14 +2171,14 @@ const styles = StyleSheet.create({
   listSectionTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: theme.textPrimary,
     letterSpacing: -0.2,
   },
   listSectionBadge: {
     fontSize: 11,
     fontWeight: '800',
     color: '#1A1A1A',
-    backgroundColor: COLORS.accentYellow,
+    backgroundColor: theme.accentYellow,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
@@ -1912,29 +2189,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#DCFCE7',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.4)' : '#BBF7D0',
   },
   nearYouBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#15803D',
+    color: theme.isDark ? '#FF8C00' : '#15803D',
   },
 
   // 🌟 Redesigned Next-Level Job Cards (LinkedIn/Upwork Premium style)
   cleanJobRow: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
     borderRadius: 22,
     padding: 16,
     marginBottom: 14,
     marginHorizontal: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
@@ -1985,25 +2262,27 @@ const styles = StyleSheet.create({
   },
   jobRowSubtitle: {
     fontSize: 12,
-    color: '#475569',
+    color: theme.textSecondary,
     fontWeight: '600',
   },
   jobRowTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1A1A1A',
+    color: theme.isDark ? '#FFFFFF' : '#1A1A1A',
     marginTop: 2,
     letterSpacing: -0.2,
   },
   salaryBadgeContainer: {
-    backgroundColor: '#E6F4EA',
+    backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#E6F4EA',
+    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.4)' : 'transparent',
+    borderWidth: theme.isDark ? 1 : 0,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
     marginLeft: 8,
   },
   jobRowSalaryText: {
-    color: '#137333',
+    color: theme.isDark ? '#FF8C00' : '#137333',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -2016,9 +2295,9 @@ const styles = StyleSheet.create({
   metaBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -2026,11 +2305,11 @@ const styles = StyleSheet.create({
   metaBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: COLORS.accentGreen,
+    color: theme.accentGreen,
   },
   cardDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
     marginBottom: 12,
   },
   cardFooterRow: {
@@ -2047,7 +2326,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
   },
   rowHeartBtnActive: {
     backgroundColor: '#FEE2E2',
@@ -2063,13 +2342,18 @@ const styles = StyleSheet.create({
   applyArrowBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F542',
+    backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: theme.isDark ? '#FF8C00' : '#CBD5E1',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 4,
+    shadowColor: theme.isDark ? '#FF8C00' : 'transparent',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: theme.isDark ? 0.6 : 0,
+    shadowRadius: theme.isDark ? 6 : 0,
+    elevation: theme.isDark ? 3 : 0,
   },
   applyBtnLabel: {
     fontSize: 10,
@@ -2077,24 +2361,25 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   relatedTagActive: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
+    borderColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
   },
   relatedTagTextActive: {
-    color: '#FFFFFF',
+    color: theme.isDark ? '#111111' : '#FFFFFF',
   },
 
   // Detail View
   detailNav: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
-    backgroundColor: COLORS.bgPrimary,
+    backgroundColor: theme.bgPrimary,
   },
-  detailNavTitle: { fontSize: FONTS.sizes.lg, fontWeight: '700', color: COLORS.textPrimary },
+  detailNavTitle: { fontSize: FONTS.sizes.lg, fontWeight: '700', color: theme.textPrimary },
   iconBtn: {
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: theme.bgCard,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -2105,7 +2390,7 @@ const styles = StyleSheet.create({
   },
   // Upwork Style Detail Page Layout
   upworkHeaderContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
     borderRadius: 24,
     marginHorizontal: 16,
     marginTop: 8,
@@ -2116,7 +2401,7 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
   },
   upworkPosterRow: {
     flexDirection: 'row',
@@ -2127,12 +2412,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: COLORS.accentYellow,
+    backgroundColor: theme.accentYellow,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
     borderWidth: 2,
-    borderColor: COLORS.accentGreen,
+    borderColor: theme.accentGreen,
   },
   upworkPosterAvatarImg: {
     width: 48,
@@ -2142,12 +2427,12 @@ const styles = StyleSheet.create({
   upworkPosterAvatarText: {
     fontSize: 20,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: theme.textPrimary,
   },
   upworkPosterName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: theme.textPrimary,
     marginBottom: 2,
   },
   upworkCategoryRow: {
@@ -2159,24 +2444,24 @@ const styles = StyleSheet.create({
   upworkCategoryText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.accentGreen,
+    color: theme.accentGreen,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   upworkDotDivider: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: theme.isDark ? '#737373' : '#94A3B8',
     marginHorizontal: 8,
   },
   upworkDateText: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.isDark ? '#A3A3A3' : '#64748B',
     fontWeight: '500',
   },
   upworkJobTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0F172A',
+    color: theme.textPrimary,
     lineHeight: 28,
     marginBottom: 8,
     letterSpacing: -0.3,
@@ -2190,7 +2475,7 @@ const styles = StyleSheet.create({
   upworkCompanyName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#334155',
+    color: theme.isDark ? '#E2E8F0' : '#334155',
   },
   upworkLocationBadge: {
     flexDirection: 'row',
@@ -2209,7 +2494,7 @@ const styles = StyleSheet.create({
   },
   upworkDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
     marginVertical: 18,
   },
   specsChipsRow: {
@@ -2251,7 +2536,7 @@ const styles = StyleSheet.create({
   upworkStatVal: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#E8F542',
+    color: theme.isDark ? '#FF8C00' : '#C8D900',
   },
   upworkStatLbl: {
     fontSize: 11,
@@ -2265,7 +2550,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#334155',
   },
   upworkSectionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
     borderRadius: 24,
     marginHorizontal: 16,
     marginVertical: 8,
@@ -2276,17 +2561,17 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
   },
   upworkSectionTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: theme.textPrimary,
     marginBottom: 12,
   },
   upworkDescText: {
     fontSize: 14,
-    color: '#334155',
+    color: theme.isDark ? '#CBD5E1' : '#334155',
     lineHeight: 22,
   },
   upworkRequirementsGrid: {
@@ -2295,20 +2580,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   upworkReqChip: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
   },
   upworkReqChipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.textSecondary,
   },
   upworkClientSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
     borderRadius: 24,
     marginHorizontal: 16,
     marginVertical: 8,
@@ -2319,7 +2604,7 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
   },
   upworkClientRow: {
     flexDirection: 'row',
@@ -2329,12 +2614,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
   },
   upworkClientAvatarImage: {
     width: 48,
@@ -2344,12 +2629,12 @@ const styles = StyleSheet.create({
   upworkClientAvatarText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#475569',
+    color: theme.textSecondary,
   },
   upworkClientName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: theme.textPrimary,
   },
   verifiedBadge: {
     flexDirection: 'row',
@@ -2381,7 +2666,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   upworkApplyBtn: {
-    backgroundColor: '#E8F542',
+    backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
     borderRadius: 28,
     height: 56,
     flexDirection: 'row',
@@ -2389,10 +2674,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 10,
     marginBottom: 8,
-    shadowColor: '#E8F542',
+    shadowColor: theme.isDark ? '#FF8C00' : '#E8F542',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
+    shadowOpacity: theme.isDark ? 0.8 : 0.25,
+    shadowRadius: theme.isDark ? 16 : 12,
     elevation: 5,
   },
   upworkApplyBtnText: {
@@ -2411,7 +2696,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.accentYellow,
+    backgroundColor: theme.accentYellow,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2423,16 +2708,16 @@ const styles = StyleSheet.create({
   posterAvatarText: {
     fontSize: 16,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: theme.textPrimary,
   },
   posterName: {
     fontSize: 15,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: theme.textPrimary,
   },
   posterTitle: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: theme.textSecondary,
     fontWeight: '600',
     marginBottom: 4,
   },
@@ -2442,7 +2727,7 @@ const styles = StyleSheet.create({
   },
   posterContactText: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: theme.textSecondary,
     fontWeight: '500',
   },
   cardPosterRow: {
@@ -2462,7 +2747,7 @@ const styles = StyleSheet.create({
   },
 
   emptyBox: { alignItems: 'center', paddingVertical: 60, gap: 12, paddingHorizontal: 40 },
-  emptyText: { fontSize: FONTS.sizes.md, color: COLORS.textLight, textAlign: 'center' },
+  emptyText: { fontSize: FONTS.sizes.md, color: theme.textLight, textAlign: 'center' },
 
   // Direct Apply Modal Styles
   modalOverlay: {
@@ -2474,12 +2759,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.isDark ? '#1A1A1A' : '#FFFFFF',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 24,
     paddingTop: 10,
     paddingBottom: 40,
+    maxHeight: '90%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -10 },
     shadowOpacity: 0.15,
@@ -2503,20 +2789,20 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: theme.textPrimary,
     letterSpacing: -0.5,
   },
   modalCloseBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalSubtitle: {
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: theme.textSecondary,
     lineHeight: 18,
     marginBottom: 20,
     fontWeight: '500',
@@ -2524,35 +2810,35 @@ const styles = StyleSheet.create({
   modalRecruiterCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
     borderRadius: 20,
     padding: 16,
     gap: 14,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#F1F5F9',
     marginBottom: 18,
   },
   modalRecruiterAvatar: {
     width: 46,
     height: 46,
     borderRadius: 16,
-    backgroundColor: COLORS.accentYellow,
+    backgroundColor: theme.isDark ? '#FF8C00' : theme.accentYellow,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalRecruiterAvatarText: {
     fontSize: 16,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: theme.isDark ? '#111111' : theme.textPrimary,
   },
   modalRecruiterName: {
     fontSize: 15,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: theme.textPrimary,
   },
   modalRecruiterTitle: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: theme.textSecondary,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -2563,9 +2849,9 @@ const styles = StyleSheet.create({
   },
   modalContactCard: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#E2E8F0',
     borderRadius: 16,
     padding: 12,
   },
@@ -2578,14 +2864,14 @@ const styles = StyleSheet.create({
   modalContactLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: theme.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
   modalContactValue: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: theme.textPrimary,
   },
   modalActionsContainer: {
     gap: 12,
@@ -2639,20 +2925,25 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   appApplyBtn: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.isDark ? '#FF8C00' : '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: theme.isDark ? '#FF8C00' : '#E2E8F0',
     borderRadius: 16,
     height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
+    shadowColor: theme.isDark ? '#FF8C00' : 'transparent',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: theme.isDark ? 0.6 : 0,
+    shadowRadius: theme.isDark ? 8 : 0,
+    elevation: theme.isDark ? 3 : 0,
   },
   appApplyBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: theme.isDark ? '#111111' : theme.textPrimary,
   },
   requirementsGrid: {
     flexDirection: 'row',
@@ -2684,12 +2975,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   filterModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.isDark ? '#1A1A1A' : '#FFFFFF',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 34,
+    maxHeight: '90%',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -10 },
     shadowOpacity: 0.12,
@@ -2705,13 +2997,13 @@ const styles = StyleSheet.create({
   filterModalTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1A1A1A',
+    color: theme.textPrimary,
     letterSpacing: -0.3,
   },
   filterSectionTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1A1A1A',
+    color: theme.textPrimary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginTop: 16,
@@ -2727,21 +3019,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 14,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6',
     borderWidth: 1.2,
-    borderColor: '#E5E7EB',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
   },
   filterSelectPillActive: {
-    backgroundColor: '#1A1A1A',
-    borderColor: '#1A1A1A',
+    backgroundColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
+    borderColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
   },
   filterPillLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#4B5563',
+    color: theme.isDark ? '#A3A3A3' : '#4B5563',
   },
   filterPillLabelActive: {
-    color: '#FFFFFF',
+    color: theme.isDark ? '#111111' : '#FFFFFF',
   },
   filterModalFooter: {
     flexDirection: 'row',
@@ -2755,24 +3047,29 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterResetBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#6B7280',
+    color: theme.isDark ? '#A3A3A3' : '#6B7280',
   },
   filterApplyBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 16,
-    backgroundColor: '#E8F542',
+    backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
     borderWidth: 1.5,
-    borderColor: '#CBD5E1',
+    borderColor: theme.isDark ? '#FF8C00' : '#CBD5E1',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: theme.isDark ? '#FF8C00' : 'transparent',
+    shadowOffset: theme.isDark ? { width: 0, height: 4 } : { width: 0, height: 0 },
+    shadowOpacity: theme.isDark ? 0.6 : 0,
+    shadowRadius: theme.isDark ? 8 : 0,
+    elevation: theme.isDark ? 3 : 0,
   },
   filterApplyBtnText: {
     fontSize: 13,
@@ -2785,12 +3082,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6',
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderWidth: 1.2,
-    borderColor: '#E5E7EB',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
     marginTop: 6,
   },
   dropdownLeft: {
@@ -2801,36 +3098,36 @@ const styles = StyleSheet.create({
   dropdownSelectedText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: theme.textPrimary,
     flex: 1,
   },
   dropdownListContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.isDark ? '#1A1A1A' : '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1.2,
-    borderColor: '#E5E7EB',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
     marginTop: 8,
     padding: 10,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
+    shadowOpacity: theme.isDark ? 0.2 : 0.05,
     shadowRadius: 10,
     elevation: 3,
   },
   dropdownSearchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F9FAFB',
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.2)' : '#F3F4F6',
   },
   dropdownSearchInput: {
     fontSize: 12,
-    color: '#1A1A1A',
+    color: theme.textPrimary,
     flex: 1,
     padding: 0,
   },
@@ -2846,15 +3143,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   dropdownItemActive: {
-    backgroundColor: '#E8F542',
+    backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
   },
   dropdownItemText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#4B5563',
+    color: theme.isDark ? '#D4D4D4' : '#4B5563',
   },
   dropdownItemTextActive: {
-    color: '#1A1A1A',
+    color: theme.isDark ? '#111111' : '#1A1A1A',
     fontWeight: '700',
   },
   profileWarningBanner: {
@@ -2902,7 +3199,7 @@ const styles = StyleSheet.create({
   warningActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
@@ -2920,15 +3217,15 @@ const styles = StyleSheet.create({
     top: 56,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.isDark ? '#1A1A1A' : '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#EEF2F0',
+    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.3)' : '#EEF2F0',
     paddingVertical: 8,
-    shadowColor: '#000',
+    shadowColor: theme.isDark ? '#FF8C00' : '#000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    shadowOpacity: theme.isDark ? 0.25 : 0.1,
+    shadowRadius: theme.isDark ? 16 : 12,
     elevation: 8,
     zIndex: 999,
   },
@@ -2941,6 +3238,7 @@ const styles = StyleSheet.create({
   suggestionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0A2417',
+    color: theme.isDark ? '#E2E8F0' : '#0A2417',
   },
 });
+}

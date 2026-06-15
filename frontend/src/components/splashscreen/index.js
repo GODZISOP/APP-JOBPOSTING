@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTheme } from '../../context/ThemeContext';
 import {
   View, Text, StyleSheet, Animated, Easing, Image, Dimensions,
 } from 'react-native';
@@ -49,6 +50,8 @@ function Sparkle({ x, y, delay, size = 7 }) {
 
 // ─── STORY CAROUSEL ────────────────────────────────────────────────────────────
 function StoryCarousel({ onStep }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const [idx, setIdx] = useState(0);
   const op = useRef(new Animated.Value(1)).current;
   const ty = useRef(new Animated.Value(0)).current;
@@ -85,6 +88,8 @@ function StoryCarousel({ onStep }) {
 
 // ─── DOT PROGRESS ──────────────────────────────────────────────────────────────
 function DotProgress({ active }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   return (
     <View style={styles.dotsRow}>
       {STEPS.map((_, i) => (
@@ -96,6 +101,8 @@ function DotProgress({ active }) {
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function SplashScreen({ message, subMessage, isSignOut, showLottie }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const [stepIdx, setStepIdx] = useState(0);
 
   const phase = useRef(new Animated.Value(0)).current;
@@ -249,153 +256,155 @@ export default function SplashScreen({ message, subMessage, isSignOut, showLotti
 // ─── STYLES ────────────────────────────────────────────────────────────────────
 const DOME_H = SH * 0.56;
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',   // Whole screen is white
-    alignItems: 'center',
-  },
+function getStyles(theme) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: theme.bgPrimary,
+      alignItems: 'center',
+    },
 
-  // Green dome: fills top portion, huge bottom border radius = arch / wave shape
-  heroDome: {
-    width: SW + 80,               // wider than screen so side cuts are hidden
-    height: DOME_H,
-    backgroundColor: '#B2E2B9',
-    borderBottomLeftRadius: (SW + 80) / 1.6,   // big arch curve
-    borderBottomRightRadius: (SW + 80) / 1.6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    overflow: 'hidden',
-    marginLeft: -40,
-    marginRight: -40,
-    // Lift icon above the dome bottom edge
-    paddingBottom: 40,
-  },
-  lottieMain: {
-    width: SW * 0.68,
-    height: SW * 0.68,
-  },
+    // Green dome: fills top portion, huge bottom border radius = arch / wave shape
+    heroDome: {
+      width: SW + 80,               // wider than screen so side cuts are hidden
+      height: DOME_H,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#B2E2B9',
+      borderBottomLeftRadius: (SW + 80) / 1.6,   // big arch curve
+      borderBottomRightRadius: (SW + 80) / 1.6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+      overflow: 'hidden',
+      marginLeft: -40,
+      marginRight: -40,
+      // Lift icon above the dome bottom edge
+      paddingBottom: 40,
+    },
+    lottieMain: {
+      width: SW * 0.68,
+      height: SW * 0.68,
+    },
 
-  // Floating icon — between dome and content, always centered
-  iconWrapper: {
-    marginTop: -36,         // pull up to overlap dome bottom edge
-    marginBottom: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  iconGlow: {
-    position: 'absolute',
-    width: 84,
-    height: 84,
-    borderRadius: 24,
-    backgroundColor: 'rgba(26, 155, 86, 0.18)',
-    transform: [{ scale: 1.2 }],
-  },
-  appIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    borderWidth: 3.5,
-    borderColor: '#FFFFFF',
-  },
+    // Floating icon — between dome and content, always centered
+    iconWrapper: {
+      marginTop: -36,         // pull up to overlap dome bottom edge
+      marginBottom: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10,
+    },
+    iconGlow: {
+      position: 'absolute',
+      width: 84,
+      height: 84,
+      borderRadius: 24,
+      backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.18)' : 'rgba(26, 155, 86, 0.18)',
+      transform: [{ scale: 1.2 }],
+    },
+    appIcon: {
+      width: 72,
+      height: 72,
+      borderRadius: 20,
+      borderWidth: 3.5,
+      borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.6)' : '#FFFFFF',
+    },
 
-  // Content area below dome
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 8,
-    paddingBottom: 28,
-    paddingHorizontal: 32,
-    width: '100%',
-  },
+    // Content area below dome
+    content: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingTop: 8,
+      paddingBottom: 28,
+      paddingHorizontal: 32,
+      width: '100%',
+    },
 
-  stepBadge: {
-    backgroundColor: '#E8F9EF',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#A7F3C9',
-  },
-  stepText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#1A9B56',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
+    stepBadge: {
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#E8F9EF',
+      borderRadius: 20,
+      paddingHorizontal: 14,
+      paddingVertical: 4,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#A7F3C9',
+    },
+    stepText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.isDark ? '#FFFFFF' : '#1A9B56',
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
 
-  letterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  titleLetter: {
-    fontSize: 42,
-    fontWeight: '900',
-    color: '#0A2417',
-    letterSpacing: -1.5,
-  },
-  titleFull: {
-    fontSize: 38,
-    fontWeight: '900',
-    color: '#0A2417',
-    marginBottom: 8,
-  },
+    letterRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 10,
+    },
+    titleLetter: {
+      fontSize: 42,
+      fontWeight: '900',
+      color: theme.textPrimary,
+      letterSpacing: -1.5,
+    },
+    titleFull: {
+      fontSize: 38,
+      fontWeight: '900',
+      color: theme.textPrimary,
+      marginBottom: 8,
+    },
 
-  storyBox: {
-    minHeight: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  storyText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#4B5563',
-    textAlign: 'center',
-    lineHeight: 23,
-  },
+    storyBox: {
+      minHeight: 56,
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+    },
+    storyText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.textSecondary,
+      textAlign: 'center',
+      lineHeight: 23,
+    },
 
-  statusBadge: {
-    marginTop: 14,
-    backgroundColor: '#F0FDF4',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-  },
-  
-  statusBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#15803D',
-    letterSpacing: 0.2,
-  },
+    statusBadge: {
+      marginTop: 14,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F0FDF4',
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 5,
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#BBF7D0',
+    },
 
-  dotsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    gap: 6,
-  },
-  dot: {
-    borderRadius: 6,
-    height: 7,
-  },
-  dotActive: {
-    width: 24,
-    backgroundColor: '#1A9B56',
-  },
-  dotInactive: {
-    width: 7,
-    backgroundColor: '#D1FAE5',
-  },
-});
+    statusBadgeText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.isDark ? '#FFFFFF' : '#15803D',
+      letterSpacing: 0.2,
+    },
+
+    dotsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 20,
+      gap: 6,
+    },
+    dot: {
+      borderRadius: 6,
+      height: 7,
+    },
+    dotActive: {
+      width: 24,
+      backgroundColor: theme.isDark ? '#FFFFFF' : '#1A9B56',
+    },
+    dotInactive: {
+      width: 7,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : '#D1FAE5',
+    },
+  });
+}

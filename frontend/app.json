@@ -19,7 +19,12 @@
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
-        }
+        },
+        "LSApplicationQueriesSchemes": [
+          "whatsapp",
+          "whatsapp-business",
+          "whatsappw4b"
+        ]
       }
     },
     "android": {
@@ -35,7 +40,13 @@
         "backgroundColor": "#00000000",
         "barStyle": "dark-content"
       },
-      "package": "com.bkj.app"
+      "package": "com.bkj.app",
+      "queries": {
+        "packages": [
+          "com.whatsapp",
+          "com.whatsapp.w4b"
+        ]
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const Sentry = require('@sentry/node');
 const { createClient } = require('@supabase/supabase-js');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -105,6 +106,382 @@ app.get('/health', (req, res) => {
     uptime: process.uptime(),
     env: process.env.NODE_ENV || 'development'
   });
+});
+
+// Endpoint: Send beautiful HTML email with 8-digit OTP using standard SMTP Transporter (Nodemailer)
+app.post('/api/auth/send-otp', async (req, res, next) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email address is required.' });
+  }
+
+  const otpCode = String(Math.floor(10000000 + Math.random() * 90000000));
+  try {
+    
+    // SMTP credentials from env
+    const smtpHost = process.env.SMTP_HOST || 'smtp.resend.com';
+    const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+    const smtpUser = process.env.SMTP_USER || 'resend';
+    const smtpPass = process.env.SMTP_PASS || 're_BWYnYRSf_7LMDHxArzSTmuoYnGeeJ73YS';
+    const smtpFrom = process.env.SMTP_FROM || 'BKJ App <onboarding@resend.dev>';
+    const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
+
+    // Create transport
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass
+      },
+      tls: {
+        // Do not fail on invalid certs
+        rejectUnauthorized: false
+      }
+    });
+
+    const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Verify Your Email</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background-color: #F3F4F6;
+      margin: 0;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      background-color: #FFFFFF;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      border: 1px solid #E5E7EB;
+    }
+    .header {
+      background-color: #1E293B;
+      padding: 30px;
+      text-align: center;
+    }
+    .logo {
+      font-size: 28px;
+      font-weight: 800;
+      color: #E8F542;
+      letter-spacing: -1px;
+    }
+    .content {
+      padding: 40px 30px;
+      text-align: center;
+    }
+    .title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #111827;
+      margin-bottom: 12px;
+    }
+    .text {
+      font-size: 14px;
+      color: #4B5563;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+    .otp-box {
+      background-color: #FEF9C3;
+      border: 2px dashed #EAB308;
+      border-radius: 14px;
+      padding: 16px 24px;
+      display: inline-block;
+      margin-bottom: 30px;
+    }
+    .otp-code {
+      font-size: 32px;
+      font-weight: 900;
+      color: #1E293B;
+      letter-spacing: 6px;
+    }
+    .footer {
+      background-color: #F9FAFB;
+      padding: 20px 30px;
+      text-align: center;
+      border-top: 1px solid #F3F4F6;
+      font-size: 11px;
+      color: #9CA3AF;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">BKJ</div>
+    </div>
+    <div class="content">
+      <div class="title">Verify Your Email Address</div>
+      <div class="text">
+        Welcome to BKJ! We're excited to help you find your next premium opportunity. Please use the 8-digit verification code below to activate your account:
+      </div>
+      <div class="otp-box">
+        <span class="otp-code">${otpCode}</span>
+      </div>
+      <div class="text" style="font-size: 12px; color: #9CA3AF; margin-bottom: 0;">
+        If you did not request this code, you can safely ignore this email.
+      </div>
+    </div>
+    <div class="footer">
+      &copy; 2026 BKJ Professional Marketplace. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    // Send email via SMTP
+    await transporter.sendMail({
+      from: smtpFrom,
+      to: email,
+      subject: 'BKJ App - Email Verification Code 🔑',
+      html: emailHtml
+    });
+
+    console.log(`✉️ Verification SMTP OTP sent to ${email} successfully!`);
+    res.json({ success: true, otp: otpCode, delivered: true });
+
+  } catch (err) {
+    console.error('Error in send-otp route using SMTP:', err);
+    
+    // In development mode, fallback to returning the OTP in the response to prevent blocking tests.
+    if (process.env.NODE_ENV !== 'production' || !process.env.NODE_ENV) {
+      console.log('\n==================================================');
+      console.log(`🔑 [DEV ONLY] EMAIL OTP FOR ${email}: ${otpCode}`);
+      console.log('==================================================\n');
+      
+      return res.json({ 
+        success: true, 
+        otp: otpCode, 
+        delivered: false, 
+        warning: `Email failed: ${err.message || 'SMTP Error'}. OTP returned in response for development.` 
+      });
+    }
+    
+    res.status(500).json({ success: false, error: err.message || 'Failed to send verification email via SMTP' });
+  }
+});
+
+// Endpoint: Send 8-digit OTP for Forgot Password
+app.post('/api/auth/send-reset-otp', async (req, res, next) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ success: false, error: 'Email address is required.' });
+  }
+
+  if (!supabaseAdmin) {
+    return res.status(500).json({ success: false, error: 'Supabase connection not initialized on backend.' });
+  }
+
+  try {
+    // 1. Verify user exists
+    const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    if (listError) throw listError;
+    
+    const targetUser = listData.users?.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
+    if (!targetUser) {
+      return res.status(404).json({ success: false, error: 'No user account found with this email address.' });
+    }
+
+    // 2. Generate OTP
+    const otpCode = String(Math.floor(10000000 + Math.random() * 90000000));
+    
+    // SMTP credentials from env
+    const smtpHost = process.env.SMTP_HOST || 'smtp.resend.com';
+    const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+    const smtpUser = process.env.SMTP_USER || 'resend';
+    const smtpPass = process.env.SMTP_PASS || 're_BWYnYRSf_7LMDHxArzSTmuoYnGeeJ73YS';
+    const smtpFrom = process.env.SMTP_FROM || 'BKJ App <onboarding@resend.dev>';
+    const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
+
+    // Create transport
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+
+    const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Reset Your Passcode</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background-color: #F3F4F6;
+      margin: 0;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      background-color: #FFFFFF;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      border: 1px solid #E5E7EB;
+    }
+    .header {
+      background-color: #1E293B;
+      padding: 30px;
+      text-align: center;
+    }
+    .logo {
+      font-size: 28px;
+      font-weight: 800;
+      color: #E8F542;
+      letter-spacing: -1px;
+    }
+    .content {
+      padding: 40px 30px;
+      text-align: center;
+    }
+    .title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #111827;
+      margin-bottom: 12px;
+    }
+    .text {
+      font-size: 14px;
+      color: #4B5563;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+    .otp-box {
+      background-color: #FEF9C3;
+      border: 2px dashed #EAB308;
+      border-radius: 14px;
+      padding: 16px 24px;
+      display: inline-block;
+      margin-bottom: 30px;
+    }
+    .otp-code {
+      font-size: 32px;
+      font-weight: 900;
+      color: #1E293B;
+      letter-spacing: 6px;
+    }
+    .footer {
+      background-color: #F9FAFB;
+      padding: 20px 30px;
+      text-align: center;
+      border-top: 1px solid #F3F4F6;
+      font-size: 11px;
+      color: #9CA3AF;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">BKJ</div>
+    </div>
+    <div class="content">
+      <div class="title">Reset Your Passcode</div>
+      <div class="text">
+        You requested to reset your security passcode. Please use the 8-digit OTP verification code below to authorize this request:
+      </div>
+      <div class="otp-box">
+        <span class="otp-code">${otpCode}</span>
+      </div>
+      <div class="text" style="font-size: 12px; color: #9CA3AF; margin-bottom: 0;">
+        If you did not make this request, you can safely ignore this email. Your passcode will remain unchanged.
+      </div>
+    </div>
+    <div class="footer">
+      &copy; 2026 BKJ Professional Marketplace. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    // Send email via SMTP
+    await transporter.sendMail({
+      from: smtpFrom,
+      to: email.trim(),
+      subject: 'BKJ App - Passcode Reset Code 🔑',
+      html: emailHtml
+    });
+
+    console.log(`✉️ Reset password SMTP OTP sent to ${email} successfully!`);
+    res.json({ success: true, otp: otpCode, delivered: true });
+
+  } catch (err) {
+    console.error('Error in send-reset-otp route:', err);
+    
+    // In development mode, fallback to returning the OTP in the response
+    if (process.env.NODE_ENV !== 'production' || !process.env.NODE_ENV) {
+      const otpCode = String(Math.floor(10000000 + Math.random() * 90000000));
+      console.log('\n==================================================');
+      console.log(`🔑 [DEV ONLY] RESET OTP FOR ${email}: ${otpCode}`);
+      console.log('==================================================\n');
+      
+      return res.json({ 
+        success: true, 
+        otp: otpCode, 
+        delivered: false, 
+        warning: `Email failed: ${err.message || 'SMTP Error'}. OTP returned in response for development.` 
+      });
+    }
+    
+    res.status(500).json({ success: false, error: err.message || 'Failed to send reset email.' });
+  }
+});
+
+// Endpoint: Update password via admin privileges
+app.post('/api/auth/update-password', async (req, res, next) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ success: false, error: 'Email and new password are required.' });
+  }
+
+  if (!supabaseAdmin) {
+    return res.status(500).json({ success: false, error: 'Supabase connection not initialized on backend.' });
+  }
+
+  try {
+    // 1. Get user by email
+    const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    if (listError) throw listError;
+
+    const targetUser = listData.users?.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
+    if (!targetUser) {
+      return res.status(404).json({ success: false, error: 'No user account found with this email address.' });
+    }
+
+    // 2. Update password directly via admin panel
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(targetUser.id, {
+      password: password
+    });
+    if (updateError) throw updateError;
+
+    console.log(`🔑 Passcode updated successfully for user: ${email}`);
+    res.json({ success: true, message: 'Passcode updated successfully.' });
+
+  } catch (err) {
+    console.error('Error in update-password route:', err);
+    res.status(500).json({ success: false, error: err.message || 'Failed to update passcode.' });
+  }
 });
 
 // Admin Route: Get app summary statistics (requires Supabase Admin permissions)

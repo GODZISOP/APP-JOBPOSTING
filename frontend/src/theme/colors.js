@@ -28,33 +28,33 @@ export const LIGHT_COLORS = {
   shadow: 'rgba(0,0,0,0.08)',
 };
 
-// ─── Dark Colors ──────────────────────────────────────────────────────────────
+// ─── Dark Colors (Glassmorphism Glowing Orange Theme) ─────────────────────────
 export const DARK_COLORS = {
-  bgPrimary: '#0F1610',
-  bgSecondary: '#162119',
-  bgCard: '#1C2B20',
-  bgDark: '#000000',
+  bgPrimary: '#111111', // Deep black background
+  bgSecondary: '#1A1A1A', // Slightly lighter dark
+  bgCard: 'rgba(30, 30, 30, 0.7)', // Transparent glass effect
+  bgDark: '#050505',
 
-  accentYellow: '#E8F542',
-  accentYellowDark: '#C8D900',
-  accentGreen: '#6ABF7B',
+  accentYellow: '#FF8C00', // Glowing orange accent
+  accentYellowDark: '#E65C00',
+  accentGreen: '#FF8C00', // Using orange instead of green for the dark theme
 
-  textPrimary: '#EDF5EE',
-  textSecondary: '#9DB3A0',
-  textLight: '#6B7B6E',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#A3A3A3',
+  textLight: '#737373',
   textWhite: '#FFFFFF',
 
   success: '#4CAF50',
   error: '#EF4444',
-  warning: '#F59E0B',
+  warning: '#FF8C00',
 
-  border: '#2D3D31',
-  borderLight: '#253329',
+  border: 'rgba(255, 255, 255, 0.12)', // Glass rim
+  borderLight: 'rgba(255, 255, 255, 0.05)',
 
-  toggleOff: '#3A4D3D',
-  toggleOn: '#E8F542',
+  toggleOff: '#333333',
+  toggleOn: '#FF8C00',
 
-  shadow: 'rgba(0,0,0,0.30)',
+  shadow: 'rgba(255, 140, 0, 0.15)', // Subtle glowing orange shadow
 };
 
 // ─── Backward-compat export (still used by App.js tab bar init) ───────────────

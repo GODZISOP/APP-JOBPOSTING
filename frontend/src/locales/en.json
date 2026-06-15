@@ -3,6 +3,7 @@
     "profile_title": "Profile",
     "professional_profile": "Professional Profile",
     "create_account_signin": "Create Account / Sign In",
+    "guest_description": "Create an account to build your professional profile, apply for jobs, and connect with premium employers.",
     "change_profile_photo": "Change Profile Photo",
     "upload_profile_photo": "Upload Profile Photo",
     "jobs_posted": "Jobs Posted",
@@ -14,6 +15,7 @@
     "no_jobs_posted": "No jobs posted yet.",
     "account_utilities": "Account & Utilities",
     "app_language": "App Language",
+    "dark_mode": "Dark Mode",
     "security_privacy": "Security & Privacy",
     "logout_account": "Log Out Account",
     "bookmarked_opportunities": "Bookmarked Opportunities",
@@ -85,7 +87,7 @@
     "phone_placeholder": "Phone Number"
   },
   "jobs": {
-    "search_placeholder": "Search jobs, companies, or keywords...",
+    "search_placeholder": "Search jobs or companies...",
     "categories_header": "Categories",
     "premium_opportunities": "Premium Opportunities",
     "recent_posts": "Recent Posts",
@@ -94,7 +96,8 @@
     "featured": "Featured 👑",
     "hot": "Hot 🔥",
     "job_details": "Job Details",
-    "apply_directly": "Apply Directly"
+    "apply_directly": "Apply Directly",
+    "applicants": "applicants"
   },
   "post_job": {
     "post_job_title": "Post a Job",

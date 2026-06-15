@@ -4,9 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import NetInfo from '@react-native-community/netinfo';
 import LottieView from 'lottie-react-native';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { COLORS } from '../../theme/colors';
 
+let styles;
+
 export default function NetworkBarrier({ children }) {
+  const { theme } = useTheme();
+  styles = getStyles(theme);
   const [isConnected, setIsConnected] = useState(true);
   const { fetchJobs, loading } = useAuth();
   const wasOffline = useRef(false);
@@ -93,7 +98,7 @@ export default function NetworkBarrier({ children }) {
           </View>
 
           <TouchableOpacity style={styles.offlineBtn} activeOpacity={0.85} onPress={handleManualRetry}>
-            <Ionicons name="refresh-outline" size={18} color={COLORS.textPrimary} style={{ marginRight: 6 }} />
+            <Ionicons name="refresh-outline" size={18} color={theme.isDark ? '#FFFFFF' : COLORS.textPrimary} style={{ marginRight: 6 }} />
             <Text style={styles.offlineBtnText}>Check Connection</Text>
           </TouchableOpacity>
         </View>
@@ -104,10 +109,10 @@ export default function NetworkBarrier({ children }) {
   return children;
 }
 
-const styles = StyleSheet.create({
+function getStyles(theme) { return StyleSheet.create({
   offlineContainer: {
     flex: 1,
-    backgroundColor: COLORS.bgPrimary,
+    backgroundColor: theme.bgPrimary,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 28,
@@ -132,14 +137,14 @@ const styles = StyleSheet.create({
   offlineTitle: {
     fontSize: 26,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: theme.textPrimary,
     letterSpacing: -0.5,
     marginBottom: 10,
     textAlign: 'center',
   },
   offlineSubtitle: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: theme.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     fontWeight: '500',
@@ -149,43 +154,45 @@ const styles = StyleSheet.create({
   offlineBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : COLORS.bgCard,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : COLORS.border,
     marginBottom: 30,
   },
   offlineDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.warning,
+    backgroundColor: theme.isDark ? '#F59E0B' : COLORS.warning,
     marginRight: 8,
   },
   offlineBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: theme.textSecondary,
     letterSpacing: 0.2,
   },
   offlineBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.accentYellow,
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : COLORS.accentYellow,
     borderRadius: 16,
     paddingHorizontal: 24,
     paddingVertical: 14,
-    shadowColor: COLORS.accentYellow,
+    borderWidth: theme.isDark ? 1 : 0,
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+    shadowColor: theme.isDark ? '#FFFFFF' : COLORS.accentYellow,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
+    shadowOpacity: theme.isDark ? 0 : 0.25,
     shadowRadius: 12,
-    elevation: 8,
+    elevation: theme.isDark ? 0 : 8,
   },
   offlineBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: theme.isDark ? '#FFFFFF' : COLORS.textPrimary,
   },
-});
+}); }

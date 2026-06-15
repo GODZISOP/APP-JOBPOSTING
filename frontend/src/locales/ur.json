@@ -3,6 +3,7 @@
     "profile_title": "پروفائل",
     "professional_profile": "پروفیشنل پروفائل",
     "create_account_signin": "اکاؤنٹ بنائیں / سائن ان",
+    "guest_description": "پروفیشنل پروفائل بنانے، نوکریوں پر اپلائی کرنے، اور آجروں سے رابطہ کرنے کے لیے اکاؤنٹ بنائیں۔",
     "change_profile_photo": "پروفائل تصویر تبدیل کریں",
     "upload_profile_photo": "پروفائل تصویر اپ لوڈ کریں",
     "jobs_posted": "پوسٹ کی گئی نوکریاں",
@@ -14,6 +15,7 @@
     "no_jobs_posted": "ابھی تک کوئی نوکری پوسٹ نہیں کی۔",
     "account_utilities": "اکاؤنٹ اور سہولیات",
     "app_language": "ایپ کی زبان",
+    "dark_mode": "ڈارک موڈ",
     "security_privacy": "سیکیورٹی اور پرائیویسی",
     "logout_account": "اکاؤنٹ لاگ آؤٹ کریں",
     "bookmarked_opportunities": "محفوظ کردہ نوکریاں",
@@ -85,7 +87,7 @@
     "phone_placeholder": "فون نمبر"
   },
   "jobs": {
-    "search_placeholder": "نوکریاں، کمپنیاں یا کلیدی الفاظ تلاش کریں...",
+    "search_placeholder": "نوکریاں یا کمپنیاں تلاش کریں...",
     "categories_header": "کیٹیگریز",
     "premium_opportunities": "پریمیئم نوکریاں",
     "recent_posts": "نئی پوسٹ کی گئی نوکریاں",
@@ -94,7 +96,8 @@
     "featured": "نمایاں 👑",
     "hot": "ہاٹ 🔥",
     "job_details": "نوکری کی تفصیلات",
-    "apply_directly": "براہ راست اپلائی کریں"
+    "apply_directly": "براہ راست اپلائی کریں",
+    "applicants": "امیدوار"
   },
   "post_job": {
     "post_job_title": "نوکری پوسٹ کریں",

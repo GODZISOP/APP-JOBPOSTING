@@ -1,4 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { useTheme } from '../context/ThemeContext';
+let styles;
+let theme;
 import {
   View, Text, TouchableOpacity, StyleSheet,
   StatusBar, Animated, Easing, Dimensions, Platform, ScrollView
@@ -33,6 +36,8 @@ const SLIDES = [
 ];
 
 export default function GettingStartedScreen({ onGetStarted, onReady }) {
+  const { theme: _theme } = useTheme(); theme = _theme;
+  styles = getStyles(theme);
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef(null);
@@ -96,7 +101,7 @@ export default function GettingStartedScreen({ onGetStarted, onReady }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top > 0 ? insets.top : 20 }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.bgPrimary} />
 
       {/* Background Blobs for Visual Depth */}
       <View style={styles.bgBlob1} />
@@ -201,7 +206,7 @@ export default function GettingStartedScreen({ onGetStarted, onReady }) {
               pointerEvents={isLastSlide ? 'none' : 'auto'}
             >
               <Text style={styles.primaryBtnText}>{t('onboarding.next')}</Text>
-              <Ionicons name="arrow-forward" size={18} color="#E8F542" style={{ marginLeft: 6 }} />
+              <Ionicons name="arrow-forward" size={18} color={theme.isDark ? '#FFFFFF' : '#E8F542'} style={{ marginLeft: 6 }} />
             </Animated.View>
 
             {/* Get Started button content */}
@@ -216,7 +221,7 @@ export default function GettingStartedScreen({ onGetStarted, onReady }) {
               pointerEvents={isLastSlide ? 'auto' : 'none'}
             >
               <Text style={styles.primaryBtnText}>{t('onboarding.get_started')}</Text>
-              <Ionicons name="rocket-outline" size={18} color="#E8F542" style={{ marginLeft: 6 }} />
+              <Ionicons name="rocket-outline" size={18} color={theme.isDark ? '#FFFFFF' : '#E8F542'} style={{ marginLeft: 6 }} />
             </Animated.View>
           </TouchableOpacity>
 
@@ -277,154 +282,158 @@ const OnboardingSlide = React.memo(({ slide, index, scrollX, t }) => {
   );
 });
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.bgPrimary,
-  },
-  header: {
-    height: 50,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-  },
-  headerLogoText: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#1A1A1A',
-    letterSpacing: -0.5,
-  },
-  skipButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    backgroundColor: 'rgba(26, 26, 26, 0.05)',
-  },
-  skipButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1A1A1A',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  slideContainer: {
-    width: width,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  animationContainer: {
-    width: width * 0.8,
-    height: width * 0.8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  lottieView: {
-    width: '100%',
-    height: '100%',
-  },
-  textWrapper: {
-    alignItems: 'center',
-    paddingHorizontal: 12,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#1A1A1A',
-    textAlign: 'center',
-    letterSpacing: -0.5,
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 14,
-    color: '#4B5563',
-    fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 10,
-  },
-  footer: {
-    paddingHorizontal: 24,
-    justifyContent: 'flex-end',
-  },
-  paginationRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: 16,
-    marginBottom: 32,
-  },
-  dot: {
-    height: 8,
-    width: 8,
-    borderRadius: 4,
-    marginHorizontal: 6,
-    backgroundColor: '#1A1A1A',
-  },
-  buttonWrapper: {
-    width: '100%',
-    gap: 12,
-  },
-  primaryBtn: {
-    backgroundColor: '#1A1A1A', // Sleek jet black
-    borderRadius: 28,
-    height: 58,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#1A1A1A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-  },
-  primaryBtnContent: {
-    position: 'absolute',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryBtnText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#E8F542', // Lime yellow text on black
-  },
-  secondaryBtn: {
-    backgroundColor: 'transparent',
-    borderRadius: 28,
-    height: 54,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#1A1A1A',
-  },
-  secondaryBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1A1A1A',
-  },
-  // Background Blobs for Visual Depth
-  bgBlob1: {
-    position: 'absolute',
-    top: -60,
-    right: -60,
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: '#FFFBC8', // Soft warm yellow glow
-    opacity: 0.45,
-    zIndex: -1,
-  },
-  bgBlob2: {
-    position: 'absolute',
-    bottom: -60,
-    left: -80,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: '#B2E2B9', // Slightly deeper mint green glow
-    opacity: 0.35,
-    zIndex: -1,
-  },
-});
+function getStyles(theme) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.bgPrimary,
+    },
+    header: {
+      height: 50,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 24,
+    },
+    headerLogoText: {
+      fontSize: 20,
+      fontWeight: '900',
+      color: theme.isDark ? '#FFFFFF' : '#1A1A1A',
+      letterSpacing: -0.5,
+    },
+    skipButton: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 14,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(26, 26, 26, 0.05)',
+    },
+    skipButtonText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.isDark ? '#FFFFFF' : '#1A1A1A',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    slideContainer: {
+      width: width,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 24,
+    },
+    animationContainer: {
+      width: width * 0.8,
+      height: width * 0.8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 20,
+    },
+    lottieView: {
+      width: '100%',
+      height: '100%',
+    },
+    textWrapper: {
+      alignItems: 'center',
+      paddingHorizontal: 12,
+    },
+    title: {
+      fontSize: 26,
+      fontWeight: '900',
+      color: theme.isDark ? '#FFFFFF' : '#1A1A1A',
+      textAlign: 'center',
+      letterSpacing: -0.5,
+      marginBottom: 12,
+    },
+    description: {
+      fontSize: 14,
+      color: theme.isDark ? 'rgba(255, 255, 255, 0.8)' : '#4B5563',
+      fontWeight: '500',
+      textAlign: 'center',
+      lineHeight: 22,
+      paddingHorizontal: 10,
+    },
+    footer: {
+      paddingHorizontal: 24,
+      justifyContent: 'flex-end',
+    },
+    paginationRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: 16,
+      marginBottom: 32,
+    },
+    dot: {
+      height: 8,
+      width: 8,
+      borderRadius: 4,
+      marginHorizontal: 6,
+      backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.8)' : '#1A1A1A',
+    },
+    buttonWrapper: {
+      width: '100%',
+      gap: 12,
+    },
+    primaryBtn: {
+      backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.1)' : '#1A1A1A',
+      borderRadius: 28,
+      height: 58,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: theme.isDark ? 1 : 0,
+      borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.3)' : 'transparent',
+      shadowColor: theme.isDark ? '#FFFFFF' : '#1A1A1A',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: theme.isDark ? 0 : 0.15,
+      shadowRadius: 10,
+    },
+    primaryBtnContent: {
+      position: 'absolute',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    primaryBtnText: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.isDark ? '#FFFFFF' : '#E8F542',
+    },
+    secondaryBtn: {
+      backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.05)' : 'transparent',
+      borderRadius: 28,
+      height: 54,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.3)' : '#1A1A1A',
+    },
+    secondaryBtnText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: theme.isDark ? '#FFFFFF' : '#1A1A1A',
+    },
+    // Background Blobs for Visual Depth
+    bgBlob1: {
+      position: 'absolute',
+      top: -60,
+      right: -60,
+      width: 260,
+      height: 260,
+      borderRadius: 130,
+      backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.45)' : '#FFFBC8',
+      opacity: theme.isDark ? 0.35 : 0.45,
+      zIndex: -1,
+    },
+    bgBlob2: {
+      position: 'absolute',
+      bottom: -60,
+      left: -80,
+      width: 280,
+      height: 280,
+      borderRadius: 140,
+      backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.25)' : '#B2E2B9',
+      opacity: theme.isDark ? 0.3 : 0.35,
+      zIndex: -1,
+    },
+  });
+}

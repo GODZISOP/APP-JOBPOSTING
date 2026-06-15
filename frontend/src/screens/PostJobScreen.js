@@ -6,11 +6,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, FONTS } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+let styles;
+let theme;
 import { useTranslation } from 'react-i18next';
 import LottieView from 'lottie-react-native';
 import SplashScreen from '../components/splashscreen';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const JOB_TYPES = ['Full Time', 'Part Time', 'Remote', 'Contract', 'Daily Basis'];
 const CATEGORIES = [
@@ -209,7 +214,7 @@ const QUICK_SKILLS = {
   Internship: ['Eagerness to Learn', 'Team Collaboration', 'MS Office', 'Organization', 'Communication'],
 };
 
-function PostJobSkeleton() {
+function PostJobSkeleton({ theme }) {
   const shimmerAnim = useRef(new Animated.Value(0.3)).current;
   const insets = useSafeAreaInsets();
 
@@ -223,11 +228,11 @@ function PostJobSkeleton() {
   }, []);
 
   const Block = ({ w, h, mb = 0, br = 6 }) => (
-    <Animated.View style={{ width: w, height: h, backgroundColor: '#E5E7EB', borderRadius: br, marginBottom: mb, opacity: shimmerAnim }} />
+    <Animated.View style={{ width: w, height: h, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB', borderRadius: br, marginBottom: mb, opacity: shimmerAnim }} />
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#D4EAD7' }}>
+    <View style={{ flex: 1, backgroundColor: theme.bgPrimary }}>
       <View style={{ paddingHorizontal: 20, paddingTop: insets.top > 0 ? insets.top + 12 : 56, paddingBottom: 12 }}>
         <Block w={160} h={26} mb={6} />
         <Block w={240} h={14} />
@@ -236,7 +241,7 @@ function PostJobSkeleton() {
         {[1, 2, 3, 4].map((i) => (
           <View key={i} style={{ marginBottom: 16 }}>
             <Block w={100} h={12} mb={8} />
-            <View style={{ backgroundColor: '#FFFFFF', borderRadius: 14, height: 52, paddingHorizontal: 16, justifyContent: 'center' }}>
+            <View style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF', borderRadius: 14, height: 52, paddingHorizontal: 16, justifyContent: 'center' }}>
               <Block w='80%' h={14} />
             </View>
           </View>
@@ -248,18 +253,20 @@ function PostJobSkeleton() {
           ))}
         </View>
         <Block w={100} h={12} mb={8} />
-        <View style={{ backgroundColor: '#FFFFFF', borderRadius: 14, height: 100, padding: 16 }}>
+        <View style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF', borderRadius: 14, height: 100, padding: 16 }}>
           <Block w='90%' h={12} mb={8} />
           <Block w='70%' h={12} mb={8} />
           <Block w='80%' h={12} />
         </View>
-        <Animated.View style={{ backgroundColor: '#E8F542', borderRadius: 18, height: 58, marginTop: 24, opacity: shimmerAnim }} />
+        <Animated.View style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E8F542', borderRadius: 18, height: 58, marginTop: 24, opacity: shimmerAnim }} />
       </ScrollView>
     </View>
   );
 }
 
 export default function PostJobScreen({ navigation }) {
+  const { theme: _theme } = useTheme(); theme = _theme;
+  styles = getStyles(theme);
   const { t } = useTranslation();
   const { postJob, user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -328,6 +335,135 @@ export default function PostJobScreen({ navigation }) {
       return;
     }
 
+    // Check if user is currently post-banned
+    const banKey = `@bkj_post_ban_until_${user?.id || 'guest'}`;
+    try {
+      const banUntilStr = await AsyncStorage.getItem(banKey);
+      if (banUntilStr) {
+        const banUntil = Number(banUntilStr);
+        const now = Date.now();
+        if (now < banUntil) {
+          const remainingMs = banUntil - now;
+          const remainingMins = Math.ceil(remainingMs / 60000);
+          Alert.alert(
+            'Posting Blocked',
+            `You have been temporarily banned from posting due to guideline violations. Please try again in ${remainingMins} minutes.`
+          );
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to check post ban storage:', e);
+    }
+
+    // Strict validation to filter out vulgar, inappropriate, or non-professional content
+    const inappropriateKeywords = [
+      // --- ENGLISH PROFANITY & INAPPROPRIATE TERMS ---
+      'sex', 'porn', 'xxx', 'fuck', 'nude', 'naked', 'erotic', 'escort', 'sensual', 'adult', 
+      'dating', 'hookup', 'pussy', 'dick', 'cunt', 'bitch', 'asshole', 'massage parlour',
+      'whore', 'bastard', 'slut', 'blowjob', 'handjob', 'orgasm', 'penis', 'vagina', 'clitoris',
+      'semen', 'sperm', 'ejaculate', 'anal', 'lesbian', 'gay', 'homosexual', 'rape', 'incest',
+      'masturbate', 'nakedness', 'playboy', 'playgirl', 'stripclub', 'stripper', 'fetish',
+      'bondage', 'bdsm', 'swinger', 'condom', 'slutty', 'hooker', 'gigolo', 'milf', 'dilf',
+      'shag', 'twat', 'wank', 'wanker', 'bollocks', 'crap', 'piss', 'motherfucker', 'cocksucker',
+      'asswipe', 'jackass', 'bastards', 'bitches', 'prick', 'dumbass', 'dipshit', 'douchebag',
+
+      // --- ROMAN URDU & HINDI SLURS, PROFANITIES, AND SENSITIVE STREET WORDS ---
+      'chudai', 'chudayi', 'chudo', 'chuda', 'chudne', 'chudwao', 'chudwane', 'chudaye',
+      'cgudayi', 'cgudai', 'cgdai', 'cgdayi', 'cgudo',
+      'randi', 'rndi', 'randy', 'randi ki nasal', 'randi ki aulad', 'randi ka bacha', 'randiya', 'rande',
+      'gandu', 'gandoo', 'gand', 'bund', 'bnd', 'bundd', 'ganduo', 'gandmasti', 'pichwara',
+      'lora', 'loda', 'lauda', 'lawda', 'lund', 'lnd', 'lunda', 'lundo',
+      'penchod', 'behenchod', 'bhenchod', 'benchod', 'bhanchod', 'pencod', 'bencod', 'penchoda',
+      'madarchod', 'maderchod', 'madarcode', 'mc', 'bc', 'maaderchod', 'maadarchod',
+      'harami', 'hramee', 'herami', 'haramkhor', 'haramzadi', 'haramzada',
+      'saala', 'sala', 'saale', 'sale', 'saley', 'sali', 'saali',
+      'dala', 'dalal', 'dallal', 'dalali', 'bhadwa', 'bhadwey', 'bhadwe', 'bhadua',
+      'gashti', 'gasti', 'ghasti', 'gushti', 'gashtiyan',
+      'chut', 'choote', 'choot', 'chotiya', 'chutiya', 'chutiyapa', 'chutye', 'chutya',
+      'laundiyabazi', 'laundiyabaaz', 'laundia', 'launda', 'launday', 'laude',
+      'muth', 'muthi', 'muthal', 'muthiya',
+      'kutti', 'kutta', 'kutte', 'kuttey', 'kutte ki maut', 'kutton',
+      'phuddi', 'phudi', 'pudi', 'phuddy',
+      'kamina', 'kameena', 'kaminey', 'kamine', 'kaminipan',
+      'bhosda', 'bhosdi', 'bhosdike', 'bhosdeke', 'bhosadika', 'bhosadike',
+      'tatte', 'tatta', 'tatto', 'tattay',
+      'maal', 'maal hai', 'item', 'item hai', 'kia maal hai', 'kia item hai', 'tota', 'patakha',
+      'masti', 'chumma', 'chumi', 'chumiyan', 'boba', 'bobe', 'mamme', 'mame', 'chuchi', 'chuchiyan',
+      'saali ki bachi', 'kanjar', 'kanjri', 'knjar', 'kanjar khana',
+      'dalley', 'dalle',
+      'behnoi', 'najayaz', 'najayaz aulad',
+      'talaq', 'halala',
+      'peshab', 'tatti',
+      'ganda', 'gandi', 'gande', 'gandagi',
+      'jism', 'jismfaroshi', 'jism faroshi',
+      'sharamnak', 'beghairat', 'begharat', 'dheet',
+      'kotha', 'kothe wali',
+      'chinal', 'cheenal',
+      'mela', 'rakhail', 'tansen',
+      'sarkari randi', 'gali', 'galiyan', 'galiyan dena', 'gaali', 'gaaliyan',
+      'gashti bacha', 'randi bacha', 'kutti ki nasal', 'kutta bacha',
+      'hijda', 'hijra', 'khusra', 'khusri', 'meetha', 'chakka',
+      'patli gali', 'gand me', 'gand maro', 'gand marwana', 'gand marwa',
+      'luda', 'ludi', 'luden',
+      'chati', 'chatiyan', 'jangh', 'koocha',
+      'behuda', 'behuda bat', 'fahas', 'fahashi', 'fahaash', 'behuda post',
+      'kutte ka bacha', 'kaminey ki aulad', 'saale sahab', 'bhadwa giri', 'gandu giri', 'randi khana', 
+      'randi rona', 'dalaal giri', 'behanchod', 'daley ka bacha', 'chudne wali', 'chudne wala', 
+      'loda lassan', 'gand fatna', 'gand phatna', 'gand fati', 'gand phati', 'gand phat gayi', 
+      'chut ka pani', 'lund choos', 'muth maro', 'muth marna', 'muthbaaz', 'bhonsdi', 'bhonsdike', 
+      'chutiyap', 'kutiya', 'harami bacha', 'harami pan', 'gandu pan', 'tatte choos', 'tatta choos', 
+      'lawdey', 'laudeya', 'chudaap', 'chudapa', 'suar', 'suar ki nasal', 'suar ka bacha', 'badmaash', 
+      'tharki', 'tharkipan', 'jismfarosh', 'chinalpuna', 'gashtipuna', 'be sharam', 'besharam',
+
+      // --- URDU SCRIPT VULGAR WORDS ---
+      'چدائی', 'چود', 'رنڈی', 'گانڈ', 'لورا', 'لوڈا', 'بہنچود', 'مادرچود', 'حرامی', 'بھڑوا', 'دلال', 'گشتی', 'چوت', 'چوتیا', 'کتا', 'کتی', 'پھدی', 'بند', 'بھوسڑی', 'کنجر', 'خسرہ', 'مٹھی', 'جسم فروشی',
+      'کتیا', 'حرامزادہ', 'حرامزادی', 'بیسوا', 'چنال', 'دلہ', 'بھڑو گری', 'طوائف', 'رنڈی خانہ', 'کسبی', 'بدکار'
+    ];
+
+    const containsInappropriateContent = (text) => {
+      if (!text) return false;
+      const lowerText = text.toLowerCase();
+      return inappropriateKeywords.some(keyword => {
+        // Check for exact word matches or direct substrings
+        const regex = new RegExp(`\\b${keyword}\\b|${keyword}`, 'i');
+        return regex.test(lowerText);
+      });
+    };
+
+    if (
+      containsInappropriateContent(title) || 
+      containsInappropriateContent(company) || 
+      containsInappropriateContent(description) ||
+      selectedSkills.some(skill => containsInappropriateContent(skill))
+    ) {
+      try {
+        const strikeKey = `@bkj_post_strikes_${user?.id || 'guest'}`;
+        const currentStrikesStr = await AsyncStorage.getItem(strikeKey);
+        const currentStrikes = currentStrikesStr ? Number(currentStrikesStr) : 0;
+        const newStrikes = currentStrikes + 1;
+        await AsyncStorage.setItem(strikeKey, String(newStrikes));
+        
+        // 1st offense: 5 minutes (300000ms), 2nd+ offense: 2 hours (7200000ms)
+        const banDuration = newStrikes === 1 ? 5 * 60000 : 2 * 60 * 60000;
+        const banUntil = Date.now() + banDuration;
+        await AsyncStorage.setItem(banKey, String(banUntil));
+        
+        const durationText = newStrikes === 1 ? '5 minutes' : '2 hours';
+        Alert.alert(
+          'Inappropriate Content Detected',
+          `Your job posting contains terms that violate our professional community guidelines. Due to this violation, your posting privileges have been restricted for ${durationText}.`
+        );
+      } catch (e) {
+        console.warn('Failed to update strike/ban status:', e);
+        Alert.alert(
+          'Inappropriate Content Detected',
+          'Your job posting contains terms that violate our professional community guidelines. Please ensure your listing is strictly professional and career-oriented.'
+        );
+      }
+      return;
+    }
+
     if (description.trim().length < 30) {
       Alert.alert('Description Too Short', 'Please enter a detailed description of at least 30 characters to attract premium candidates.');
       return;
@@ -390,7 +526,7 @@ export default function PostJobScreen({ navigation }) {
     setPosted(false);
   };
 
-  if (screenLoading) return <PostJobSkeleton />;
+  if (screenLoading) return <PostJobSkeleton theme={theme} />;
 
   if (loading) {
     return (
@@ -407,7 +543,7 @@ export default function PostJobScreen({ navigation }) {
   if (posted) {
     return (
       <View style={styles.successContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
+        <StatusBar barStyle="dark-content" backgroundColor={theme.bgPrimary} />
         <View style={styles.successCard}>
           <View style={styles.successIcon}>
             <LottieView
@@ -431,7 +567,7 @@ export default function PostJobScreen({ navigation }) {
   if (user && !user.phone) {
     return (
       <View style={styles.blockedContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
+        <StatusBar barStyle="dark-content" backgroundColor={theme.bgPrimary} />
         <View style={styles.blockedCard}>
           <View style={styles.blockedIconCircle}>
             <Ionicons name="call-outline" size={44} color="#B91C1C" />
@@ -456,7 +592,16 @@ export default function PostJobScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgPrimary} />
+      <StatusBar barStyle={theme.isDark ? "light-content" : "dark-content"} backgroundColor={theme.bgPrimary} />
+      
+      {theme.isDark && (
+        <LinearGradient 
+          colors={['rgba(255, 140, 0, 0.12)', 'rgba(255, 140, 0, 0.05)', 'rgba(0,0,0,0)']} 
+          style={StyleSheet.absoluteFillObject} 
+          start={{ x: 0.5, y: 0 }} 
+          end={{ x: 0.5, y: 0.6 }} 
+        />
+      )}
       <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top > 0 ? insets.top : 16 }]} showsVerticalScrollIndicator={false}>
 
         <View style={styles.header}>
@@ -469,11 +614,11 @@ export default function PostJobScreen({ navigation }) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t('post_job.job_title_label')}</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="briefcase-outline" size={18} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <Ionicons name="briefcase-outline" size={18} color={theme.textSecondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="e.g. Senior React Native Developer"
-                placeholderTextColor={COLORS.textLight}
+                placeholderTextColor={theme.textLight}
                 value={title}
                 onChangeText={setTitle}
               />
@@ -484,11 +629,11 @@ export default function PostJobScreen({ navigation }) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t('post_job.company_name_label')}</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="business-outline" size={18} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <Ionicons name="business-outline" size={18} color={theme.textSecondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="e.g. TechCorp Solutions"
-                placeholderTextColor={COLORS.textLight}
+                placeholderTextColor={theme.textLight}
                 value={company}
                 onChangeText={setCompany}
               />
@@ -507,7 +652,7 @@ export default function PostJobScreen({ navigation }) {
                 <Text style={styles.flagText}>{selectedCountry.flag}</Text>
                 <Text style={styles.dropdownText}>{selectedCountry.name}</Text>
               </View>
-              <Ionicons name="chevron-down" size={18} color={COLORS.textSecondary} />
+              <Ionicons name="chevron-down" size={18} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -520,10 +665,10 @@ export default function PostJobScreen({ navigation }) {
               onPress={() => setShowCityModal(true)}
             >
               <View style={styles.dropdownLeft}>
-                <Ionicons name="location-outline" size={18} color={COLORS.textSecondary} style={{ marginRight: 8 }} />
+                <Ionicons name="location-outline" size={18} color={theme.textSecondary} style={{ marginRight: 8 }} />
                 <Text style={styles.dropdownText}>{selectedCity}</Text>
               </View>
-              <Ionicons name="chevron-down" size={18} color={COLORS.textSecondary} />
+              <Ionicons name="chevron-down" size={18} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -553,7 +698,7 @@ export default function PostJobScreen({ navigation }) {
                   style={styles.input}
                   placeholder="Min"
                   keyboardType="numeric"
-                  placeholderTextColor={COLORS.textLight}
+                  placeholderTextColor={theme.textLight}
                   value={salaryMin}
                   onChangeText={setSalaryMin}
                 />
@@ -565,7 +710,7 @@ export default function PostJobScreen({ navigation }) {
                   style={styles.input}
                   placeholder="Max"
                   keyboardType="numeric"
-                  placeholderTextColor={COLORS.textLight}
+                  placeholderTextColor={theme.textLight}
                   value={salaryMax}
                   onChangeText={setSalaryMax}
                 />
@@ -651,12 +796,12 @@ export default function PostJobScreen({ navigation }) {
               <TextInput
                 style={styles.skillInput}
                 placeholder="Enter custom requirement/skill..."
-                placeholderTextColor={COLORS.textLight}
+                placeholderTextColor={theme.textLight}
                 value={customRequirement}
                 onChangeText={setCustomRequirement}
               />
               <TouchableOpacity style={styles.skillAddIconButton} onPress={handleAddCustomRequirement}>
-                <Ionicons name="add" size={20} color={COLORS.textWhite} />
+                <Ionicons name="add" size={20} color={theme.textWhite} />
               </TouchableOpacity>
             </View>
 
@@ -690,7 +835,7 @@ export default function PostJobScreen({ navigation }) {
               <TextInput
                 style={[styles.input, { textAlignVertical: 'top' }]}
                 placeholder="Describe details, roles, expectations, hours, timings and company goals..."
-                placeholderTextColor={COLORS.textLight}
+                placeholderTextColor={theme.textLight}
                 value={description}
                 onChangeText={setDescription}
                 multiline
@@ -701,7 +846,7 @@ export default function PostJobScreen({ navigation }) {
 
           {/* Publish CTA Button */}
           <TouchableOpacity style={styles.postBtn} onPress={handlePost} activeOpacity={0.88}>
-            <Ionicons name="cloud-upload" size={18} color={COLORS.textWhite} style={{ marginRight: 8 }} />
+            <Ionicons name="cloud-upload" size={18} color={theme.textWhite} style={{ marginRight: 8 }} />
             <Text style={styles.postBtnText}>{loading ? 'Uploading...' : 'Publish Listing'}</Text>
           </TouchableOpacity>
         </View>
@@ -716,7 +861,7 @@ export default function PostJobScreen({ navigation }) {
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalTitle}>Select Country</Text>
               <TouchableOpacity onPress={() => setShowCountryModal(false)}>
-                <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+                <Ionicons name="close" size={24} color={theme.textPrimary} />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -730,7 +875,7 @@ export default function PostJobScreen({ navigation }) {
                   <Text style={styles.modalItemFlag}>{item.flag}</Text>
                   <Text style={styles.modalItemText}>{item.name}</Text>
                   {selectedCountry.name === item.name && (
-                    <Ionicons name="checkmark" size={20} color={COLORS.accentGreen} style={{ marginLeft: 'auto' }} />
+                    <Ionicons name="checkmark" size={20} color={theme.accentGreen} style={{ marginLeft: 'auto' }} />
                   )}
                 </TouchableOpacity>
               )}
@@ -748,7 +893,7 @@ export default function PostJobScreen({ navigation }) {
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalTitle}>Select City / Region in {selectedCountry.name}</Text>
               <TouchableOpacity onPress={() => setShowCityModal(false)}>
-                <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+                <Ionicons name="close" size={24} color={theme.textPrimary} />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -762,10 +907,10 @@ export default function PostJobScreen({ navigation }) {
                     setShowCityModal(false);
                   }}
                 >
-                  <Ionicons name="location-outline" size={18} color={COLORS.textSecondary} style={{ marginRight: 12 }} />
+                  <Ionicons name="location-outline" size={18} color={theme.textSecondary} style={{ marginRight: 12 }} />
                   <Text style={styles.modalItemText}>{item}</Text>
                   {selectedCity === item && (
-                    <Ionicons name="checkmark" size={20} color={COLORS.accentGreen} style={{ marginLeft: 'auto' }} />
+                    <Ionicons name="checkmark" size={20} color={theme.accentGreen} style={{ marginLeft: 'auto' }} />
                   )}
                 </TouchableOpacity>
               )}
@@ -778,80 +923,80 @@ export default function PostJobScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgPrimary },
+function getStyles(theme) { return StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.bgPrimary },
   scroll: { paddingHorizontal: 20, paddingBottom: 150, paddingTop: 0 },
 
   header: { paddingTop: 12, paddingBottom: 20, paddingHorizontal: 2 },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.5 },
-  headerSub: { fontSize: FONTS.sizes.xs + 1, color: COLORS.textSecondary, marginTop: 2 },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 },
+  headerSub: { fontSize: FONTS.sizes.xs + 1, color: theme.textSecondary, marginTop: 2 },
 
   card: {
-    backgroundColor: COLORS.bgCard, borderRadius: 28, padding: 22,
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : theme.bgCard, borderRadius: 28, padding: 22,
     shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
-    borderWidth: 1, borderColor: '#E5E7EB',
-    shadowOpacity: 0.06, shadowRadius: 18, elevation: 0,
+    borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+    shadowOpacity: theme.isDark ? 0 : 0.06, shadowRadius: 18, elevation: 0,
   },
 
   inputGroup: { marginBottom: 18 },
-  label: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 8, paddingLeft: 2 },
+  label: { fontSize: 13, fontWeight: '700', color: theme.textPrimary, marginBottom: 8, paddingLeft: 2 },
   inputWrapper: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#F8FAF9', borderRadius: 16,
-    borderWidth: 1.5, borderColor: '#EEF2F0',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9', borderRadius: 16,
+    borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
     paddingHorizontal: 16, height: 52,
   },
   inputIcon: { marginRight: 10 },
-  input: { flex: 1, fontSize: FONTS.sizes.md, color: COLORS.textPrimary, fontWeight: '500' },
+  input: { flex: 1, fontSize: FONTS.sizes.md, color: theme.textPrimary, fontWeight: '500' },
 
   dropdownTrigger: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#F8FAF9', borderRadius: 16,
-    borderWidth: 1.5, borderColor: '#EEF2F0',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9', borderRadius: 16,
+    borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
     paddingHorizontal: 16, height: 52,
   },
   dropdownLeft: { flexDirection: 'row', alignItems: 'center' },
   flagText: { fontSize: 18, marginRight: 10 },
-  dropdownText: { fontSize: FONTS.sizes.md, color: COLORS.textPrimary, fontWeight: '600' },
+  dropdownText: { fontSize: FONTS.sizes.md, color: theme.textPrimary, fontWeight: '600' },
 
-  selectorTabs: { flexDirection: 'row', backgroundColor: '#EEF2F0', borderRadius: 14, padding: 4 },
+  selectorTabs: { flexDirection: 'row', backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#EEF2F0', borderRadius: 14, padding: 4 },
   selectorTabBtn: { flex: 1, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  selectorTabBtnActive: { backgroundColor: '#111111' },
-  selectorTabText: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary },
-  selectorTabTextActive: { color: COLORS.textWhite },
+  selectorTabBtnActive: { backgroundColor: theme.isDark ? '#FFFFFF' : '#111111' },
+  selectorTabText: { fontSize: 12, fontWeight: '700', color: theme.isDark ? 'rgba(255,255,255,0.7)' : theme.textSecondary },
+  selectorTabTextActive: { color: theme.isDark ? '#111111' : theme.textWhite },
 
   salaryInputRow: { flexDirection: 'row', alignItems: 'center' },
-  currencySymbol: { fontSize: FONTS.sizes.md, fontWeight: '700', color: COLORS.textSecondary, marginRight: 4 },
-  salarySeparator: { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginHorizontal: 10 },
-  salaryUnit: { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginLeft: 10 },
+  currencySymbol: { fontSize: FONTS.sizes.md, fontWeight: '700', color: theme.textSecondary, marginRight: 4 },
+  salarySeparator: { fontSize: 13, fontWeight: '700', color: theme.textSecondary, marginHorizontal: 10 },
+  salaryUnit: { fontSize: 13, fontWeight: '700', color: theme.textSecondary, marginLeft: 10 },
 
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: '#F8FAF9',
-    borderWidth: 1.5, borderColor: '#EEF2F0',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9',
+    borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
   },
-  chipActive: { backgroundColor: COLORS.accentYellow, borderColor: COLORS.accentYellowDark },
-  chipText: { fontSize: FONTS.sizes.xs, fontWeight: '700', color: COLORS.textSecondary },
-  chipTextActive: { color: COLORS.textPrimary },
+  chipActive: { backgroundColor: theme.accentYellow, borderColor: theme.accentYellowDark },
+  chipText: { fontSize: FONTS.sizes.xs, fontWeight: '700', color: theme.textSecondary },
+  chipTextActive: { color: theme.textPrimary },
 
-  skillHintText: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '600', marginBottom: 6, paddingLeft: 2 },
+  skillHintText: { fontSize: 11, color: theme.textSecondary, fontWeight: '600', marginBottom: 6, paddingLeft: 2 },
   skillAddBtn: {
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12,
-    backgroundColor: '#EBF7EC', borderWidth: 1, borderColor: '#D4EAD7',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#EBF7EC', borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#D4EAD7',
   },
   skillAddBtnDisabled: {
-    backgroundColor: '#F3F5F4', borderColor: '#EEF2F0', opacity: 0.5,
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.02)' : '#F3F5F4', borderColor: theme.isDark ? 'transparent' : '#EEF2F0', opacity: 0.5,
   },
-  skillAddBtnText: { fontSize: 11, fontWeight: '700', color: '#15803D' },
+  skillAddBtnText: { fontSize: 11, fontWeight: '700', color: theme.isDark ? '#4ADE80' : '#15803D' },
 
   skillInputWrapper: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#F8FAF9', borderRadius: 16,
-    borderWidth: 1.5, borderColor: '#EEF2F0',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9', borderRadius: 16,
+    borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
     paddingLeft: 16, paddingRight: 6, height: 52,
   },
-  skillInput: { flex: 1, fontSize: 13, color: COLORS.textPrimary, fontWeight: '500' },
+  skillInput: { flex: 1, fontSize: 13, color: theme.textPrimary, fontWeight: '500' },
   skillAddIconButton: {
     width: 38, height: 38, borderRadius: 12,
     backgroundColor: '#111111', alignItems: 'center', justifyContent: 'center',
@@ -859,39 +1004,39 @@ const styles = StyleSheet.create({
 
   activeSkillTag: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#EEF2F0', borderRadius: 12,
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0', borderRadius: 12,
     paddingHorizontal: 10, paddingVertical: 6,
   },
-  activeSkillText: { fontSize: 11, fontWeight: '700', color: COLORS.textPrimary },
+  activeSkillText: { fontSize: 11, fontWeight: '700', color: theme.textPrimary },
 
   descriptionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   charCounter: { fontSize: 11, fontWeight: '700' },
 
   postBtn: {
-    backgroundColor: '#111111',
+    backgroundColor: theme.isDark ? '#FFFFFF' : '#111111',
     borderRadius: 26, height: 54,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     marginTop: 18,
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15, shadowRadius: 8, elevation: 0,
+    shadowOpacity: theme.isDark ? 0 : 0.15, shadowRadius: 8, elevation: 0,
   },
-  postBtnText: { fontSize: FONTS.sizes.md + 1, fontWeight: '800', color: COLORS.textWhite },
+  postBtnText: { fontSize: FONTS.sizes.md + 1, fontWeight: '800', color: theme.isDark ? '#111111' : theme.textWhite },
 
-  successContainer: { flex: 1, backgroundColor: COLORS.bgPrimary, justifyContent: 'center', padding: 20 },
+  successContainer: { flex: 1, backgroundColor: theme.bgPrimary, justifyContent: 'center', padding: 20 },
   successCard: {
-    backgroundColor: COLORS.bgCard, borderRadius: 28, padding: 36, alignItems: 'center',
-    borderWidth: 1, borderColor: '#E5E7EB',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 18, elevation: 0,
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : theme.bgCard, borderRadius: 28, padding: 36, alignItems: 'center',
+    borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: theme.isDark ? 0 : 0.06, shadowRadius: 18, elevation: 0,
   },
   successIcon: { marginBottom: 12 },
-  successTitle: { fontSize: 24, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.5, marginBottom: 8 },
-  successSub: { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
+  successTitle: { fontSize: 24, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5, marginBottom: 8 },
+  successSub: { fontSize: FONTS.sizes.sm, color: theme.textSecondary, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
   postAnotherBtn: {
-    backgroundColor: '#111111', borderRadius: 26, height: 52,
+    backgroundColor: theme.isDark ? '#FFFFFF' : '#111111', borderRadius: 26, height: 52,
     paddingHorizontal: 28, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 0,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: theme.isDark ? 0 : 0.15, shadowRadius: 8, elevation: 0,
   },
-  postAnotherBtnText: { fontSize: FONTS.sizes.sm + 1, fontWeight: '800', color: COLORS.textWhite },
+  postAnotherBtnText: { fontSize: FONTS.sizes.sm + 1, fontWeight: '800', color: theme.isDark ? '#111111' : theme.textWhite },
 
   // Modal styling
   modalOverlay: {
@@ -903,7 +1048,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalContent: {
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: theme.bgCard,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     maxHeight: '65%',
@@ -914,16 +1059,28 @@ const styles = StyleSheet.create({
     width: 42,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : '#E5E7EB',
     alignSelf: 'center',
     marginVertical: 10,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: theme.textPrimary,
   },
   modalItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEF2F0',
+    borderBottomColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
   },
   modalItemFlag: {
     fontSize: 22,
@@ -932,53 +1089,54 @@ const styles = StyleSheet.create({
   modalItemText: {
     fontSize: FONTS.sizes.md,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: theme.textPrimary,
   },
   blockedContainer: {
     flex: 1,
-    backgroundColor: COLORS.bgPrimary,
+    backgroundColor: theme.bgPrimary,
     justifyContent: 'center',
     padding: 24,
   },
   blockedCard: {
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : theme.bgCard,
     borderRadius: 28,
     padding: 36,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
+    shadowOpacity: theme.isDark ? 0 : 0.05,
     shadowRadius: 18,
-    elevation: 2,
+    elevation: theme.isDark ? 0 : 2,
   },
   blockedIconCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.isDark ? 'rgba(239, 68, 68, 0.1)' : '#FEE2E2',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 0,
     marginBottom: 20,
   },
   blockedTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#991B1B',
+    color: theme.isDark ? '#FCA5A5' : '#991B1B',
     marginBottom: 8,
     textAlign: 'center',
   },
   blockedSub: {
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: theme.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
     paddingHorizontal: 8,
   },
   blockedBtn: {
-    backgroundColor: COLORS.accentYellow,
+    backgroundColor: theme.isDark ? '#FFFFFF' : theme.accentYellow,
     borderRadius: 24,
     height: 52,
     paddingHorizontal: 24,
@@ -986,7 +1144,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    shadowColor: COLORS.accentYellow,
+    shadowColor: theme.accentYellow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -994,6 +1152,6 @@ const styles = StyleSheet.create({
   blockedBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: theme.isDark ? '#111111' : theme.textPrimary,
   },
-});
+}); }

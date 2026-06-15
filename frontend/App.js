@@ -8,7 +8,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet, Animated, Easing, Alert, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, Alert, Image, Platform, Modal, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
 let Notifications;
@@ -28,7 +28,8 @@ try {
 }
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
-import { COLORS, FONTS } from './src/theme/colors';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { FONTS } from './src/theme/colors';
 import NetworkBarrier from './src/components/NetworkBarrier';
 import SplashScreen from './src/components/splashscreen';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +37,7 @@ import { useTranslation } from 'react-i18next';
 import GettingStartedScreen from './src/screens/GettingStartedScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import JobsScreen from './src/screens/JobsScreen';
 import PostJobScreen from './src/screens/PostJobScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -59,10 +61,11 @@ const linking = {
 
 
 // ─── Tab Icon ──────────────────────────────────────────────────────────────────
-function TabIcon({ name, focused, color }) {
+function TabIcon({ name, focused, color, theme }) {
+  const styles = getStyles(theme);
   return (
     <View style={[styles.tabIconWrap, focused && styles.tabIconActive]}>
-      <Ionicons name={name} size={22} color={focused ? COLORS.textPrimary : color} />
+      <Ionicons name={name} size={22} color={focused ? theme.textPrimary : color} />
     </View>
   );
 }
@@ -70,8 +73,10 @@ function TabIcon({ name, focused, color }) {
 // ─── Main Tabs ─────────────────────────────────────────────────────────────────
 function MainTabs() {
   const { user, setIsGuest } = useAuth();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const styles = getStyles(theme);
 
   return (
     <Tab.Navigator
@@ -89,8 +94,8 @@ function MainTabs() {
           }
         ],
         tabBarLabelStyle: styles.tabLabel,
-        tabBarActiveTintColor: COLORS.textPrimary,
-        tabBarInactiveTintColor: COLORS.textSecondary,
+        tabBarActiveTintColor: theme.textPrimary,
+        tabBarInactiveTintColor: theme.textSecondary,
         tabBarItemStyle: {
           justifyContent: 'center',
           alignItems: 'center',
@@ -103,7 +108,7 @@ function MainTabs() {
         options={{
           tabBarLabel: t('tabs.home'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon name={focused ? 'search' : 'search-outline'} focused={focused} color={color} />
+            <TabIcon name={focused ? 'search' : 'search-outline'} focused={focused} color={color} theme={theme} />
           ),
         }}
       />
@@ -133,7 +138,7 @@ function MainTabs() {
         options={{
           tabBarLabel: t('tabs.post_job'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon name={focused ? 'add-circle' : 'add-circle-outline'} focused={focused} color={color} />
+            <TabIcon name={focused ? 'add-circle' : 'add-circle-outline'} focused={focused} color={color} theme={theme} />
           ),
         }}
       />
@@ -143,7 +148,7 @@ function MainTabs() {
         options={{
           tabBarLabel: t('tabs.profile'),
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} color={color} />
+            <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} color={color} theme={theme} />
           ),
         }}
       />
@@ -154,6 +159,7 @@ function MainTabs() {
 // ─── Root Navigator ────────────────────────────────────────────────────────────
 function RootNavigator() {
   const { user, loading, loggingOut, isGuest, setIsGuest, signingUp, loggingIn } = useAuth();
+  const { theme } = useTheme();
   const [transitioningToDashboard, setTransitioningToDashboard] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
@@ -198,7 +204,7 @@ function RootNavigator() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: COLORS.bgPrimary }}>
+    <View style={{ flex: 1, backgroundColor: theme.bgPrimary }}>
       <NavigationContainer linking={linking}>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {showDashboard ? (
@@ -229,6 +235,7 @@ function RootNavigator() {
               </Stack.Screen>
               <Stack.Screen name="Login" component={LoginScreen} />
               <Stack.Screen name="Signup" component={SignupScreen} />
+              <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
             </>
           )}
         </Stack.Navigator>
@@ -252,9 +259,14 @@ function RootNavigator() {
 // ─── In-App Toast Notification ────────────────────────────────────────────────
 function InAppNotification() {
   const { notification } = useAuth();
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const [activeNotif, setActiveNotif] = useState(null);
   const slideAnim = useRef(new Animated.Value(-150)).current;
   const timerRef = useRef(null);
+
+  // Modal State for Candidate Profile
+  const [showToastLikerModal, setShowToastLikerModal] = useState(false);
 
   useEffect(() => {
     if (notification) {
@@ -291,6 +303,7 @@ function InAppNotification() {
         toValue: -150,
         duration: 250,
         useNativeDriver: true,
+        pointerEvents: "none",
         easing: Easing.ease,
       }).start(() => setActiveNotif(null));
     }
@@ -300,41 +313,124 @@ function InAppNotification() {
     };
   }, [notification]);
 
-  // ... rest of component same rahega
-  // NEVER return null. Always render it so the Animation engine doesn't break!
-  // If activeNotif is null, we just render an empty off-screen shell.
   const isLike = activeNotif?.type === 'like';
   const avatarUrl = activeNotif?.likerProfile?.avatar;
   const initials = activeNotif?.likerProfile?.name
     ? activeNotif.likerProfile.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : 'U';
 
+  const candidate = activeNotif?.likerProfile;
+
   return (
-    <Animated.View
-      style={[
-        styles.notificationContainer,
-        { transform: [{ translateY: slideAnim }] }
-      ]}
-      pointerEvents={notification ? "auto" : "none"}
-    >
-      <View style={styles.notificationCard}>
-        {isLike ? (
-          avatarUrl && avatarUrl.length > 5 ? (
-            <Image source={{ uri: avatarUrl }} style={styles.toastAvatar} resizeMode="cover" />
+    <>
+      <Animated.View
+        style={[
+          styles.notificationContainer,
+          { transform: [{ translateY: slideAnim }] }
+        ]}
+        pointerEvents={notification ? "auto" : "none"}
+      >
+        <TouchableOpacity
+          style={styles.notificationCard}
+          activeOpacity={0.9}
+          onPress={() => {
+            if (candidate) {
+              if (timerRef.current) clearTimeout(timerRef.current);
+              Animated.timing(slideAnim, {
+                toValue: -150,
+                duration: 250,
+                useNativeDriver: true,
+              }).start(() => {
+                setActiveNotif(null);
+              });
+              setShowToastLikerModal(true);
+            }
+          }}
+        >
+          {isLike ? (
+            avatarUrl && avatarUrl.length > 5 ? (
+              <Image source={{ uri: avatarUrl }} style={styles.toastAvatar} resizeMode="cover" />
+            ) : (
+              <View style={styles.toastAvatarCircle}>
+                <Text style={styles.toastAvatarText}>{initials}</Text>
+              </View>
+            )
           ) : (
-            <View style={styles.toastAvatarCircle}>
-              <Text style={styles.toastAvatarText}>{initials}</Text>
+            <View style={styles.notificationIndicator} />
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.notificationTitle}>{activeNotif?.title || ''}</Text>
+            <Text style={styles.notificationMsg} numberOfLines={2}>{activeNotif?.message || ''}</Text>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
+
+      {/* Global Toast Candidate Modal */}
+      <Modal
+        visible={showToastLikerModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowToastLikerModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: theme.bgPrimary, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 40, height: '58%' }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 }}>Candidate Profile</Text>
+              <TouchableOpacity onPress={() => setShowToastLikerModal(false)} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="close" size={20} color={theme.textPrimary} />
+              </TouchableOpacity>
             </View>
-          )
-        ) : (
-          <View style={styles.notificationIndicator} />
-        )}
-        <View style={{ flex: 1 }}>
-          <Text style={styles.notificationTitle}>{activeNotif?.title || ''}</Text>
-          <Text style={styles.notificationMsg} numberOfLines={2}>{activeNotif?.message || ''}</Text>
+
+            {candidate && (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', paddingVertical: 10 }}>
+                {/* Initials Avatar */}
+                <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: theme.accentYellow, alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                  {candidate.avatar && candidate.avatar.length > 5 ? (
+                    <Image source={{ uri: candidate.avatar }} style={{ width: 64, height: 64, borderRadius: 32 }} resizeMode="cover" />
+                  ) : (
+                    <Text style={{ fontSize: 24, fontWeight: '800', color: theme.textPrimary }}>
+                      {candidate.name ? candidate.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'C'}
+                    </Text>
+                  )}
+                </View>
+
+                {/* Name & Title */}
+                <Text style={{ fontSize: 18, fontWeight: '800', color: theme.textPrimary, marginBottom: 4 }} numberOfLines={1}>{candidate.name}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textSecondary, marginBottom: 16 }} numberOfLines={1}>{candidate.title || 'Job Seeker'}</Text>
+
+                {/* Divider */}
+                <View style={{ width: '100%', height: 1, backgroundColor: theme.borderLight, marginBottom: 16 }} />
+
+                {/* Detailed Info Cards */}
+                <View style={{ width: '100%', gap: 12, marginBottom: 20, paddingHorizontal: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', padding: 12, borderRadius: 16, borderWidth: 1, borderColor: theme.borderLight }}>
+                    <Ionicons name="location-outline" size={18} color={theme.isDark ? theme.accentYellow : theme.accentGreen} style={{ marginRight: 12 }} />
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: theme.textPrimary, flex: 1 }} numberOfLines={1}>
+                      {candidate.location && candidate.location !== 'Not specified' ? candidate.location : 'Not specified'}
+                    </Text>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', padding: 12, borderRadius: 16, borderWidth: 1, borderColor: theme.borderLight }}>
+                    <Ionicons name="call-outline" size={18} color={theme.isDark ? theme.accentYellow : theme.accentGreen} style={{ marginRight: 12 }} />
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: theme.textPrimary, flex: 1 }} numberOfLines={1}>
+                      {candidate.phone && candidate.phone !== 'No phone provided' ? candidate.phone : 'No phone provided'}
+                    </Text>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', padding: 12, borderRadius: 16, borderWidth: 1, borderColor: theme.borderLight }}>
+                    <Ionicons name="mail-outline" size={18} color={theme.isDark ? theme.accentYellow : theme.accentGreen} style={{ marginRight: 12 }} />
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: theme.textPrimary, flex: 1 }} numberOfLines={1}>
+                      {candidate.email && candidate.email !== 'candidate@gmail.com' ? candidate.email : 'No email provided'}
+                    </Text>
+                  </View>
+                </View>
+              </ScrollView>
+            )}
+          </View>
         </View>
-      </View>
-    </Animated.View>
+      </Modal>
+    </>
   );
 }
 
@@ -395,26 +491,28 @@ function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <NetworkBarrier>
-          <View style={{ flex: 1 }}>
-            <RootNavigator />
-            <InAppNotification />
-          </View>
-        </NetworkBarrier>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <NetworkBarrier>
+            <View style={{ flex: 1 }}>
+              <RootNavigator />
+              <InAppNotification />
+            </View>
+          </NetworkBarrier>
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+function getStyles(theme) { return StyleSheet.create({
   // Tab Bar
   tabBar: {
     position: 'absolute',
     left: 20,
     right: 20,
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: theme.bgCard,
     borderRadius: 28,
     borderTopWidth: 0,
     shadowColor: '#000',
@@ -436,7 +534,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabIconActive: {
-    backgroundColor: COLORS.accentYellow,
+    backgroundColor: theme.accentYellow,
   },
 
   // In-App Toast Notification
@@ -465,7 +563,7 @@ const styles = StyleSheet.create({
   notificationIndicator: {
     width: 4,
     height: '100%',
-    backgroundColor: COLORS.accentYellow,
+    backgroundColor: theme.accentYellow,
     borderRadius: 2,
     marginRight: 12,
   },
@@ -479,7 +577,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.accentYellow,
+    backgroundColor: theme.accentYellow,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -487,7 +585,7 @@ const styles = StyleSheet.create({
   toastAvatarText: {
     fontSize: 16,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: theme.textPrimary,
   },
   notificationTitle: {
     color: '#FFFFFF',
@@ -502,5 +600,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+}
 
 export default Sentry.wrap(App);
