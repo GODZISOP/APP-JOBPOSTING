@@ -567,7 +567,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`🚀 JobLink Secure Backend running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode.`);
-});
+// Start Server locally if not running as a serverless function on Vercel
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 JobLink Secure Backend running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode.`);
+  });
+}
+
+module.exports = app;
