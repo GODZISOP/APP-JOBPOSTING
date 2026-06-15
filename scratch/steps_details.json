@@ -1,0 +1,146 @@
+[
+  {
+    "step_index": 620,
+    "name": "replace_file_content",
+    "args": {
+      "AllowMultiple": "false",
+      "Description": "\"Change statCardItem width from 0 to 100% to restore normal size in flex wrapper\"",
+      "EndLine": "1948",
+      "Instruction": "\"Change width: 0 to width: '100%' in statCardItem style\"",
+      "ReplacementContent": "\"  statCardItem: {\\n    flex: 1,\\n    width: '100%',\\n\"",
+      "StartLine": "1945",
+      "TargetContent": "\"  statCardItem: {\\n    flex: 1,\\n    width: 0,\\n\"",
+      "TargetFile": "\"D:\\\\Downloads\\\\APP-JOB\\\\frontend\\\\src\\\\screens\\\\JobsScreen.js\"",
+      "toolAction": "\"Updating statCardItem width style\"",
+      "toolSummary": "\"Replace file content\""
+    }
+  },
+  {
+    "step_index": 634,
+    "name": "replace_file_content",
+    "args": {
+      "AllowMultiple": "false",
+      "Description": "\"Replace LinearGradient backing elements with multi-layered Border Stack Glow elements for complete Android glow spread\"",
+      "EndLine": "1343",
+      "Instruction": "\"Replace LinearGradient elements with multiple View border layers in JobsScreen.js\"",
+      "ReplacementContent": "\"        {/* 🌟 NEXT-LEVEL HERO GRADIENT STATS CARD */}\\n        <View style={{ position: 'relative', marginBottom: 24 }}>\\n          {theme.isDark && (\\n            <>\\n              {/* Outer soft glow layer */}\\n              <View\\n                style={{\\n                  position: 'absolute',\\n                  top: -12,\\n                  left: -12,\\n                  right: -12,\\n                  bottom: -12,\\n                  borderRadius: 36,\\n                  borderWidth: 6,\\n                  borderColor: 'rgba(255, 140, 0, 0.03)',\\n                }}\\n                pointerEvents=\\\"none\\\"\\n              />\\n              {/* Mid glow layer */}\\n              <View\\n                style={{\\n                  position: 'absolute',\\n                  top: -6,\\n                  left: -6,\\n                  right: -6,\\n                  bottom: -6,\\n                  borderRadius: 30,\\n                  borderWidth: 4,\\n                  borderColor: 'rgba(255, 140, 0, 0.08)',\\n                }}\\n                pointerEvents=\\\"none\\\"\\n              />\\n              {/* Inner intense glow layer */}\\n              <View\\n                style={{\\n                  position: 'absolute',\\n                  top: -2,\\n                  left: -2,\\n                  right: -2,\\n                  bottom: -2,\\n                  borderRadius: 26,\\n                  borderWidth: 2,\\n                  borderColor: 'rgba(255, 140, 0, 0.18)',\\n                }}\\n                pointerEvents=\\\"none\\\"\\n              />\\n            </>\\n          )}\\n          <View style={[styles.heroGradientCard, { marginBottom: 0 }]}>\\n            <View style={styles.heroCardHeader}>\\n              <View style={styles.heroTagBadge}>\\n                <Text style={styles.heroTagText}>PREMIUM ACCESS</Text>\\n              </View>\\n              <Text style={styles.heroTitle}>{t('profile.shape_future') || 'Shape Your Professional Future 🚀'}</Text>\\n              <Text style={styles.heroSubText}>{t('profile.explore_postings\n<truncated 6065 bytes>",
+      "StartLine": "1230",
+      "TargetContent": "\"        {/* 🌟 NEXT-LEVEL HERO GRADIENT STATS CARD */}\\n        <View style={{ position: 'relative', marginBottom: 24 }}>\\n          {theme.isDark && (\\n            <LinearGradient\\n              colors={['rgba(255, 140, 0, 0.22)', 'rgba(255, 140, 0, 0.04)', 'transparent']}\\n              style={{\\n                position: 'absolute',\\n                top: -6,\\n                left: -6,\\n                right: -6,\\n                bottom: -6,\\n                borderRadius: 28,\\n              }}\\n              pointerEvents=\\\"none\\\"\\n            />\\n          )}\\n          <View style={[styles.heroGradientCard, { marginBottom: 0 }]}>\\n            <View style={styles.heroCardHeader}>\\n              <View style={styles.heroTagBadge}>\\n                <Text style={styles.heroTagText}>PREMIUM ACCESS</Text>\\n              </View>\\n              <Text style={styles.heroTitle}>{t('profile.shape_future') || 'Shape Your Professional Future 🚀'}</Text>\\n              <Text style={styles.heroSubText}>{t('profile.explore_postings') || 'Explore matched postings & connect directly with recruiters.'}</Text>\\n            </View>\\n\\n            {/* Interactive Stats Grid */}\\n            <View style={styles.statsGridRow}>\\n              {/* Stat Box 1: Total Opportunities */}\\n              <View style={{ flex: 1, position: 'relative' }}>\\n                {theme.isDark && (\\n                  <LinearGradient\\n                    colors={['rgba(255, 140, 0, 0.25)', 'rgba(255, 140, 0, 0.03)', 'transparent']}\\n                    style={{\\n                      position: 'absolute',\\n                      top: -4,\\n                      left: -4,\\n                      right: -4,\\n                      bottom: -4,\\n                      borderRadius: 18,\\n                    }}\\n                    pointerEvents=\\\"none\\\"\\n                  />\\n                )}\\n                <TouchableOpacity\\n                  style={[\\n                    styles.statCardItem,\\n                    (!filterLikedOnly && !filterMyJobsOnly) &&\n<truncated 3132 bytes>",
+      "TargetFile": "\"D:\\\\Downloads\\\\APP-JOB\\\\frontend\\\\src\\\\screens\\\\JobsScreen.js\"",
+      "toolAction": "\"Replacing gradients with border stack glow elements\"",
+      "toolSummary": "\"Replace file content\""
+    }
+  },
+  {
+    "step_index": 648,
+    "name": "replace_file_content",
+    "args": {
+      "AllowMultiple": "false",
+      "Description": "\"Make nearYouBadge location icon color theme-aware (orange in dark mode)\"",
+      "EndLine": "1584",
+      "Instruction": "\"Update color prop of Ionicons location to use theme conditional\"",
+      "ReplacementContent": "\"              <View style={styles.nearYouBadge}>\\n                <Ionicons name=\\\"location\\\" size={11} color={theme.isDark ? '#FF8C00' : '#15803D'} style={{ marginRight: 3 }} />\\n                <Text style={styles.nearYouBadgeText}>Showing {userCountry} jobs first</Text>\\n              </View>\\n\"",
+      "StartLine": "1578",
+      "TargetContent": "\"              <View style={styles.nearYouBadge}>\\n                <Ionicons name=\\\"location\\\" size={11} color=\\\"#15803D\\\" style={{ marginRight: 3 }} />\\n                <Text style={styles.nearYouBadgeText}>Showing {userCountry} jobs first</Text>\\n              </View>\\n\"",
+      "TargetFile": "\"D:\\\\Downloads\\\\APP-JOB\\\\frontend\\\\src\\\\screens\\\\JobsScreen.js\"",
+      "toolAction": "\"Updating location badge icon color\"",
+      "toolSummary": "\"Replace file content\""
+    }
+  },
+  {
+    "step_index": 654,
+    "name": "replace_file_content",
+    "args": {
+      "AllowMultiple": "false",
+      "Description": "\"Make job details specs chips theme-aware (glowing orange/blue/purple in dark mode)\"",
+      "EndLine": "448",
+      "Instruction": "\"Update specs chips styling to use theme-based conditions\"",
+      "ReplacementContent": "\"          <View style={[styles.specChip, { backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#F0FDF4', borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.4)' : '#DCFCE7', borderWidth: 1 }]}>\\n            <Ionicons name=\\\"wallet-outline\\\" size={14} color={theme.isDark ? '#FF8C00' : '#15803D'} style={{ marginRight: 6 }} />\\n            <Text style={[styles.specChipText, { color: theme.isDark ? '#FF8C00' : '#15803D' }]}>{job.salary}</Text>\\n          </View>\\n          \\n          <View style={[styles.specChip, { backgroundColor: theme.isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF', borderColor: theme.isDark ? 'rgba(59, 130, 246, 0.4)' : '#DBEAFE', borderWidth: 1 }]}>\\n            <Ionicons name=\\\"briefcase-outline\\\" size={14} color={theme.isDark ? '#60A5FA' : '#1D4ED8'} style={{ marginRight: 6 }} />\\n            <Text style={[styles.specChipText, { color: theme.isDark ? '#60A5FA' : '#1D4ED8' }]}>{job.type}</Text>\\n          </View>\\n\\n          <View style={[styles.specChip, { backgroundColor: theme.isDark ? 'rgba(139, 92, 246, 0.15)' : '#F5F3FF', borderColor: theme.isDark ? 'rgba(139, 92, 246, 0.4)' : '#EDE9FE', borderWidth: 1 }]}>\\n            <Ionicons name=\\\"school-outline\\\" size={14} color={theme.isDark ? '#A78BFA' : '#6D28D9'} style={{ marginRight: 6 }} />\\n            <Text style={[styles.specChipText, { color: theme.isDark ? '#A78BFA' : '#6D28D9' }]}>{experienceReq}</Text>\\n          </View>\\n\"",
+      "StartLine": "434",
+      "TargetContent": "\"          <View style={[styles.specChip, { backgroundColor: '#F0FDF4', borderColor: '#DCFCE7', borderWidth: 1 }]}>\\n            <Ionicons name=\\\"wallet-outline\\\" size={14} color=\\\"#15803D\\\" style={{ marginRight: 6 }} />\\n            <Text style={[styles.specChipText, { color: '#15803D' }]}>{job.salary}</Text>\\n          </View>\\n          \\n          <View style={[styles.specChip, { backgroundColor: '#EFF6FF', borderColor: '#DBEAFE', borderWidth: 1 }]}>\\n            <Ionicons name=\\\"briefcase-outline\\\" size={14} color=\\\"#1D4ED8\\\" style={{ marginRight: 6 }} />\\n            <Text style={[styles.specChipText, { color: '#1D4ED8' }]}>{job.type}</Text>\\n          </View>\\n\\n          <View style={[styles.specChip, { backgroundColor: '#F5F3FF', borderColor: '#EDE9FE', borderWidth: 1 }]}>\\n            <Ionicons name=\\\"school-outline\\\" size={14} color=\\\"#6D28D9\\\" style={{ marginRight: 6 }} />\\n            <Text style={[styles.specChipText, { color: '#6D28D9' }]}>{experienceReq}</Text>\\n          </View>\\n\"",
+      "TargetFile": "\"D:\\\\Downloads\\\\APP-JOB\\\\frontend\\\\src\\\\screens\\\\JobsScreen.js\"",
+      "toolAction": "\"Updating spec chips colors\"",
+      "toolSummary": "\"Replace file content\""
+    }
+  },
+  {
+    "step_index": 658,
+    "name": "replace_file_content",
+    "args": {
+      "AllowMultiple": "false",
+      "Description": "\"Make nearYouBadge styles theme-aware (glowing orange in dark mode)\"",
+      "EndLine": "2122",
+      "Instruction": "\"Update nearYouBadge background, border and text color to support dark theme conditional\"",
+      "ReplacementContent": "\"  nearYouBadge: {\\n    flexDirection: 'row',\\n    alignItems: 'center',\\n    marginTop: 4,\\n    backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#DCFCE7',\\n    paddingHorizontal: 8,\\n    paddingVertical: 3,\\n    borderRadius: 8,\\n    alignSelf: 'flex-start',\\n    borderWidth: 1,\\n    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.4)' : '#BBF7D0',\\n  },\\n  nearYouBadgeText: {\\n    fontSize: 10,\\n    fontWeight: '700',\\n    color: theme.isDark ? '#FF8C00' : '#15803D',\\n  },\\n\"",
+      "StartLine": "2106",
+      "TargetContent": "\"  nearYouBadge: {\\n    flexDirection: 'row',\\n    alignItems: 'center',\\n    marginTop: 4,\\n    backgroundColor: '#DCFCE7',\\n    paddingHorizontal: 8,\\n    paddingVertical: 3,\\n    borderRadius: 8,\\n    alignSelf: 'flex-start',\\n    borderWidth: 1,\\n    borderColor: '#BBF7D0',\\n  },\\n  nearYouBadgeText: {\\n    fontSize: 10,\\n    fontWeight: '700',\\n    color: '#15803D',\\n  },\\n\"",
+      "TargetFile": "\"D:\\\\Downloads\\\\APP-JOB\\\\frontend\\\\src\\\\screens\\\\JobsScreen.js\"",
+      "toolAction": "\"Updating nearYouBadge style\"",
+      "toolSummary": "\"Replace file content\""
+    }
+  },
+  {
+    "step_index": 664,
+    "name": "replace_file_content",
+    "args": {
+      "AllowMultiple": "false",
+      "Description": "\"Make job item card salary badge styles theme-aware (glowing orange in dark mode)\"",
+      "EndLine": "2204",
+      "Instruction": "\"Update salaryBadgeContainer and jobRowSalaryText styles to support dark theme conditional\"",
+      "ReplacementContent": "\"  salaryBadgeContainer: {\\n    backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#E6F4EA',\\n    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.4)' : 'transparent',\\n    borderWidth: theme.isDark ? 1 : 0,\\n    paddingHorizontal: 10,\\n    paddingVertical: 5,\\n    borderRadius: 10,\\n    marginLeft: 8,\\n  },\\n  jobRowSalaryText: {\\n    color: theme.isDark ? '#FF8C00' : '#137333',\\n    fontSize: 11,\\n    fontWeight: '800',\\n  },\\n\"",
+      "StartLine": "2193",
+      "TargetContent": "\"  salaryBadgeContainer: {\\n    backgroundColor: '#E6F4EA',\\n    paddingHorizontal: 10,\\n    paddingVertical: 5,\\n    borderRadius: 10,\\n    marginLeft: 8,\\n  },\\n  jobRowSalaryText: {\\n    color: '#137333',\\n    fontSize: 11,\\n    fontWeight: '800',\\n  },\\n\"",
+      "TargetFile": "\"D:\\\\Downloads\\\\APP-JOB\\\\frontend\\\\src\\\\screens\\\\JobsScreen.js\"",
+      "toolAction": "\"Updating job card salary styles\"",
+      "toolSummary": "\"Replace file content\""
+    }
+  },
+  {
+    "step_index": 680,
+    "name": "replace_file_content",
+    "args": {
+      "AllowMultiple": "false",
+      "Description": "\"Add underlay background color to the first stats card wrapper View\"",
+      "EndLine": "1291",
+      "Instruction": "\"Add backgroundColor: theme.isDark ? '#E65C00' : 'transparent' and borderRadius: 16 to the first stats box wrapper View\"",
+      "ReplacementContent": "\"              {/* Stat Box 1: Total Opportunities */}\\n              <View style={{ flex: 1, position: 'relative', backgroundColor: theme.isDark ? '#E65C00' : 'transparent', borderRadius: 16 }}>\\n\"",
+      "StartLine": "1289",
+      "TargetContent": "\"              {/* Stat Box 1: Total Opportunities */}\\n              <View style={{ flex: 1, position: 'relative' }}>\\n\"",
+      "TargetFile": "\"D:\\\\Downloads\\\\APP-JOB\\\\frontend\\\\src\\\\screens\\\\JobsScreen.js\"",
+      "toolAction": "\"Updating first stat box wrapper style\"",
+      "toolSummary": "\"Replace file content\""
+    }
+  },
+  {
+    "step_index": 682,
+    "name": "replace_file_content",
+    "args": {
+      "AllowMultiple": "false",
+      "Description": "\"Add underlay background color to the second stats card wrapper View\"",
+      "EndLine": "1346",
+      "Instruction": "\"Add backgroundColor: theme.isDark ? '#E65C00' : 'transparent' and borderRadius: 16 to the second stats box wrapper View\"",
+      "ReplacementContent": "\"              {/* Stat Box 2: Liked / Saved Opportunities */}\\n              <View style={{ flex: 1, position: 'relative', backgroundColor: theme.isDark ? '#E65C00' : 'transparent', borderRadius: 16 }}>\\n\"",
+      "StartLine": "1341",
+      "TargetContent": "\"              {/* Stat Box 2: Liked / Saved Opportunities */}\\n              <View style={{ flex: 1, position: 'relative' }}>\\n\"",
+      "TargetFile": "\"D:\\\\Downloads\\\\APP-JOB\\\\frontend\\\\src\\\\screens\\\\JobsScreen.js\"",
+      "toolAction": "\"Updating second stat box wrapper style\"",
+      "toolSummary": "\"Replace file content\""
+    }
+  },
+  {
+    "step_index": 684,
+    "name": "replace_file_content",
+    "args": {
+      "AllowMultiple": "false",
+      "Description": "\"Add underlay background color to the third stats card wrapper View\"",
+      "EndLine": "1400",
+      "Instruction": "\"Add backgroundColor: theme.isDark ? '#E65C00' : 'transparent' and borderRadius: 16 to the third stats box wrapper View\"",
+      "ReplacementContent": "\"              {/* Stat Box 3: My Postings (Employer) / Verified Status (Job Seeker) */}\\n              <View style={{ flex: 1, position: 'relative', backgroundColor: theme.isDark ? '#E65C00' : 'transparent', borderRadius: 16 }}>\\n\"",
+      "StartLine": "1394",
+      "TargetContent": "\"              {/* Stat Box 3: My Postings (Employer) / Verified Status (Job Seeker) */}\\n              <View style={{ flex: 1, position: 'relative' }}>\\n\"",
+      "TargetFile": "\"D:\\\\Downloads\\\\APP-JOB\\\\frontend\\\\src\\\\screens\\\\JobsScreen.js\"",
+      "toolAction": "\"Updating third stat box wrapper style\"",
+      "toolSummary": "\"Replace file content\""
+    }
+  }
+]

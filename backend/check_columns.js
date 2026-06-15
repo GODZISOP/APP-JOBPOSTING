@@ -1,10 +1,9 @@
-require('dotenv').config();
-
+require('dotenv').config({path: './.env'});
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 async function main() {
-  const url = `${supabaseUrl}/rest/v1/jobs?select=*&limit=1`;
+  const url = `${supabaseUrl}/rest/v1/jobs?select=type&limit=10`;
   try {
     const response = await fetch(url, {
       headers: {
@@ -13,14 +12,9 @@ async function main() {
       }
     });
     const data = await response.json();
-    if (data.error) {
-      console.error('Error:', data.error);
-    } else {
-      console.log('Columns in jobs:', data.length > 0 ? Object.keys(data[0]) : 'No jobs found');
-    }
+    console.log('Types in DB:', data);
   } catch (err) {
     console.error('Fetch error:', err.message);
   }
 }
-
 main();
