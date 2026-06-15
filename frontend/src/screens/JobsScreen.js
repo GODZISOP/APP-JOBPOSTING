@@ -179,6 +179,7 @@ const TYPE_COLORS = {
 function JobCard({ job, onPress, isLiked, onLike, t }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
+  const { user } = useAuth();
   const logoColors = ['#0D9488', '#2563EB', '#DC2626', '#D97706', '#7C3AED', '#DB2777', '#0891B2'];
   const logoIndex = job.company ? job.company.charCodeAt(0) % logoColors.length : 0;
   const logoBg = logoColors[logoIndex];
@@ -1218,32 +1219,6 @@ export default function JobsScreen({ navigation, route }) {
 
     return (
       <View style={{ width: '100%', backgroundColor: theme.bgPrimary }}>
-        {/* Aura-Style Logo Header Bar */}
-        <View style={{
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingTop: insets.top + 4,
-          paddingBottom: 6,
-          backgroundColor: theme.isDark ? '#1A1A1A' : '#E8F5E9',
-          borderBottomWidth: 1,
-          borderBottomColor: theme.borderLight,
-          width: '100%',
-        }}>
-          {/* Center Logo branding */}
-          <View style={{ alignItems: 'center' }}>
-            <Text style={{
-              fontSize: 20,
-              fontWeight: '900',
-              color: theme.textPrimary,
-              letterSpacing: 4,
-              fontStyle: 'italic',
-              textTransform: 'uppercase',
-            }}>
-              BKJ
-            </Text>
-          </View>
-        </View>
-
         {/* Start Header Content Wrapper with standard padding */}
         <View style={styles.headerContainer}>
 
@@ -1677,6 +1652,33 @@ export default function JobsScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle={theme.isDark ? "light-content" : "dark-content"} backgroundColor={theme.isDark ? "#1A1A1A" : "#E8F5E9"} />
+
+      {/* Aura-Style Logo Header Bar (Frozen at the top) */}
+      <View style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: insets.top + 4,
+        paddingBottom: 6,
+        backgroundColor: theme.isDark ? '#1A1A1A' : '#E8F5E9',
+        borderBottomWidth: 1,
+        borderBottomColor: theme.borderLight,
+        width: '100%',
+        zIndex: 100,
+      }}>
+        {/* Center Logo branding */}
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{
+            fontSize: 20,
+            fontWeight: '900',
+            color: theme.textPrimary,
+            letterSpacing: 4,
+            fontStyle: 'italic',
+            textTransform: 'uppercase',
+          }}>
+            BKJ
+          </Text>
+        </View>
+      </View>
 
       {theme.isDark && (
         <LinearGradient

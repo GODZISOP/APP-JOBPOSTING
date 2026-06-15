@@ -330,8 +330,13 @@ export default function PostJobScreen({ navigation }) {
   };
 
   const handlePost = async () => {
-    if (!title.trim() || !company.trim() || !salaryMin.trim() || !salaryMax.trim() || !description.trim()) {
+    if (!title.trim() || !company.trim() || !salaryMin.trim() || !salaryMax.trim() || !description.trim() || !selectedCategory || !selectedType || !experienceLevel) {
       Alert.alert('Missing Details', 'Please fill in all required fields to post the job.');
+      return;
+    }
+
+    if (selectedSkills.length < 3) {
+      Alert.alert('Requirements Required', `Please select or type and add (+ button) at least 3 skills or requirements (current count: ${selectedSkills.length}).`);
       return;
     }
 
@@ -464,8 +469,8 @@ export default function PostJobScreen({ navigation }) {
       return;
     }
 
-    if (description.trim().length < 30) {
-      Alert.alert('Description Too Short', 'Please enter a detailed description of at least 30 characters to attract premium candidates.');
+    if (description.trim().length < 50) {
+      Alert.alert('Description Too Short', `Please enter a detailed description of at least 50 characters to attract premium candidates (current count: ${description.trim().length} characters).`);
       return;
     }
 
@@ -481,9 +486,7 @@ export default function PostJobScreen({ navigation }) {
 
     const formattedSalary = `${currencySymbol}${salaryMin}-${currencySymbol}${salaryMax}${suffix}`;
 
-    const finalRequirements = selectedSkills.length > 0
-      ? selectedSkills
-      : ['2+ years experience in the field', 'Strong professional standards', 'Good coordination skills'];
+    const finalRequirements = selectedSkills;
 
     try {
       const result = await postJob({

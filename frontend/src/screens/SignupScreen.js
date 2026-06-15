@@ -93,24 +93,154 @@ export default function SignupScreen({ navigation }) {
     'Nepal': '+977'
   };
 
+  const COUNTRY_PHONE_LENGTHS = {
+    'Pakistan': 10,
+    'India': 10,
+    'United Arab Emirates': 9,
+    'Saudi Arabia': 9,
+    'Qatar': 8,
+    'Kuwait': 8,
+    'Bahrain': 8,
+    'Oman': 8,
+    'United States': 10,
+    'Canada': 10,
+    'United Kingdom': 10,
+    'Germany': [10, 11],
+    'France': 9,
+    'Italy': 10,
+    'Spain': 9,
+    'Netherlands': 9,
+    'Switzerland': 9,
+    'Sweden': 9,
+    'Norway': 8,
+    'Denmark': 8,
+    'Ireland': 9,
+    'Australia': 9,
+    'New Zealand': 9,
+    'China': 11,
+    'Japan': 10,
+    'South Korea': 10,
+    'Singapore': 8,
+    'Malaysia': [9, 10],
+    'Indonesia': [10, 11, 12],
+    'Philippines': 10,
+    'Thailand': 9,
+    'Vietnam': 9,
+    'Bangladesh': 10,
+    'Sri Lanka': 9,
+    'Turkey': 10,
+    'Egypt': 10,
+    'South Africa': 9,
+    'Nigeria': 10,
+    'Kenya': 9,
+    'Morocco': 9,
+    'Brazil': 11,
+    'Mexico': 10,
+    'Argentina': 10,
+    'Colombia': 10,
+    'Chile': 9,
+    'Russia': 10,
+    'Poland': 9,
+    'Portugal': 9,
+    'Belgium': 9,
+    'Austria': 10,
+    'Greece': 10,
+    'Czech Republic': 9,
+    'Romania': 9,
+    'Hungary': 9,
+    'Finland': 9,
+    'Iraq': 10,
+    'Jordan': 9,
+    'Lebanon': 8,
+    'Afghanistan': 9,
+    'Iran': 10,
+    'Nepal': 10,
+  };
+
+
+  const COUNTRY_CODES = [
+    { name: 'Pakistan', flag: '🇵🇰', code: '+92' },
+    { name: 'India', flag: '🇮🇳', code: '+91' },
+    { name: 'United Arab Emirates', flag: '🇦🇪', code: '+971' },
+    { name: 'Saudi Arabia', flag: '🇸🇦', code: '+966' },
+    { name: 'Qatar', flag: '🇶🇦', code: '+974' },
+    { name: 'Kuwait', flag: '🇰🇼', code: '+965' },
+    { name: 'Bahrain', flag: '🇧🇭', code: '+973' },
+    { name: 'Oman', flag: '🇴🇲', code: '+968' },
+    { name: 'United States', flag: '🇺🇸', code: '+1' },
+    { name: 'Canada', flag: '🇨🇦', code: '+1' },
+    { name: 'United Kingdom', flag: '🇬🇧', code: '+44' },
+    { name: 'Germany', flag: '🇩🇪', code: '+49' },
+    { name: 'France', flag: '🇫🇷', code: '+33' },
+    { name: 'Italy', flag: '🇮🇹', code: '+39' },
+    { name: 'Spain', flag: '🇪🇸', code: '+34' },
+    { name: 'Netherlands', flag: '🇳🇱', code: '+31' },
+    { name: 'Switzerland', flag: '🇨🇭', code: '+41' },
+    { name: 'Sweden', flag: '🇸🇪', code: '+46' },
+    { name: 'Norway', flag: '🇳🇴', code: '+47' },
+    { name: 'Denmark', flag: '🇩🇰', code: '+45' },
+    { name: 'Ireland', flag: '🇮🇪', code: '+353' },
+    { name: 'Australia', flag: '🇦🇺', code: '+61' },
+    { name: 'New Zealand', flag: '🇳🇿', code: '+64' },
+    { name: 'China', flag: '🇨🇳', code: '+86' },
+    { name: 'Japan', flag: '🇯🇵', code: '+81' },
+    { name: 'South Korea', flag: '🇰🇷', code: '+82' },
+    { name: 'Singapore', flag: '🇸🇬', code: '+65' },
+    { name: 'Malaysia', flag: '🇲🇾', code: '+60' },
+    { name: 'Indonesia', flag: '🇮🇩', code: '+62' },
+    { name: 'Philippines', flag: '🇵🇭', code: '+63' },
+    { name: 'Thailand', flag: '🇹🇭', code: '+66' },
+    { name: 'Vietnam', flag: '🇻🇳', code: '+84' },
+    { name: 'Bangladesh', flag: '🇧🇩', code: '+880' },
+    { name: 'Sri Lanka', flag: '🇱🇰', code: '+94' },
+    { name: 'Turkey', flag: '🇹🇷', code: '+90' },
+    { name: 'Egypt', flag: '🇪🇬', code: '+20' },
+    { name: 'South Africa', flag: '🇿🇦', code: '+27' },
+    { name: 'Nigeria', flag: '🇳🇬', code: '+234' },
+    { name: 'Kenya', flag: '🇰🇪', code: '+254' },
+    { name: 'Morocco', flag: '🇲🇦', code: '+212' },
+    { name: 'Brazil', flag: '🇧🇷', code: '+55' },
+    { name: 'Mexico', flag: '🇲🇽', code: '+52' },
+    { name: 'Argentina', flag: '🇦🇷', code: '+54' },
+    { name: 'Colombia', flag: '🇨🇴', code: '+57' },
+    { name: 'Chile', flag: '🇨🇱', code: '+56' },
+    { name: 'Russia', flag: '🇷🇺', code: '+7' },
+    { name: 'Poland', flag: '🇵🇱', code: '+48' },
+    { name: 'Portugal', flag: '🇵🇹', code: '+351' },
+    { name: 'Belgium', flag: '🇧🇪', code: '+32' },
+    { name: 'Austria', flag: '🇦🇹', code: '+43' },
+    { name: 'Greece', flag: '🇬🇷', code: '+30' },
+    { name: 'Czech Republic', flag: '🇨🇿', code: '+420' },
+    { name: 'Romania', flag: '🇷🇴', code: '+40' },
+    { name: 'Hungary', flag: '🇭🇺', code: '+36' },
+    { name: 'Finland', flag: '🇫🇮', code: '+358' },
+    { name: 'Iraq', flag: '🇮🇶', code: '+964' },
+    { name: 'Jordan', flag: '🇯🇴', code: '+962' },
+    { name: 'Lebanon', flag: '🇱🇧', code: '+961' },
+    { name: 'Afghanistan', flag: '🇦🇫', code: '+93' },
+    { name: 'Iran', flag: '🇮🇷', code: '+98' },
+    { name: 'Nepal', flag: '🇳🇵', code: '+977' }
+  ];
+
+  const [selectedCountryCode, setSelectedCountryCode] = useState({ name: 'Pakistan', flag: '🇵🇰', code: '+92' });
+  const [showCountryCodeModal, setShowCountryCodeModal] = useState(false);
+
   useEffect(() => {
-    const dialCode = COUNTRY_DIAL_CODES[userCountry || 'Pakistan'] || '+92';
-    if (!phone) {
-      setPhone(dialCode);
+    if (userCountry) {
+      const matched = COUNTRY_CODES.find(c => c.name === userCountry);
+      if (matched) {
+        setSelectedCountryCode(matched);
+      }
     }
   }, [userCountry]);
 
   // Helper to format local numbers to international format
   const getFormattedPhone = () => {
-    let clean = phone.trim().replace(/\s+/g, '').replace(/[^0-9+]/g, '');
-    if (clean.startsWith('+')) {
-      return clean;
-    }
-    const dialCode = COUNTRY_DIAL_CODES[userCountry || 'Pakistan'] || '+92';
+    let clean = phone.trim().replace(/\s+/g, '').replace(/[^0-9]/g, '');
     if (clean.startsWith('0')) {
       clean = clean.substring(1);
     }
-    return dialCode + clean;
+    return selectedCountryCode.code + clean;
   };
 
   // Helper to process signup errors
@@ -184,80 +314,14 @@ export default function SignupScreen({ navigation }) {
       errors.email = 'Please enter a valid email address.';
     }
 
-    const COUNTRY_PHONE_LENGTHS = {
-      'Pakistan': 10,
-      'India': 10,
-      'United Arab Emirates': 9,
-      'Saudi Arabia': 9,
-      'Qatar': 8,
-      'Kuwait': 8,
-      'Bahrain': 8,
-      'Oman': 8,
-      'United States': 10,
-      'Canada': 10,
-      'United Kingdom': 10,
-      'Germany': [10, 11],
-      'France': 9,
-      'Italy': 10,
-      'Spain': 9,
-      'Netherlands': 9,
-      'Switzerland': 9,
-      'Sweden': 9,
-      'Norway': 8,
-      'Denmark': 8,
-      'Ireland': 9,
-      'Australia': 9,
-      'New Zealand': 9,
-      'China': 11,
-      'Japan': 10,
-      'South Korea': 10,
-      'Singapore': 8,
-      'Malaysia': [9, 10],
-      'Indonesia': [10, 11, 12],
-      'Philippines': 10,
-      'Thailand': 9,
-      'Vietnam': 9,
-      'Bangladesh': 10,
-      'Sri Lanka': 9,
-      'Turkey': 10,
-      'Egypt': 10,
-      'South Africa': 9,
-      'Nigeria': 10,
-      'Kenya': 9,
-      'Morocco': 9,
-      'Brazil': 11,
-      'Mexico': 10,
-      'Argentina': 10,
-      'Colombia': 10,
-      'Chile': 9,
-      'Russia': 10,
-      'Poland': 9,
-      'Portugal': 9,
-      'Belgium': 9,
-      'Austria': 10,
-      'Greece': 10,
-      'Czech Republic': 9,
-      'Romania': 9,
-      'Hungary': 9,
-      'Finland': 9,
-      'Iraq': 10,
-      'Jordan': 9,
-      'Lebanon': 8,
-      'Afghanistan': 9,
-      'Iran': 10,
-      'Nepal': 10,
-    };
+    // COUNTRY_PHONE_LENGTHS moved to component scope
 
     const formatted = getFormattedPhone();
-    const selectedCountryName = userCountry || 'Pakistan';
-    const dialCode = COUNTRY_DIAL_CODES[selectedCountryName] || '+92';
+    const selectedCountryName = selectedCountryCode.name;
     const expectedLength = COUNTRY_PHONE_LENGTHS[selectedCountryName];
 
     // Extract national number (remove country code and any leading 0)
-    let nationalNumber = formatted;
-    if (nationalNumber.startsWith(dialCode)) {
-      nationalNumber = nationalNumber.substring(dialCode.length);
-    }
+    let nationalNumber = phone.trim();
     if (nationalNumber.startsWith('0')) {
       nationalNumber = nationalNumber.substring(1);
     }
@@ -298,8 +362,9 @@ export default function SignupScreen({ navigation }) {
 
     setLoading(true);
     try {
-      const hostname = Constants.expoConfig?.hostUri?.split(':')?.[0] || '192.168.100.22';
-      const backendUrl = `http://${hostname}:5000`;
+      const backendUrl = __DEV__
+        ? `http://${Constants.expoConfig?.hostUri?.split(':')?.[0] || '192.168.100.22'}:5000`
+        : (Constants.expoConfig?.extra?.backendUrl || 'https://app-jobposting-arks.vercel.app');
       console.log(`🔌 [BACKEND] Connecting to: ${backendUrl}`);
 
       const response = await fetch(`${backendUrl}/api/auth/send-otp`, {
@@ -362,11 +427,13 @@ export default function SignupScreen({ navigation }) {
   };
 
   // ─── Input with inline error ─────────────────────────────────────────────────
-  const renderInput = ({ label, icon, value, onChangeText, placeholder, keyboardType, secureTextEntry, errorKey, rightElement, autoCapitalize }) => (
+  const renderInput = ({ label, icon, value, onChangeText, placeholder, keyboardType, secureTextEntry, errorKey, leftElement, rightElement, autoCapitalize, maxLength }) => (
     <View style={styles.inputGroup}>
       <Text style={styles.label}>{label}</Text>
       <View style={[styles.inputWrapper, fieldErrors[errorKey] && styles.inputWrapperError]}>
-        <Ionicons name={icon} size={18} color={fieldErrors[errorKey] ? '#EF4444' : theme.textSecondary} style={styles.inputIcon} />
+        {leftElement ? leftElement : (
+          <Ionicons name={icon} size={18} color={fieldErrors[errorKey] ? '#EF4444' : theme.textSecondary} style={styles.inputIcon} />
+        )}
         <TextInput
           style={[styles.input, rightElement ? { flex: 1 } : null]}
           placeholder={placeholder}
@@ -379,6 +446,7 @@ export default function SignupScreen({ navigation }) {
           keyboardType={keyboardType || 'default'}
           secureTextEntry={secureTextEntry || false}
           autoCapitalize={autoCapitalize || 'none'}
+          maxLength={maxLength}
         />
         {rightElement}
       </View>
@@ -435,16 +503,40 @@ export default function SignupScreen({ navigation }) {
             errorKey: 'email',
           })}
 
-          {/* Phone */}
-          {renderInput({
-            label: 'Phone number',
-            icon: 'call-outline',
-            value: phone,
-            onChangeText: setPhone,
-            placeholder: '+92 300 1234567',
-            keyboardType: 'phone-pad',
-            errorKey: 'phone',
-          })}
+          {(() => {
+            const selectedCountryName = userCountry || 'Pakistan';
+            const dialCode = COUNTRY_DIAL_CODES[selectedCountryName] || '+92';
+            const expectedLength = COUNTRY_PHONE_LENGTHS[selectedCountryName] || 10;
+            const maxLen = Array.isArray(expectedLength) ? Math.max(...expectedLength) : expectedLength;
+            const maxPhoneInputLength = dialCode.length + maxLen;
+            return renderInput({
+              label: 'Phone number',
+              icon: 'call-outline',
+              value: phone,
+              onChangeText: (text) => {
+                let cleaned = text;
+                if (cleaned.startsWith(dialCode + '0')) {
+                  cleaned = dialCode + cleaned.substring((dialCode + '0').length);
+                } else if (!cleaned.startsWith('+') && cleaned.startsWith('0')) {
+                  cleaned = cleaned.substring(1);
+                }
+                cleaned = cleaned.replace(/[^0-9+]/g, '');
+                setPhone(cleaned.slice(0, maxPhoneInputLength));
+              },
+              placeholder: dialCode + ' 300 1234567',
+              keyboardType: 'phone-pad',
+              errorKey: 'phone',
+              rightElement: phone && phone !== dialCode ? (
+                <TouchableOpacity 
+                  onPress={() => setPhone(dialCode)} 
+                  style={styles.eyeBtn}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Ionicons name="close-circle" size={18} color={theme.textSecondary || '#94A3B8'} />
+                </TouchableOpacity>
+              ) : null
+            });
+          })()}
 
           {/* Password */}
           {renderInput({

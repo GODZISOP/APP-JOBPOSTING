@@ -74,7 +74,8 @@
     "extra": {
       "eas": {
         "projectId": "a5e247b4-500c-4b6e-b47c-29bfba98e7a1"
-      }
+      },
+      "backendUrl": "https://app-jobposting-arks.vercel.app"
     },
     "owner": "zainshabbir-2"
   }

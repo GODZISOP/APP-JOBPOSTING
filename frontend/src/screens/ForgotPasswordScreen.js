@@ -63,8 +63,9 @@ export default function ForgotPasswordScreen({ navigation }) {
 
     setLoading(true);
     try {
-      const hostname = Constants.expoConfig?.hostUri?.split(':')?.[0] || '192.168.100.22';
-      const backendUrl = `http://${hostname}:5000`;
+      const backendUrl = __DEV__
+        ? `http://${Constants.expoConfig?.hostUri?.split(':')?.[0] || '192.168.100.22'}:5000`
+        : (Constants.expoConfig?.extra?.backendUrl || 'https://app-jobposting-arks.vercel.app');
       
       const response = await fetch(`${backendUrl}/api/auth/send-reset-otp`, {
         method: 'POST',
@@ -112,8 +113,9 @@ export default function ForgotPasswordScreen({ navigation }) {
 
     setLoading(true);
     try {
-      const hostname = Constants.expoConfig?.hostUri?.split(':')?.[0] || '192.168.100.22';
-      const backendUrl = `http://${hostname}:5000`;
+      const backendUrl = __DEV__
+        ? `http://${Constants.expoConfig?.hostUri?.split(':')?.[0] || '192.168.100.22'}:5000`
+        : (Constants.expoConfig?.extra?.backendUrl || 'https://app-jobposting-arks.vercel.app');
       
       const response = await fetch(`${backendUrl}/api/auth/update-password`, {
         method: 'POST',
