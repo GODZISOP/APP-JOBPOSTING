@@ -108,6 +108,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Root Endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: 'JobLink Secure Backend Server is running successfully!',
+    status: 'healthy',
+    version: '1.0.0'
+  });
+});
+
+
 // Endpoint: Send beautiful HTML email with 8-digit OTP using standard SMTP Transporter (Nodemailer)
 app.post('/api/auth/send-otp', async (req, res, next) => {
   const { email } = req.body;
