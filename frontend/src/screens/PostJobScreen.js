@@ -45,7 +45,8 @@ const CATEGORIES = [
   'Non-Profit',
   'Research',
   'Freelance',
-  'Internship'
+  'Internship',
+  'Beauty Parlour'
 ];
 const EXPERIENCE_LEVELS = ['Entry Level', 'Intermediate', 'Expert'];
 

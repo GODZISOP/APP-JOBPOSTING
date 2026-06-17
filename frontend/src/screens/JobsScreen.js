@@ -50,13 +50,18 @@ const CATEGORIES = [
   'Non-Profit',
   'Research',
   'Freelance',
-  'Internship'
+  'Internship',
+  'Beauty Parlour'
 ];
 
 const CATEGORY_THEMES = {
   All: {
     bg: '#FFFFFF',
     img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&q=80', // Premium modern office overview
+  },
+  'Beauty Parlour': {
+    bg: '#FFFFFF',
+    img: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=80',
   },
   Technology: {
     bg: '#FFFFFF',
