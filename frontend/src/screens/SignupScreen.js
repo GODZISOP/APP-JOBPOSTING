@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, StatusBar, KeyboardAvoidingView, Platform, Alert, Image, Modal,
+  ScrollView, StatusBar, KeyboardAvoidingView, Platform, Alert, Image, Modal, FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../theme/colors';
@@ -11,6 +11,7 @@ let styles;
 let theme;
 import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
+import SplashScreen from '../components/splashscreen';
 
 export default function SignupScreen({ navigation }) {
   const { theme: _theme } = useTheme(); theme = _theme;
@@ -23,6 +24,12 @@ export default function SignupScreen({ navigation }) {
   const [showPass, setShowPass] = useState(false);
   const [role, setRole] = useState('jobseeker');
   const [loading, setLoading] = useState(false);
+  
+  const [localSplash, setLocalSplash] = useState(false);
+  const [localSplashMessage, setLocalSplashMessage] = useState('');
+  const [localSplashSub, setLocalSplashSub] = useState('');
+  const [localSplashSignOut, setLocalSplashSignOut] = useState(false);
+  const [localSplashLottie, setLocalSplashLottie] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [showOtpConfirm, setShowOtpConfirm] = useState(false);
   const [emailOtpCode, setEmailOtpCode] = useState('');
@@ -337,13 +344,17 @@ export default function SignupScreen({ navigation }) {
 
     if (!phone.trim()) {
       errors.phone = 'Phone number is required.';
+      Alert.alert("Validation Error", errors.phone);
     } else if (phone.trim().includes('@')) {
       errors.phone = 'Please enter a valid phone number, not an email.';
+      Alert.alert("Validation Error", errors.phone);
     } else if (!isLengthValid) {
       const lengthStr = Array.isArray(expectedLength) ? expectedLength.join(' or ') : expectedLength;
       errors.phone = `Phone number for ${selectedCountryName} must be exactly ${lengthStr} digits (excluding country code).`;
+      Alert.alert("Validation Error", errors.phone);
     } else if (!/^\+[1-9]\d{7,14}$/.test(formatted)) {
       errors.phone = 'Must be a valid international number (e.g. +923001234567).';
+      Alert.alert("Validation Error", errors.phone);
     }
 
     if (!password) {
@@ -356,11 +367,16 @@ export default function SignupScreen({ navigation }) {
     return Object.keys(errors).length === 0;
   };
 
-  // ─── Handle Signup ───────────────────────────────────────────────────────────
   const handleSignup = async () => {
     if (!validate()) return;
 
+    setLocalSplashMessage("Sending Code");
+    setLocalSplashSub("Requesting verification email...");
+    setLocalSplashSignOut(false);
+    setLocalSplashLottie(true);
+    setLocalSplash(true);
     setLoading(true);
+
     try {
       const backendUrl = __DEV__
         ? `http://${Constants.expoConfig?.hostUri?.split(':')?.[0] || '192.168.100.22'}:5000`
@@ -381,23 +397,42 @@ export default function SignupScreen({ navigation }) {
       }
 
       setEmailOtpCode(data.otp);
-      if (data.delivered === false) {
+      
+      setTimeout(() => {
+        setLocalSplash(false);
+        setLoading(false);
+        if (data.delivered === false) {
+          Alert.alert(
+            '🔑 Verification Code (Dev Mode)',
+            `Email delivery failed (${data.warning || 'SMTP Error'}).\n\nSince you are in Dev Mode, here is your 8-digit OTP code to proceed:\n\n${data.otp}`
+          );
+        } else {
+          Alert.alert(
+            '🔑 Verification Code Sent',
+            `An 8-digit OTP verification code has been sent to ${email.trim()}.\n\nPlease check your inbox and spam folder.`
+          );
+        }
+        setShowOtpConfirm(true);
+      }, 1500);
+
+    } catch (err) {
+      setLocalSplash(false);
+      setLoading(false);
+      console.error('Signup OTP email error:', err);
+      const isNetworkError = err.message?.toLowerCase().includes('network') || err.message?.toLowerCase().includes('fetch') || err.message?.toLowerCase().includes('failed');
+      if (isNetworkError) {
         Alert.alert(
-          '🔑 Verification Code (Dev Mode)',
-          `Email delivery failed (${data.warning || 'SMTP Error'}).\n\nSince you are in Dev Mode, here is your 8-digit OTP code to proceed:\n\n${data.otp}`
+          '📶 Server Down / Offline',
+          'We are unable to reach the servers right now. Please check your internet connection and try again.',
+          [{ text: 'OK' }]
         );
       } else {
         Alert.alert(
-          '🔑 Verification Code Sent',
-          `An 8-digit OTP verification code has been sent to ${email.trim()}.\n\nPlease check your inbox and spam folder.`
+          '⚠️ Server Busy',
+          'The server is currently busy or under maintenance. Please try again in a few moments.',
+          [{ text: 'OK' }]
         );
       }
-      setShowOtpConfirm(true);
-    } catch (err) {
-      console.error('Signup OTP email error:', err);
-      Alert.alert('Email Error', err.message || 'Unable to connect to the backend server to send the OTP email.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -412,18 +447,25 @@ export default function SignupScreen({ navigation }) {
       return;
     }
 
+    setShowOtpConfirm(false);
+    setLocalSplashMessage("Creating Account");
+    setLocalSplashSub("Setting up your secure profile...");
+    setLocalSplashSignOut(false);
+    setLocalSplashLottie(true);
+    setLocalSplash(true);
     setLoading(true);
-    // OTP verification passed locally. Register user in Supabase (Confirm email should be disabled in Supabase so registration succeeds instantly)
-    const result = await signup(name.trim(), email.trim().toLowerCase(), password, role, getFormattedPhone());
-    setLoading(false);
 
-    if (result.success) {
-      setShowOtpConfirm(false);
-      Alert.alert('Registration Successful 🎉', 'Your account has been verified and registered successfully.');
-      return;
-    } else {
-      handleSignupError(result);
-    }
+    const result = await signup(name.trim(), email.trim().toLowerCase(), password, role, getFormattedPhone());
+
+    setTimeout(() => {
+      setLocalSplash(false);
+      setLoading(false);
+      if (result.success) {
+        Alert.alert('Registration Successful 🎉', 'Your account has been verified and registered successfully.');
+      } else {
+        handleSignupError(result);
+      }
+    }, 1500);
   };
 
   // ─── Input with inline error ─────────────────────────────────────────────────
@@ -504,31 +546,46 @@ export default function SignupScreen({ navigation }) {
           })}
 
           {(() => {
-            const selectedCountryName = userCountry || 'Pakistan';
-            const dialCode = COUNTRY_DIAL_CODES[selectedCountryName] || '+92';
-            const expectedLength = COUNTRY_PHONE_LENGTHS[selectedCountryName] || 10;
+            const expectedLength = COUNTRY_PHONE_LENGTHS[selectedCountryCode.name] || 10;
             const maxLen = Array.isArray(expectedLength) ? Math.max(...expectedLength) : expectedLength;
-            const maxPhoneInputLength = dialCode.length + maxLen;
             return renderInput({
               label: 'Phone number',
-              icon: 'call-outline',
               value: phone,
               onChangeText: (text) => {
                 let cleaned = text;
-                if (cleaned.startsWith(dialCode + '0')) {
-                  cleaned = dialCode + cleaned.substring((dialCode + '0').length);
-                } else if (!cleaned.startsWith('+') && cleaned.startsWith('0')) {
+                if (cleaned.startsWith('0')) {
                   cleaned = cleaned.substring(1);
                 }
-                cleaned = cleaned.replace(/[^0-9+]/g, '');
-                setPhone(cleaned.slice(0, maxPhoneInputLength));
+                cleaned = cleaned.replace(/[^0-9]/g, '');
+                setPhone(cleaned.slice(0, maxLen));
               },
-              placeholder: dialCode + ' 300 1234567',
+              placeholder: '300 1234567',
               keyboardType: 'phone-pad',
               errorKey: 'phone',
-              rightElement: phone && phone !== dialCode ? (
+              leftElement: (
+                <View style={{ flexDirection: 'row', alignItems: 'center', height: '100%' }}>
+                  <Ionicons name="call-outline" size={18} color={fieldErrors['phone'] ? '#EF4444' : theme.textSecondary} style={{ marginRight: 6 }} />
+                  <TouchableOpacity
+                    style={{
+                      paddingHorizontal: 4,
+                      marginRight: 8,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '100%',
+                    }}
+                    onPress={() => setShowCountryCodeModal(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={{ fontSize: 14, color: theme.textPrimary, fontWeight: '700', textAlignVertical: 'center', includeFontPadding: false }}>
+                      {selectedCountryCode.flag} {selectedCountryCode.code} ▾
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ),
+              rightElement: phone ? (
                 <TouchableOpacity 
-                  onPress={() => setPhone(dialCode)} 
+                  onPress={() => setPhone('')} 
                   style={styles.eyeBtn}
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
@@ -612,6 +669,65 @@ export default function SignupScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+      {/* Country Code Selection Modal */}
+      <Modal visible={showCountryCodeModal} transparent={true} animationType="slide" onRequestClose={() => setShowCountryCodeModal(false)}>
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end', paddingHorizontal: 0, backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={{
+            backgroundColor: theme.bgPrimary,
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            paddingTop: 24,
+            paddingHorizontal: 20,
+            height: '60%',
+            width: '100%',
+            maxWidth: '100%',
+            borderBottomLeftRadius: 0,
+            borderBottomRightRadius: 0,
+            paddingBottom: 20
+          }}>
+            <View style={{ paddingHorizontal: 20, paddingBottom: 15, borderBottomWidth: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary }}>Select Country Code 📞</Text>
+              <TouchableOpacity onPress={() => setShowCountryCodeModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={24} color={theme.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={COUNTRY_CODES}
+              keyExtractor={(item) => item.name}
+              style={{ width: '100%', marginTop: 8 }}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                  }}
+                  onPress={() => {
+                    setSelectedCountryCode(item);
+                    setShowCountryCodeModal(false);
+                  }}
+                >
+                  <Text style={{ fontSize: 20, marginRight: 12 }}>{item.flag}</Text>
+                  <Text style={{ fontSize: 15, color: theme.textPrimary, flex: 1, fontWeight: '600' }}>{item.name}</Text>
+                  <Text style={{ fontSize: 15, color: theme.textSecondary, fontWeight: '700' }}>{item.code}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+      {localSplash && (
+        <Modal transparent animationType="fade" visible={localSplash}>
+          <SplashScreen
+            message={localSplashMessage}
+            subMessage={localSplashSub}
+            isSignOut={localSplashSignOut}
+            showLottie={localSplashLottie}
+          />
+        </Modal>
+      )}
     </KeyboardAvoidingView>
   );
 }

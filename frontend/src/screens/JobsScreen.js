@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   StatusBar, TextInput, FlatList, Dimensions, Alert,
-  Animated, Easing, Modal, Linking, RefreshControl, Share, Platform
+  Animated, Easing, Modal, Linking, RefreshControl, Share, Platform, BackHandler
 } from 'react-native';
 import { Image } from 'expo-image';
 
@@ -1032,6 +1032,23 @@ export default function JobsScreen({ navigation, route }) {
     };
     loadInitialData();
   }, []);
+
+  useEffect(() => {
+    const handleBackButton = () => {
+      if (selectedJob) {
+        setSelectedJob(null);
+        return true;
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleBackButton
+    );
+
+    return () => backHandler.remove();
+  }, [selectedJob]);
 
   const routeJobId = route?.params?.jobId;
   useEffect(() => {

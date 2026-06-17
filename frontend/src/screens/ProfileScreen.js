@@ -985,6 +985,41 @@ export default function ProfileScreen() {
       return;
     }
 
+    // Phone Length Validation
+    let cleanPhone = editPhone.trim();
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = cleanPhone.substring(1);
+    }
+
+    let finalPhone = '';
+    if (cleanPhone) {
+      const selectedCountryName = selectedCountryCode.name;
+      const expectedLength = COUNTRY_PHONE_LENGTHS[selectedCountryName];
+      let isLengthValid = true;
+      if (expectedLength) {
+        if (Array.isArray(expectedLength)) {
+          isLengthValid = expectedLength.includes(cleanPhone.length);
+        } else {
+          isLengthValid = cleanPhone.length === expectedLength;
+        }
+      }
+
+      if (!isLengthValid) {
+        const lengthStr = Array.isArray(expectedLength) ? expectedLength.join(' or ') : expectedLength;
+        Alert.alert(
+          "Validation Error",
+          `Phone number for ${selectedCountryName} must be exactly ${lengthStr} digits (excluding country code).`
+        );
+        return;
+      }
+
+      finalPhone = selectedCountryCode.code + cleanPhone;
+      if (!/^\+[1-9]\d{7,14}$/.test(finalPhone)) {
+        Alert.alert("Validation Error", "Must be a valid phone number format.");
+        return;
+      }
+    }
+
     setSaving(true);
     setLocalSplashMessage("Saving Profile");
     setLocalSplashSub("Updating your professional details...");
@@ -992,11 +1027,6 @@ export default function ProfileScreen() {
     setLocalSplashLottie(true);
     setLocalSplash(true);
 
-    let cleanPhone = editPhone.trim();
-    if (cleanPhone.startsWith('0')) {
-      cleanPhone = cleanPhone.substring(1);
-    }
-    const finalPhone = cleanPhone ? (selectedCountryCode.code + cleanPhone) : '';
     const res = await updateProfile({
       name: editName,
       title: editTitle,
@@ -1282,15 +1312,16 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 style={{
                   paddingHorizontal: 4,
-                  height: '100%',
                   marginRight: 8,
-                  justifyContent: 'center',
+                  flexDirection: 'row',
                   alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
                 }}
                 onPress={() => setShowCountryCodeModal(true)}
                 activeOpacity={0.8}
               >
-                <Text style={{ fontSize: 13, color: theme.textPrimary, fontWeight: '700' }}>
+                <Text style={{ fontSize: 13, color: theme.textPrimary, fontWeight: '700', textAlignVertical: 'center', includeFontPadding: false }}>
                   {selectedCountryCode.flag} {selectedCountryCode.code} ▾
                 </Text>
               </TouchableOpacity>
@@ -1813,7 +1844,7 @@ export default function ProfileScreen() {
                   <View style={styles.likerInfoRow}>
                     <Ionicons name="location-outline" size={18} color={theme.isDark ? theme.accentYellow : theme.accentGreen} style={{ marginRight: 12 }} />
                     <Text style={styles.likerInfoText} numberOfLines={1} adjustsFontSizeToFit>
-                      {selectedLiker?.location && selectedLiker.location !== 'Not specified' ? selectedLiker.location : 'Not specified'}
+                      {selectedLiker?.location && selectedLiker.location !== 'Not specified' ? selectedLiker.location.split('|')[0] : 'Not specified'}
                     </Text>
                   </View>
 
@@ -2250,22 +2281,22 @@ export default function ProfileScreen() {
               <ScrollView showsVerticalScrollIndicator={false} style={{ width: '100%' }}>
 
                 <Text style={{ fontSize: 13, fontWeight: '700', color: theme.textSecondary, marginBottom: 6, marginLeft: 4 }}>Job Title</Text>
-                <TextInput style={{ backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 14, padding: 14, marginBottom: 16, fontSize: 14, color: theme.textPrimary, borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} value={editJobTitle} onChangeText={setEditJobTitle} placeholder="e.g. Senior React Developer" placeholderTextColor="#94A3B8" />
+                <TextInput style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)', borderRadius: 14, padding: 14, marginBottom: 16, fontSize: 14, color: theme.textPrimary, borderWidth: 1, borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)' }} value={editJobTitle} onChangeText={setEditJobTitle} placeholder="e.g. Senior React Developer" placeholderTextColor={theme.isDark ? 'rgba(255,255,255,0.3)' : '#94A3B8'} />
 
                 <Text style={{ fontSize: 13, fontWeight: '700', color: theme.textSecondary, marginBottom: 6, marginLeft: 4 }}>Salary</Text>
-                <TextInput style={{ backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 14, padding: 14, marginBottom: 16, fontSize: 14, color: theme.textPrimary, borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} value={editJobSalary} onChangeText={setEditJobSalary} placeholder="e.g. $80k - $100k/year" placeholderTextColor="#94A3B8" />
+                <TextInput style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)', borderRadius: 14, padding: 14, marginBottom: 16, fontSize: 14, color: theme.textPrimary, borderWidth: 1, borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)' }} value={editJobSalary} onChangeText={setEditJobSalary} placeholder="e.g. $80k - $100k/year" placeholderTextColor={theme.isDark ? 'rgba(255,255,255,0.3)' : '#94A3B8'} />
 
                 <Text style={{ fontSize: 13, fontWeight: '700', color: theme.textSecondary, marginBottom: 6, marginLeft: 4 }}>Description</Text>
-                <TextInput style={{ backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 14, padding: 14, marginBottom: 16, fontSize: 14, color: theme.textPrimary, height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} multiline value={editJobDesc} onChangeText={setEditJobDesc} placeholder="Describe the job role and responsibilities..." placeholderTextColor="#94A3B8" />
+                <TextInput style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)', borderRadius: 14, padding: 14, marginBottom: 16, fontSize: 14, color: theme.textPrimary, height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)' }} multiline value={editJobDesc} onChangeText={setEditJobDesc} placeholder="Describe the job role and responsibilities..." placeholderTextColor={theme.isDark ? 'rgba(255,255,255,0.3)' : '#94A3B8'} />
 
                 <Text style={{ fontSize: 13, fontWeight: '700', color: theme.textSecondary, marginBottom: 6, marginLeft: 4 }}>Requirements (one per line)</Text>
-                <TextInput style={{ backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 14, padding: 14, marginBottom: 24, fontSize: 14, color: theme.textPrimary, height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }} multiline value={editJobReqs} onChangeText={setEditJobReqs} placeholder="e.g. 3+ years React Native experience&#10;Strong communication skills" placeholderTextColor="#94A3B8" />
+                <TextInput style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)', borderRadius: 14, padding: 14, marginBottom: 24, fontSize: 14, color: theme.textPrimary, height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)' }} multiline value={editJobReqs} onChangeText={setEditJobReqs} placeholder="e.g. 3+ years React Native experience&#10;Strong communication skills" placeholderTextColor={theme.isDark ? 'rgba(255,255,255,0.3)' : '#94A3B8'} />
 
                 <TouchableOpacity style={{ backgroundColor: theme.accentGreen, padding: 16, borderRadius: 16, alignItems: 'center' }} onPress={handleSaveEditJob}>
                   <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '800' }}>Save Changes</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={{ padding: 16, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.5)', alignItems: 'center', marginTop: 10, marginBottom: 40 }} onPress={() => setShowEditJobModal(false)}>
+                <TouchableOpacity style={{ padding: 16, borderRadius: 16, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)', borderWidth: theme.isDark ? 1 : 0, borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'transparent', alignItems: 'center', marginTop: 10, marginBottom: 40 }} onPress={() => setShowEditJobModal(false)}>
                   <Text style={{ color: theme.textPrimary, fontSize: 15, fontWeight: '700' }}>Cancel</Text>
                 </TouchableOpacity>
               </ScrollView>

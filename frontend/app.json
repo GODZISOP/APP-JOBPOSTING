@@ -72,11 +72,11 @@
       ]
     ],
     "extra": {
+      "backendUrl": "https://app-jobposting-arks.vercel.app",
       "eas": {
-        "projectId": "a5e247b4-500c-4b6e-b47c-29bfba98e7a1"
-      },
-      "backendUrl": "https://app-jobposting-arks.vercel.app"
+        "projectId": "e1102479-ea40-4e16-ada7-0887b5132ac5"
+      }
     },
-    "owner": "zainshabbir-2"
+    "owner": "ksmsjjsis"
   }
 }

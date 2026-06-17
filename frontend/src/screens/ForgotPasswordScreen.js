@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, StatusBar, KeyboardAvoidingView, Platform, Alert, Image,
+  ScrollView, StatusBar, KeyboardAvoidingView, Platform, Alert, Image, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../theme/colors';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
+import SplashScreen from '../components/splashscreen';
 
 let styles;
 let theme;
@@ -26,6 +27,12 @@ export default function ForgotPasswordScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+
+  const [localSplash, setLocalSplash] = useState(false);
+  const [localSplashMessage, setLocalSplashMessage] = useState('');
+  const [localSplashSub, setLocalSplashSub] = useState('');
+  const [localSplashSignOut, setLocalSplashSignOut] = useState(false);
+  const [localSplashLottie, setLocalSplashLottie] = useState(false);
 
   // ─── Email Validation ────────────────────────────────────────────────────────
   const validateEmailOnly = () => {
@@ -61,6 +68,11 @@ export default function ForgotPasswordScreen({ navigation }) {
   const handleSendOtp = async () => {
     if (!validateEmailOnly()) return;
 
+    setLocalSplashMessage("Sending Code");
+    setLocalSplashSub("Requesting reset email...");
+    setLocalSplashSignOut(false);
+    setLocalSplashLottie(true);
+    setLocalSplash(true);
     setLoading(true);
     try {
       const backendUrl = __DEV__
@@ -81,24 +93,41 @@ export default function ForgotPasswordScreen({ navigation }) {
       }
 
       setOtpCode(data.otp);
-      setOtpSent(true);
-
-      if (data.delivered === false) {
+      
+      setTimeout(() => {
+        setLocalSplash(false);
+        setLoading(false);
+        setOtpSent(true);
+        if (data.delivered === false) {
+          Alert.alert(
+            '🔑 Verification Code (Dev Mode)',
+            `Email delivery failed (${data.warning || 'SMTP Error'}).\n\nSince you are in Dev Mode, here is your 8-digit OTP code to proceed:\n\n${data.otp}`
+          );
+        } else {
+          Alert.alert(
+            '🔑 Verification Code Sent',
+            `An 8-digit OTP verification code has been sent to ${email.trim()}.\n\nPlease check your inbox.`
+          );
+        }
+      }, 1500);
+    } catch (err) {
+      setLocalSplash(false);
+      setLoading(false);
+      console.error('Send reset OTP error:', err);
+      const isNetworkError = err.message?.toLowerCase().includes('network') || err.message?.toLowerCase().includes('fetch') || err.message?.toLowerCase().includes('failed');
+      if (isNetworkError) {
         Alert.alert(
-          '🔑 Verification Code (Dev Mode)',
-          `Email delivery failed (${data.warning || 'SMTP Error'}).\n\nSince you are in Dev Mode, here is your 8-digit OTP code to proceed:\n\n${data.otp}`
+          '📶 Server Down / Offline',
+          'We are unable to reach the servers right now. Please check your internet connection and try again.',
+          [{ text: 'OK' }]
         );
       } else {
         Alert.alert(
-          '🔑 Verification Code Sent',
-          `An 8-digit OTP verification code has been sent to ${email.trim()}.\n\nPlease check your inbox.`
+          '⚠️ Server Busy',
+          'The server is currently busy or under maintenance. Please try again in a few moments.',
+          [{ text: 'OK' }]
         );
       }
-    } catch (err) {
-      console.error('Send reset OTP error:', err);
-      Alert.alert('Error', err.message || 'Unable to connect to the backend server.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -111,6 +140,11 @@ export default function ForgotPasswordScreen({ navigation }) {
       return;
     }
 
+    setLocalSplashMessage("Resetting Passcode");
+    setLocalSplashSub("Updating security credentials...");
+    setLocalSplashSignOut(false);
+    setLocalSplashLottie(true);
+    setLocalSplash(true);
     setLoading(true);
     try {
       const backendUrl = __DEV__
@@ -133,16 +167,33 @@ export default function ForgotPasswordScreen({ navigation }) {
         throw new Error(data.error || 'Failed to reset passcode.');
       }
 
-      Alert.alert(
-        '🎉 Passcode Reset Successfully',
-        'Your security passcode has been updated. Please login with your new credentials.',
-        [{ text: 'Go to Login', onPress: () => navigation.navigate('Login') }]
-      );
+      setTimeout(() => {
+        setLocalSplash(false);
+        setLoading(false);
+        Alert.alert(
+          '🎉 Passcode Reset Successfully',
+          'Your security passcode has been updated. Please login with your new credentials.',
+          [{ text: 'Go to Login', onPress: () => navigation.navigate('Login') }]
+        );
+      }, 1500);
     } catch (err) {
-      console.error('Reset passcode error:', err);
-      Alert.alert('Error', err.message || 'Failed to reset passcode.');
-    } finally {
+      setLocalSplash(false);
       setLoading(false);
+      console.error('Reset passcode error:', err);
+      const isNetworkError = err.message?.toLowerCase().includes('network') || err.message?.toLowerCase().includes('fetch') || err.message?.toLowerCase().includes('failed');
+      if (isNetworkError) {
+        Alert.alert(
+          '📶 Server Down / Offline',
+          'We are unable to reach the servers right now. Please check your internet connection and try again.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert(
+          '⚠️ Server Busy',
+          'The server is currently busy or under maintenance. Please try again in a few moments.',
+          [{ text: 'OK' }]
+        );
+      }
     }
   };
 
@@ -266,6 +317,16 @@ export default function ForgotPasswordScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      {localSplash && (
+        <Modal transparent animationType="fade" visible={localSplash}>
+          <SplashScreen
+            message={localSplashMessage}
+            subMessage={localSplashSub}
+            isSignOut={localSplashSignOut}
+            showLottie={localSplashLottie}
+          />
+        </Modal>
+      )}
     </KeyboardAvoidingView>
   );
 }

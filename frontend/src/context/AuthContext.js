@@ -634,10 +634,11 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (data) {
-        // Only show notifications from OTHER users who liked your jobs (not your own bookmarks)
+        // Only show notifications from OTHER users who liked your jobs (not your own bookmarks), and only if that user's profile still exists
         const otherLikes = data.filter(item => {
           const likerId = item.profiles?.id || item.user_id;
-          return likerId !== user.id;
+          const profileExists = !!item.profiles;
+          return likerId !== user.id && profileExists;
         });
 
         const dbNotifs = otherLikes.map(item => {
@@ -667,9 +668,9 @@ export const AuthProvider = ({ children }) => {
           };
         });
 
-        // Filter out self-likes from local notifications too
-        const filteredLocal = localNotifs.filter(n => n.likerId !== user.id);
-        const mergedNotifs = [...dbNotifs, ...filteredLocal];
+        // When online, use live database notifications as the sole source of truth.
+        // This automatically filters out any deleted users or unliked jobs.
+        const mergedNotifs = [...dbNotifs];
 
         const uniqueNotifs = [];
         const seenKeys = new Set();
