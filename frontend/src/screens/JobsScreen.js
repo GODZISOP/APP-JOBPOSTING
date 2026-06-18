@@ -51,7 +51,53 @@ const CATEGORIES = [
   'Research',
   'Freelance',
   'Internship',
-  'Beauty Parlour'
+  'Beauty Parlour',
+  'Driving',
+  'Electrician',
+  'Plumbing',
+  'Carpentry',
+  'Tailoring',
+  'Cooking / Chef',
+  'Cleaning Services',
+  'Mechanic / Auto',
+  'Welding / Fabrication',
+  'Painting',
+  'Delivery / Rider',
+  'Telecommunication',
+  'Aviation',
+  'Maritime / Shipping',
+  'Oil & Gas',
+  'Mining',
+  'Pharmacy',
+  'Veterinary',
+  'Fitness / Gym',
+  'Sports',
+  'Event Management',
+  'Photography / Video',
+  'Fashion',
+  'Jewelry',
+  'E-Commerce',
+  'Translation / Languages',
+  'Data Entry',
+  'Printing / Publishing',
+  'Architecture',
+  'Interior Design',
+  'Environmental',
+  'Social Work',
+  'Teaching / Tuition',
+  'IT Support',
+  'Cybersecurity',
+  'Artificial Intelligence',
+  'Blockchain',
+  'Graphic Design',
+  'Content Creation',
+  'SEO / Digital Marketing',
+  'Call Center',
+  'Banking',
+  'Insurance',
+  'Import / Export',
+  'Textile',
+  'Garments'
 ];
 
 const CATEGORY_THEMES = {
@@ -169,8 +215,54 @@ const CATEGORY_THEMES = {
   },
   Internship: {
     bg: '#FFFFFF',
-    img: 'https://images.unsplash.com/photo-1521737711867-e3b9047d7a86?w=400&q=80', // Intern group listening to corporate presentation
+    img: 'https://images.unsplash.com/photo-1521737711867-e3b9047d7a86?w=400&q=80',
   },
+  'Driving': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=400&q=80' },
+  'Electrician': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&q=80' },
+  'Plumbing': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' },
+  'Carpentry': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=400&q=80' },
+  'Tailoring': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&q=80' },
+  'Cooking / Chef': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&q=80' },
+  'Cleaning Services': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&q=80' },
+  'Mechanic / Auto': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80' },
+  'Welding / Fabrication': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&q=80' },
+  'Painting': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=400&q=80' },
+  'Delivery / Rider': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1615751072497-5f5169febe17?w=400&q=80' },
+  'Telecommunication': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&q=80' },
+  'Aviation': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80' },
+  'Maritime / Shipping': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1548337138-e87d889cc369?w=400&q=80' },
+  'Oil & Gas': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80' },
+  'Mining': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?w=400&q=80' },
+  'Pharmacy': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=400&q=80' },
+  'Veterinary': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1576201836106-db1758fd1c97?w=400&q=80' },
+  'Fitness / Gym': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80' },
+  'Sports': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&q=80' },
+  'Event Management': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&q=80' },
+  'Photography / Video': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&q=80' },
+  'Fashion': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' },
+  'Jewelry': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&q=80' },
+  'E-Commerce': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400&q=80' },
+  'Translation / Languages': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&q=80' },
+  'Data Entry': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=400&q=80' },
+  'Printing / Publishing': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=400&q=80' },
+  'Architecture': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400&q=80' },
+  'Interior Design': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&q=80' },
+  'Environmental': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?w=400&q=80' },
+  'Social Work': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?w=400&q=80' },
+  'Teaching / Tuition': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=400&q=80' },
+  'IT Support': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&q=80' },
+  'Cybersecurity': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&q=80' },
+  'Artificial Intelligence': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=400&q=80' },
+  'Blockchain': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400&q=80' },
+  'Graphic Design': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&q=80' },
+  'Content Creation': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=400&q=80' },
+  'SEO / Digital Marketing': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1533750349088-cd871a92f312?w=400&q=80' },
+  'Call Center': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=400&q=80' },
+  'Banking': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1541354329998-f4d9a9f9297f?w=400&q=80' },
+  'Insurance': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=400&q=80' },
+  'Import / Export': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&q=80' },
+  'Textile': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&q=80' },
+  'Garments': { bg: '#FFFFFF', img: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&q=80' },
 };
 
 const TYPE_COLORS = {
@@ -349,21 +441,25 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
     const message = `Hi ${name || 'Employer'},\n\nI am applying for the "${jobTitle}" position on BKJ. Here are my application details:\n\n👤 Name: ${applicantName}\n📧 Email: ${applicantEmail}\n📞 Phone: ${applicantPhone}\n\nPlease let me know if we can discuss this opportunity further. Thank you!`;
     
     if (Platform.OS === 'android') {
-      const targetPackage = isBusiness ? 'com.whatsapp.w4b' : 'com.whatsapp';
-      const schemeUrl = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
       const webUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
 
-      try {
-        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-          data: schemeUrl,
-          packageName: targetPackage,
-        });
-      } catch (err) {
-        // Fallback for Expo Go client (where package visibility queries are blocked by Expo Go's manifest)
-        Linking.openURL(schemeUrl).catch(() => {
-          Linking.openURL(webUrl).catch(() => {
-            Alert.alert('Error', `Could not open ${isBusiness ? 'WhatsApp Business' : 'WhatsApp'}. Please check if it is installed.`);
+      if (isBusiness) {
+        // Method 1: whatsapp-business:// scheme (most direct)
+        const businessSchemeUrl = `whatsapp-business://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
+        // Method 2: intent URI with explicit package (works with manifest query declared)
+        const intentUrl = `intent://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}#Intent;package=com.whatsapp.w4b;scheme=whatsapp;end`;
+
+        Linking.openURL(businessSchemeUrl).catch(() => {
+          Linking.openURL(intentUrl).catch(() => {
+            // Final fallback: web (browser or WhatsApp will handle)
+            Linking.openURL(webUrl);
           });
+        });
+      } else {
+        // Regular WhatsApp
+        const regularUrl = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
+        Linking.openURL(regularUrl).catch(() => {
+          Linking.openURL(webUrl);
         });
       }
     } else {
@@ -393,17 +489,14 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
     const body = `Hi ${name || 'Employer'},\n\nI am interested in applying for the "${jobTitle}" position listed on BKJ.\n\nHere are my contact and application details:\n\n👤 Name: ${applicantName}\n📧 Email: ${applicantEmail}\n📞 Phone: ${applicantPhone}\n\nPlease find my contact details attached to my BKJ profile.\n\nBest regards,\n${applicantName}`;
     const url = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          Alert.alert('Mail Error', 'Could not open your mail client. Recruiter Email: ' + email);
-        }
-      })
-      .catch(() => {
-        Alert.alert('Mail Error', 'Could not open your mail client. Recruiter Email: ' + email);
-      });
+    // Directly openURL — canOpenURL always returns false for mailto: on Android (package visibility)
+    Linking.openURL(url).catch(() => {
+      Alert.alert(
+        'No Email App Found',
+        `Please email the recruiter directly at:\n\n${email}`,
+        [{ text: 'OK' }]
+      );
+    });
   };
 
   let cleanDescription = job.description || '';
@@ -639,28 +732,32 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
 
               {/* Premium Deep Linking Buttons */}
               <View style={styles.modalActionsContainer}>
+                {/* WhatsApp - in-app chooser, works on ALL devices */}
                 <TouchableOpacity
                   style={styles.whatsappActionBtn}
                   activeOpacity={0.88}
-                  onPress={() => handleWhatsApp(employerPhone, employerName, job.title)}
+                  onPress={() => {
+                    Alert.alert(
+                      'WhatsApp se Apply Karein',
+                      'Konsa WhatsApp open karna chahte hain?',
+                      [
+                        {
+                          text: '💼 WhatsApp Business',
+                          onPress: () => handleWhatsApp(employerPhone, employerName, job.title, true),
+                        },
+                        {
+                          text: '✅ WhatsApp',
+                          onPress: () => handleWhatsApp(employerPhone, employerName, job.title, false),
+                        },
+                        { text: 'Cancel', style: 'cancel' },
+                      ]
+                    );
+                  }}
                 >
                   <Ionicons name="logo-whatsapp" size={24} color="#FFFFFF" />
                   <View style={{ marginLeft: 12, flex: 1 }}>
                     <Text style={styles.whatsappBtnTitle}>Apply on WhatsApp</Text>
-                    <Text style={styles.whatsappBtnSub}>Chat and apply directly via WhatsApp</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ opacity: 0.8 }} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.whatsappActionBtn, { backgroundColor: '#128C7E', marginTop: 12 }]}
-                  activeOpacity={0.88}
-                  onPress={() => handleWhatsApp(employerPhone, employerName, job.title, true)}
-                >
-                  <Ionicons name="business-outline" size={24} color="#FFFFFF" />
-                  <View style={{ marginLeft: 12, flex: 1 }}>
-                    <Text style={styles.whatsappBtnTitle}>Business WhatsApp</Text>
-                    <Text style={styles.whatsappBtnSub}>Apply via official Business Account</Text>
+                    <Text style={styles.whatsappBtnSub}>WhatsApp ya Business — choose karein</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ opacity: 0.8 }} />
                 </TouchableOpacity>
@@ -1099,67 +1196,69 @@ export default function JobsScreen({ navigation, route }) {
     setCountryDropdownOpen(false);
   };
 
-  const filtered = jobs.filter((j) => {
-    // 1. Category match
-    const matchCat = activeCategory === 'All' || j.category === activeCategory;
+  const filtered = React.useMemo(() => {
+    return jobs.filter((j) => {
+      // 1. Category match
+      const matchCat = activeCategory === 'All' || j.category === activeCategory;
 
-    // 2. Enhanced query search match (matches title, company, category, location, type, skills with fuzzy matching)
-    const q = search.trim().toLowerCase();
-    const matchSearch = q === '' || (
-      (j.title && isFuzzyMatch(j.title, q)) ||
-      (j.company && isFuzzyMatch(j.company, q)) ||
-      (j.category && isFuzzyMatch(j.category, q)) ||
-      (j.location && isFuzzyMatch(j.location, q)) ||
-      (j.type && isFuzzyMatch(j.type, q)) ||
-      (j.description && isFuzzyMatch(j.description, q)) ||
-      (j.skills && j.skills.some(skill => isFuzzyMatch(skill, q)))
-    );
+      // 2. Enhanced query search match (matches title, company, category, location, type, skills with fuzzy matching)
+      const q = search.trim().toLowerCase();
+      const matchSearch = q === '' || (
+        (j.title && isFuzzyMatch(j.title, q)) ||
+        (j.company && isFuzzyMatch(j.company, q)) ||
+        (j.category && isFuzzyMatch(j.category, q)) ||
+        (j.location && isFuzzyMatch(j.location, q)) ||
+        (j.type && isFuzzyMatch(j.type, q)) ||
+        (j.description && isFuzzyMatch(j.description, q)) ||
+        (j.skills && j.skills.some(skill => isFuzzyMatch(skill, q)))
+      );
 
-    // 3. Job Type multi-select filter
-    const matchType = selectedJobTypes.length === 0 || selectedJobTypes.some(type => 
-      j.type && j.type.toLowerCase().replace('-', ' ').includes(type.toLowerCase().replace('-', ' '))
-    );
-    const isGlobalSelected = selectedLocations.includes('Global (All over the world)');
+      // 3. Job Type multi-select filter
+      const matchType = selectedJobTypes.length === 0 || selectedJobTypes.some(type => 
+        j.type && j.type.toLowerCase().replace('-', ' ').includes(type.toLowerCase().replace('-', ' '))
+      );
+      const isGlobalSelected = selectedLocations.includes('Global (All over the world)');
 
-    // 4. Location multi-select filter
-    const matchLoc = selectedLocations.length === 0 || isGlobalSelected ||
-      selectedLocations.some(loc => j.location && j.location.toLowerCase().includes(loc.toLowerCase()));
+      // 4. Location multi-select filter
+      const matchLoc = selectedLocations.length === 0 || isGlobalSelected ||
+        selectedLocations.some(loc => j.location && j.location.toLowerCase().includes(loc.toLowerCase()));
 
-    // 5. Salary Range filter
-    let matchSalary = true;
-    if (selectedSalaryRange !== 'Any') {
-      const jobSalaryVal = parseInt(j.salary.replace(/[^0-9]/g, ''), 10);
-      if (!isNaN(jobSalaryVal)) {
-        if (selectedSalaryRange === '> $50,000') matchSalary = jobSalaryVal >= 50000;
-        else if (selectedSalaryRange === '> $100,000') matchSalary = jobSalaryVal >= 100000;
-        else if (selectedSalaryRange === '> $120,000') matchSalary = jobSalaryVal >= 120000;
+      // 5. Salary Range filter
+      let matchSalary = true;
+      if (selectedSalaryRange !== 'Any') {
+        const jobSalaryVal = parseInt(j.salary.replace(/[^0-9]/g, ''), 10);
+        if (!isNaN(jobSalaryVal)) {
+          if (selectedSalaryRange === '> $50,000') matchSalary = jobSalaryVal >= 50000;
+          else if (selectedSalaryRange === '> $100,000') matchSalary = jobSalaryVal >= 100000;
+          else if (selectedSalaryRange === '> $120,000') matchSalary = jobSalaryVal >= 120000;
+        }
       }
-    }
 
-    // Quick interactive filter overrides
-    if (filterLikedOnly) {
-      const isLiked = likedJobs?.includes(j.id);
-      if (!isLiked) return false;
-    }
-    if (filterMyJobsOnly) {
-      const isOwnJob = user && (j.postedBy === user.id || j.posterProfile?.id === user.id);
-      if (!isOwnJob) return false;
-    }
-
-    // 6. Global vs Country Specific targeted display logic
-    let matchCountryTarget = true;
-    if (j.location && selectedLocations.length === 0 && !isGlobalSelected) { // Bypass user country restriction if explicit locations selected
-      const isGlobal = j.location.toLowerCase().includes('global');
-      if (!isGlobal && userCountry) {
-        // If it's a specific country job, only show to users in that country
-        const jobCountryLower = j.location.toLowerCase();
-        const userCountryLower = userCountry.toLowerCase();
-        matchCountryTarget = jobCountryLower.includes(userCountryLower);
+      // Quick interactive filter overrides
+      if (filterLikedOnly) {
+        const isLiked = likedJobs?.includes(j.id);
+        if (!isLiked) return false;
       }
-    }
+      if (filterMyJobsOnly) {
+        const isOwnJob = user && (j.postedBy === user.id || j.posterProfile?.id === user.id);
+        if (!isOwnJob) return false;
+      }
 
-    return matchCat && matchSearch && matchType && matchLoc && matchSalary && matchCountryTarget;
-  });
+      // 6. Global vs Country Specific targeted display logic
+      let matchCountryTarget = true;
+      if (j.location && selectedLocations.length === 0 && !isGlobalSelected) { // Bypass user country restriction if explicit locations selected
+        const isGlobal = j.location.toLowerCase().includes('global');
+        if (!isGlobal && userCountry) {
+          // If it's a specific country job, only show to users in that country
+          const jobCountryLower = j.location.toLowerCase();
+          const userCountryLower = userCountry.toLowerCase();
+          matchCountryTarget = jobCountryLower.includes(userCountryLower);
+        }
+      }
+
+      return matchCat && matchSearch && matchType && matchLoc && matchSalary && matchCountryTarget;
+    });
+  }, [jobs, activeCategory, search, selectedJobTypes, selectedLocations, selectedSalaryRange, filterLikedOnly, filterMyJobsOnly, userCountry, likedJobs, user]);
 
   // ─── Geo-Sort & Search Relevance Sort: Push most relevant & user's country jobs to the top ─────────────────────────
   const geoSortedFiltered = React.useMemo(() => {
@@ -1220,17 +1319,7 @@ export default function JobsScreen({ navigation, route }) {
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : 'BK';
 
-  if (selectedJob) {
-    const freshJob = jobs.find(j => j.id === selectedJob.id) || selectedJob;
-    return (
-      <JobDetailView
-        job={freshJob}
-        onBack={() => setSelectedJob(null)}
-        isLiked={likedJobs?.includes(freshJob.id)}
-        onLike={handleLikePress}
-      />
-    );
-  }
+
 
   // Redesigned dashboard header to match the user's reference image exactly
   const renderHeader = () => {
@@ -1894,6 +1983,22 @@ export default function JobsScreen({ navigation, route }) {
 
           </View>
         </View>
+      </Modal>
+
+      {/* Job Details Modal */}
+      <Modal
+        visible={!!selectedJob}
+        animationType="slide"
+        onRequestClose={() => setSelectedJob(null)}
+      >
+        {selectedJob && (
+          <JobDetailView
+            job={jobs.find(j => j.id === selectedJob.id) || selectedJob}
+            onBack={() => setSelectedJob(null)}
+            isLiked={likedJobs?.includes(selectedJob.id)}
+            onLike={handleLikePress}
+          />
+        )}
       </Modal>
     </View>
   );

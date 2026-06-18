@@ -396,7 +396,7 @@ function getStyles(theme) {
     primaryBtnText: {
       fontSize: 16,
       fontWeight: '800',
-      color: theme.isDark ? '#FFFFFF' : '#E8F542',
+      color: theme.isDark ? '#FFFFFF' : '#FFFFFF',
     },
     secondaryBtn: {
       backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.05)' : 'transparent',

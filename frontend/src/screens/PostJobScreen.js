@@ -46,7 +46,53 @@ const CATEGORIES = [
   'Research',
   'Freelance',
   'Internship',
-  'Beauty Parlour'
+  'Beauty Parlour',
+  'Driving',
+  'Electrician',
+  'Plumbing',
+  'Carpentry',
+  'Tailoring',
+  'Cooking / Chef',
+  'Cleaning Services',
+  'Mechanic / Auto',
+  'Welding / Fabrication',
+  'Painting',
+  'Delivery / Rider',
+  'Telecommunication',
+  'Aviation',
+  'Maritime / Shipping',
+  'Oil & Gas',
+  'Mining',
+  'Pharmacy',
+  'Veterinary',
+  'Fitness / Gym',
+  'Sports',
+  'Event Management',
+  'Photography / Video',
+  'Fashion',
+  'Jewelry',
+  'E-Commerce',
+  'Translation / Languages',
+  'Data Entry',
+  'Printing / Publishing',
+  'Architecture',
+  'Interior Design',
+  'Environmental',
+  'Social Work',
+  'Teaching / Tuition',
+  'IT Support',
+  'Cybersecurity',
+  'Artificial Intelligence',
+  'Blockchain',
+  'Graphic Design',
+  'Content Creation',
+  'SEO / Digital Marketing',
+  'Call Center',
+  'Banking',
+  'Insurance',
+  'Import / Export',
+  'Textile',
+  'Garments'
 ];
 const EXPERIENCE_LEVELS = ['Entry Level', 'Intermediate', 'Expert'];
 
@@ -273,6 +319,7 @@ export default function PostJobScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
   const [company, setCompany] = useState('');
+  const [jobTiming, setJobTiming] = useState('');
 
   // Country & City States
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
@@ -497,7 +544,7 @@ export default function PostJobScreen({ navigation }) {
         salary: formattedSalary,
         type: selectedType,
         category: selectedCategory,
-        description: `[Experience: ${experienceLevel}]\n\n${description.trim()}`,
+        description: `[Experience: ${experienceLevel}]${jobTiming.trim() ? `\n[Timing: ${jobTiming.trim()}]` : ''}\n\n${description.trim()}`,
         requirements: finalRequirements
       });
 
@@ -516,6 +563,7 @@ export default function PostJobScreen({ navigation }) {
   const handleReset = () => {
     setTitle('');
     setCompany('');
+    setJobTiming('');
     setSelectedCountry(COUNTRIES[0]);
     setSelectedCity(COUNTRIES[0].cities[0]);
     setSalaryType('Per Month');
@@ -640,6 +688,21 @@ export default function PostJobScreen({ navigation }) {
                 placeholderTextColor={theme.textLight}
                 value={company}
                 onChangeText={setCompany}
+              />
+            </View>
+          </View>
+
+          {/* Job Timing / Interview Time */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Job Timing / Interview Time</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="time-outline" size={18} color={theme.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. 9 AM – 5 PM, Mon–Fri or Walk-in 10 AM"
+                placeholderTextColor={theme.textLight}
+                value={jobTiming}
+                onChangeText={setJobTiming}
               />
             </View>
           </View>
