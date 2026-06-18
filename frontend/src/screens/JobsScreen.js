@@ -393,18 +393,19 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
   const { t } = useTranslation();
   const { user, applyToJob } = useAuth();
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showMoreDesc, setShowMoreDesc] = useState(false);
   const insets = useSafeAreaInsets();
 
   const handleShare = async () => {
     try {
       // Configure your Vercel/website redirect URL here
       // For now, using a placeholder bkj-jobs.vercel.app. You can change this to your Vercel domain once deployed!
-      const redirectDomain = "https://app-jobposting.vercel.app"; 
-      
+      const redirectDomain = "https://app-jobposting.vercel.app";
+
       // If testing in Expo Go, append ?dev=true so the landing page redirects to the local Expo bundle
-      const isTestingOnExpo = true; 
+      const isTestingOnExpo = true;
       const shareUrl = `${redirectDomain}/job/${job.id}${isTestingOnExpo ? '?dev=true' : ''}`;
-      
+
       const message = `Check out this job on BKJ: "${job.title}" at "${job.company}"!\nSalary: ${job.salary}\nLocation: ${job.location}\n\nApply now: ${shareUrl}`;
 
       await Share.share({
@@ -439,29 +440,15 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
     }
 
     const message = `Hi ${name || 'Employer'},\n\nI am applying for the "${jobTitle}" position on BKJ. Here are my application details:\n\n👤 Name: ${applicantName}\n📧 Email: ${applicantEmail}\n📞 Phone: ${applicantPhone}\n\nPlease let me know if we can discuss this opportunity further. Thank you!`;
-    
+
     if (Platform.OS === 'android') {
       const webUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
-
-      if (isBusiness) {
-        // Method 1: whatsapp-business:// scheme (most direct)
-        const businessSchemeUrl = `whatsapp-business://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
-        // Method 2: intent URI with explicit package (works with manifest query declared)
-        const intentUrl = `intent://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}#Intent;package=com.whatsapp.w4b;scheme=whatsapp;end`;
-
-        Linking.openURL(businessSchemeUrl).catch(() => {
-          Linking.openURL(intentUrl).catch(() => {
-            // Final fallback: web (browser or WhatsApp will handle)
-            Linking.openURL(webUrl);
-          });
-        });
-      } else {
-        // Regular WhatsApp
-        const regularUrl = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
-        Linking.openURL(regularUrl).catch(() => {
-          Linking.openURL(webUrl);
-        });
-      }
+      // whatsapp:// triggers system chooser if both apps installed,
+      // or opens directly if only one app — works on ALL Android phones
+      const whatsappUrl = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
+      Linking.openURL(whatsappUrl).catch(() => {
+        Linking.openURL(webUrl);
+      });
     } else {
       const schemes = isBusiness ? ['whatsapp-business', 'whatsappw4b'] : ['whatsapp'];
       const attemptLaunch = (index) => {
@@ -510,7 +497,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
       {/* Floating navigation header */}
       <View style={styles.detailNav}>
         <TouchableOpacity style={styles.iconBtn} onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -559,46 +546,45 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
 
         <View style={styles.upworkDivider} />
 
-        {/* Key Job Specifications Block */}
+        {/* Specs + Stats Row inline */}
         <View style={styles.specsChipsRow}>
           <View style={[styles.specChip, { backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#F0FDF4', borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.4)' : '#DCFCE7', borderWidth: 1 }]}>
             <Ionicons name="wallet-outline" size={14} color={theme.isDark ? '#FF8C00' : '#15803D'} style={{ marginRight: 6 }} />
             <Text style={[styles.specChipText, { color: theme.isDark ? '#FF8C00' : '#15803D' }]}>{job.salary}</Text>
           </View>
-          
           <View style={[styles.specChip, { backgroundColor: theme.isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF', borderColor: theme.isDark ? 'rgba(59, 130, 246, 0.4)' : '#DBEAFE', borderWidth: 1 }]}>
             <Ionicons name="briefcase-outline" size={14} color={theme.isDark ? '#60A5FA' : '#1D4ED8'} style={{ marginRight: 6 }} />
             <Text style={[styles.specChipText, { color: theme.isDark ? '#60A5FA' : '#1D4ED8' }]}>{job.type}</Text>
           </View>
-
           <View style={[styles.specChip, { backgroundColor: theme.isDark ? 'rgba(139, 92, 246, 0.15)' : '#F5F3FF', borderColor: theme.isDark ? 'rgba(139, 92, 246, 0.4)' : '#EDE9FE', borderWidth: 1 }]}>
             <Ionicons name="school-outline" size={14} color={theme.isDark ? '#A78BFA' : '#6D28D9'} style={{ marginRight: 6 }} />
             <Text style={[styles.specChipText, { color: theme.isDark ? '#A78BFA' : '#6D28D9' }]}>{experienceReq}</Text>
           </View>
+          <View style={[styles.specChip, { backgroundColor: theme.isDark ? 'rgba(16,185,129,0.15)' : '#F0FDF4', borderColor: theme.isDark ? 'rgba(16,185,129,0.3)' : '#D1FAE5', borderWidth: 1 }]}>
+            <Ionicons name="people-outline" size={14} color={theme.isDark ? '#34D399' : '#059669'} style={{ marginRight: 6 }} />
+            <Text style={[styles.specChipText, { color: theme.isDark ? '#34D399' : '#059669' }]}>{job.applicants || 0} Applied</Text>
+          </View>
         </View>
       </View>
 
-      {/* Stats indicators */}
-      <View style={styles.upworkStatsContainer}>
-        <View style={styles.upworkStatBox}>
-          <Text style={styles.upworkStatVal}>{job.applicants || 0}</Text>
-          <Text style={styles.upworkStatLbl}>Applicants</Text>
-        </View>
-        <View style={styles.upworkStatDivider} />
-        <View style={styles.upworkStatBox}>
-          <Text style={styles.upworkStatVal}>{job.likes || 0}</Text>
-          <Text style={styles.upworkStatLbl}>Likes</Text>
-        </View>
-      </View>
-
-      {/* Description Section */}
+      {/* Description + Requirements combined */}
       <View style={styles.upworkSectionCard}>
         <Text style={styles.upworkSectionTitle}>Job Description</Text>
-        <Text style={styles.upworkDescText}>{cleanDescription}</Text>
-      </View>
-
-      {/* Skills & Requirements Section */}
-      <View style={styles.upworkSectionCard}>
+        <Text
+          style={styles.upworkDescText}
+          numberOfLines={showMoreDesc ? undefined : 4}
+        >
+          {cleanDescription}
+        </Text>
+        <TouchableOpacity
+          onPress={() => setShowMoreDesc(!showMoreDesc)}
+          style={{ marginTop: 6 }}
+        >
+          <Text style={{ color: theme.accentGreen, fontWeight: '700', fontSize: 13 }}>
+            {showMoreDesc ? '▲ Read Less' : '▼ Read More'}
+          </Text>
+        </TouchableOpacity>
+        <View style={[styles.upworkDivider, { marginVertical: 10 }]} />
         <Text style={styles.upworkSectionTitle}>Skills & Requirements</Text>
         <View style={styles.upworkRequirementsGrid}>
           {job.requirements && job.requirements.length > 0 ? (
@@ -617,7 +603,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
 
       {/* Recruiter profile information if exists */}
       {job.posterProfile && (
-          <View style={styles.upworkClientSection}>
+        <View style={styles.upworkClientSection}>
           <Text style={styles.upworkSectionTitle}>About the Recruiter</Text>
           <View style={styles.upworkClientRow}>
             <View style={[styles.upworkClientAvatar, { overflow: 'hidden', justifyContent: 'center', alignItems: 'center', backgroundColor: theme.accentGreen }]}>
@@ -732,7 +718,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
 
               {/* Premium Deep Linking Buttons */}
               <View style={styles.modalActionsContainer}>
-                {/* WhatsApp - in-app chooser, works on ALL devices */}
+                {/* Single button → in-app Alert chooser (works on ALL phones) */}
                 <TouchableOpacity
                   style={styles.whatsappActionBtn}
                   activeOpacity={0.88}
@@ -746,7 +732,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
                           onPress: () => handleWhatsApp(employerPhone, employerName, job.title, true),
                         },
                         {
-                          text: '✅ WhatsApp',
+                          text: '✅ Regular WhatsApp',
                           onPress: () => handleWhatsApp(employerPhone, employerName, job.title, false),
                         },
                         { text: 'Cancel', style: 'cancel' },
@@ -1010,20 +996,20 @@ export default function JobsScreen({ navigation, route }) {
     const q = search.trim().toLowerCase();
     if (q === '') return [];
     const list = new Set();
-    
+
     // Match titles, companies, categories
     jobs.forEach(j => {
       if (j.title && isFuzzyMatch(j.title, q)) list.add(j.title);
       if (j.company && isFuzzyMatch(j.company, q)) list.add(j.company);
       if (j.category && isFuzzyMatch(j.category, q)) list.add(j.category);
     });
-    
+
     // Static keywords matching
     const staticKeywords = ['Remote', 'Full Time', 'Part Time', 'Daily Basis', 'Designer', 'Developer', 'Marketing', 'Contract'];
     staticKeywords.forEach(k => {
       if (isFuzzyMatch(k, q)) list.add(k);
     });
-    
+
     return Array.from(list).slice(0, 5);
   }, [search, jobs]);
 
@@ -1214,7 +1200,7 @@ export default function JobsScreen({ navigation, route }) {
       );
 
       // 3. Job Type multi-select filter
-      const matchType = selectedJobTypes.length === 0 || selectedJobTypes.some(type => 
+      const matchType = selectedJobTypes.length === 0 || selectedJobTypes.some(type =>
         j.type && j.type.toLowerCase().replace('-', ' ').includes(type.toLowerCase().replace('-', ' '))
       );
       const isGlobalSelected = selectedLocations.includes('Global (All over the world)');
@@ -1263,7 +1249,7 @@ export default function JobsScreen({ navigation, route }) {
   // ─── Geo-Sort & Search Relevance Sort: Push most relevant & user's country jobs to the top ─────────────────────────
   const geoSortedFiltered = React.useMemo(() => {
     let list = [...filtered];
-    
+
     const q = search.trim().toLowerCase();
     if (q !== '') {
       const getRelevanceScore = (j) => {
@@ -1282,7 +1268,7 @@ export default function JobsScreen({ navigation, route }) {
 
         // 1. Exact match in title (Highest priority)
         if (titleLower === q) score += 1000;
-        
+
         // 2. Keyword relevance
         queryWords.forEach(qw => {
           if (titleLower.includes(qw)) score += 50;
@@ -1292,10 +1278,10 @@ export default function JobsScreen({ navigation, route }) {
           if (locationLower.includes(qw)) score += 10;
           if (descLower.includes(qw)) score += 5;
         });
-        
+
         return score;
       };
-      
+
       list.sort((a, b) => getRelevanceScore(b) - getRelevanceScore(a));
     } else if (userCountry && selectedLocations.length === 0) {
       // Geo-sort only if not searching
@@ -1311,7 +1297,7 @@ export default function JobsScreen({ navigation, route }) {
       });
       list = [...local, ...others];
     }
-    
+
     return list;
   }, [filtered, userCountry, selectedLocations, search]);
 
@@ -1333,426 +1319,426 @@ export default function JobsScreen({ navigation, route }) {
         {/* Start Header Content Wrapper with standard padding */}
         <View style={styles.headerContainer}>
 
-        {/* Welcome Profile Bar */}
-        <View style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          paddingTop: 16,
-          paddingBottom: 16,
-          paddingHorizontal: 4,
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-            <View style={styles.userAvatarCircle}>
-              {user?.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.userAvatarImage} contentFit="cover" transition={200} placeholder={{ blurhash }} />
-              ) : (
-                <Text style={styles.userAvatarText}>{initials}</Text>
-              )}
+          {/* Welcome Profile Bar */}
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingTop: 16,
+            paddingBottom: 16,
+            paddingHorizontal: 4,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+              <View style={styles.userAvatarCircle}>
+                {user?.avatar ? (
+                  <Image source={{ uri: user.avatar }} style={styles.userAvatarImage} contentFit="cover" transition={200} placeholder={{ blurhash }} />
+                ) : (
+                  <Text style={styles.userAvatarText}>{initials}</Text>
+                )}
+              </View>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textSecondary }}>Welcome back,</Text>
+                <Text style={{ fontSize: 16, fontWeight: '800', color: theme.textPrimary }} numberOfLines={1} adjustsFontSizeToFit>{user?.name?.replace(/\s+/g, ' ') || 'BKJ'}</Text>
+              </View>
             </View>
-            <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textSecondary }}>Welcome back,</Text>
-              <Text style={{ fontSize: 16, fontWeight: '800', color: theme.textPrimary }} numberOfLines={1} adjustsFontSizeToFit>{user?.name?.replace(/\s+/g, ' ') || 'BKJ'}</Text>
-            </View>
+            <TouchableOpacity
+              style={styles.headerIconBtn}
+              onPress={onRefresh}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="sync-outline" size={18} color={theme.textPrimary} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity 
-            style={styles.headerIconBtn} 
-            onPress={onRefresh} 
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="sync-outline" size={18} color={theme.textPrimary} />
-          </TouchableOpacity>
-        </View>
 
-        {/* Profile Warning Banner for Missing Phone Number */}
-        {user && !user.phone && (
-          <TouchableOpacity
-            style={styles.profileWarningBanner}
-            onPress={() => navigation.navigate('Profile')}
-            activeOpacity={0.9}
-          >
-            <View style={styles.warningBannerLeft}>
-              <View style={styles.warningIconCircle}>
-                <Ionicons name="call" size={16} color="#DC2626" />
+          {/* Profile Warning Banner for Missing Phone Number */}
+          {user && !user.phone && (
+            <TouchableOpacity
+              style={styles.profileWarningBanner}
+              onPress={() => navigation.navigate('Profile')}
+              activeOpacity={0.9}
+            >
+              <View style={styles.warningBannerLeft}>
+                <View style={styles.warningIconCircle}>
+                  <Ionicons name="call" size={16} color="#DC2626" />
+                </View>
+                <View style={styles.warningTextContainer}>
+                  <Text style={styles.sectionTitle}>{t('jobs.premium_opportunities')}</Text>
+                  <Text style={styles.warningDesc}>Add a phone number to post job listings on BKJ.</Text>
+                </View>
               </View>
-              <View style={styles.warningTextContainer}>
-                <Text style={styles.sectionTitle}>{t('jobs.premium_opportunities')}</Text>
-                <Text style={styles.warningDesc}>Add a phone number to post job listings on BKJ.</Text>
+              <View style={styles.warningActionBtn}>
+                <Text style={styles.warningActionText}>Add</Text>
+                <Ionicons name="chevron-forward" size={12} color="#DC2626" />
               </View>
-            </View>
-            <View style={styles.warningActionBtn}>
-              <Text style={styles.warningActionText}>Add</Text>
-              <Ionicons name="chevron-forward" size={12} color="#DC2626" />
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {/* 🌟 NEXT-LEVEL HERO GRADIENT STATS CARD */}
-        <View style={{ position: 'relative', marginBottom: 24 }}>
-          {theme.isDark && (
-            <>
-              {/* Outer soft glow layer */}
-              <View
-                style={{
-                  position: 'absolute',
-                  top: -12,
-                  left: -12,
-                  right: -12,
-                  bottom: -12,
-                  borderRadius: 36,
-                  borderWidth: 6,
-                  borderColor: 'rgba(255, 140, 0, 0.03)',
-                }}
-                pointerEvents="none"
-              />
-              {/* Mid glow layer */}
-              <View
-                style={{
-                  position: 'absolute',
-                  top: -6,
-                  left: -6,
-                  right: -6,
-                  bottom: -6,
-                  borderRadius: 30,
-                  borderWidth: 4,
-                  borderColor: 'rgba(255, 140, 0, 0.08)',
-                }}
-                pointerEvents="none"
-              />
-              {/* Inner intense glow layer */}
-              <View
-                style={{
-                  position: 'absolute',
-                  top: -2,
-                  left: -2,
-                  right: -2,
-                  bottom: -2,
-                  borderRadius: 26,
-                  borderWidth: 2,
-                  borderColor: 'rgba(255, 140, 0, 0.18)',
-                }}
-                pointerEvents="none"
-              />
-            </>
+            </TouchableOpacity>
           )}
-          <View style={[styles.heroGradientCard, { marginBottom: 0 }]}>
-            <View style={styles.heroCardHeader}>
-              <View style={styles.heroTagBadge}>
-                <Text style={styles.heroTagText}>PREMIUM ACCESS</Text>
-              </View>
-              <Text style={styles.heroTitle}>{t('profile.shape_future') || 'Shape Your Professional Future 🚀'}</Text>
-              <Text style={styles.heroSubText}>{t('profile.explore_postings') || 'Explore matched postings & connect directly with recruiters.'}</Text>
-            </View>
 
-            {/* Interactive Stats Grid */}
-            <View style={styles.statsGridRow}>
-              {/* Stat Box 1: Total Opportunities */}
-              <View style={{ flex: 1, position: 'relative', backgroundColor: 'transparent', borderRadius: 16 }}>
-                {theme.isDark && (
-                  <>
-                    {/* Outer soft glow */}
-                    <View
-                      style={{
-                        position: 'absolute',
-                        top: -6,
-                        left: -6,
-                        right: -6,
-                        bottom: -6,
-                        borderRadius: 22,
-                        borderWidth: 4,
-                        borderColor: 'rgba(255, 140, 0, 0.04)',
-                      }}
-                      pointerEvents="none"
-                    />
-                    {/* Inner intense glow */}
-                    <View
-                      style={{
-                        position: 'absolute',
-                        top: -2,
-                        left: -2,
-                        right: -2,
-                        bottom: -2,
-                        borderRadius: 18,
-                        borderWidth: 2,
-                        borderColor: 'rgba(255, 140, 0, 0.15)',
-                      }}
-                      pointerEvents="none"
-                    />
-                  </>
-                )}
-                <TouchableOpacity
-                  style={[
-                    styles.statCardItem,
-                    (!filterLikedOnly && !filterMyJobsOnly) && styles.statCardItemActive
-                  ]}
-                  onPress={() => {
-                    setFilterLikedOnly(false);
-                    setFilterMyJobsOnly(false);
+          {/* 🌟 NEXT-LEVEL HERO GRADIENT STATS CARD */}
+          <View style={{ position: 'relative', marginBottom: 24 }}>
+            {theme.isDark && (
+              <>
+                {/* Outer soft glow layer */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: -12,
+                    left: -12,
+                    right: -12,
+                    bottom: -12,
+                    borderRadius: 36,
+                    borderWidth: 6,
+                    borderColor: 'rgba(255, 140, 0, 0.03)',
                   }}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.statIconBadge}>
-                    <Ionicons name="briefcase" size={15} color={theme.isDark ? "#111111" : "#5C9E6A"} />
-                  </View>
-                  <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{totalJobsCount}</Text>
-                  <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.total_jobs') || 'Total Jobs'}</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Stat Box 2: Liked / Saved Opportunities */}
-              <View style={{ flex: 1, position: 'relative', backgroundColor: 'transparent', borderRadius: 16 }}>
-                {theme.isDark && (
-                  <>
-                    {/* Outer soft glow */}
-                    <View
-                      style={{
-                        position: 'absolute',
-                        top: -6,
-                        left: -6,
-                        right: -6,
-                        bottom: -6,
-                        borderRadius: 22,
-                        borderWidth: 4,
-                        borderColor: 'rgba(255, 140, 0, 0.04)',
-                      }}
-                      pointerEvents="none"
-                    />
-                    {/* Inner intense glow */}
-                    <View
-                      style={{
-                        position: 'absolute',
-                        top: -2,
-                        left: -2,
-                        right: -2,
-                        bottom: -2,
-                        borderRadius: 18,
-                        borderWidth: 2,
-                        borderColor: 'rgba(255, 140, 0, 0.15)',
-                      }}
-                      pointerEvents="none"
-                    />
-                  </>
-                )}
-                <TouchableOpacity
-                  style={[
-                    styles.statCardItem,
-                    filterLikedOnly && styles.statCardItemActive
-                  ]}
-                  onPress={() => {
-                    setFilterLikedOnly(!filterLikedOnly);
-                    setFilterMyJobsOnly(false);
+                  pointerEvents="none"
+                />
+                {/* Mid glow layer */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: -6,
+                    left: -6,
+                    right: -6,
+                    bottom: -6,
+                    borderRadius: 30,
+                    borderWidth: 4,
+                    borderColor: 'rgba(255, 140, 0, 0.08)',
                   }}
-                  activeOpacity={0.85}
-                >
-                  <View style={[styles.statIconBadge, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
-                    <Ionicons name="heart" size={15} color={theme.isDark ? "#111111" : "#EF4444"} />
-                  </View>
-                  <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{likedJobsCount}</Text>
-                  <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.saved_jobs') || 'Favorites'}</Text>
-                </TouchableOpacity>
+                  pointerEvents="none"
+                />
+                {/* Inner intense glow layer */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: -2,
+                    left: -2,
+                    right: -2,
+                    bottom: -2,
+                    borderRadius: 26,
+                    borderWidth: 2,
+                    borderColor: 'rgba(255, 140, 0, 0.18)',
+                  }}
+                  pointerEvents="none"
+                />
+              </>
+            )}
+            <View style={[styles.heroGradientCard, { marginBottom: 0 }]}>
+              <View style={styles.heroCardHeader}>
+                <View style={styles.heroTagBadge}>
+                  <Text style={styles.heroTagText}>PREMIUM ACCESS</Text>
+                </View>
+                <Text style={styles.heroTitle}>{t('profile.shape_future') || 'Shape Your Professional Future 🚀'}</Text>
+                <Text style={styles.heroSubText}>{t('profile.explore_postings') || 'Explore matched postings & connect directly with recruiters.'}</Text>
               </View>
 
-              {/* Stat Box 3: My Postings (Employer) / Verified Status (Job Seeker) */}
-              <View style={{ flex: 1, position: 'relative', backgroundColor: 'transparent', borderRadius: 16 }}>
-                {theme.isDark && (
-                  <>
-                    {/* Outer soft glow */}
-                    <View
-                      style={{
-                        position: 'absolute',
-                        top: -6,
-                        left: -6,
-                        right: -6,
-                        bottom: -6,
-                        borderRadius: 22,
-                        borderWidth: 4,
-                        borderColor: 'rgba(255, 140, 0, 0.04)',
-                      }}
-                      pointerEvents="none"
-                    />
-                    {/* Inner intense glow */}
-                    <View
-                      style={{
-                        position: 'absolute',
-                        top: -2,
-                        left: -2,
-                        right: -2,
-                        bottom: -2,
-                        borderRadius: 18,
-                        borderWidth: 2,
-                        borderColor: 'rgba(255, 140, 0, 0.15)',
-                      }}
-                      pointerEvents="none"
-                    />
-                  </>
-                )}
-                {isEmployer ? (
+              {/* Interactive Stats Grid */}
+              <View style={styles.statsGridRow}>
+                {/* Stat Box 1: Total Opportunities */}
+                <View style={{ flex: 1, position: 'relative', backgroundColor: 'transparent', borderRadius: 16 }}>
+                  {theme.isDark && (
+                    <>
+                      {/* Outer soft glow */}
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: -6,
+                          left: -6,
+                          right: -6,
+                          bottom: -6,
+                          borderRadius: 22,
+                          borderWidth: 4,
+                          borderColor: 'rgba(255, 140, 0, 0.04)',
+                        }}
+                        pointerEvents="none"
+                      />
+                      {/* Inner intense glow */}
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: -2,
+                          left: -2,
+                          right: -2,
+                          bottom: -2,
+                          borderRadius: 18,
+                          borderWidth: 2,
+                          borderColor: 'rgba(255, 140, 0, 0.15)',
+                        }}
+                        pointerEvents="none"
+                      />
+                    </>
+                  )}
                   <TouchableOpacity
                     style={[
                       styles.statCardItem,
-                      filterMyJobsOnly && styles.statCardItemActive
+                      (!filterLikedOnly && !filterMyJobsOnly) && styles.statCardItemActive
                     ]}
                     onPress={() => {
-                      setFilterMyJobsOnly(!filterMyJobsOnly);
                       setFilterLikedOnly(false);
+                      setFilterMyJobsOnly(false);
                     }}
                     activeOpacity={0.85}
                   >
-                    <View style={[styles.statIconBadge, { backgroundColor: '#FEF3C7' }]}>
-                      <Ionicons name="create" size={15} color={theme.isDark ? "#111111" : "#D97706"} />
+                    <View style={styles.statIconBadge}>
+                      <Ionicons name="briefcase" size={15} color={theme.isDark ? "#111111" : "#5C9E6A"} />
                     </View>
-                    <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{myJobsCount}</Text>
-                    <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.my_posts') || 'My Posts'}</Text>
+                    <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{totalJobsCount}</Text>
+                    <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.total_jobs') || 'Total Jobs'}</Text>
                   </TouchableOpacity>
-                ) : (
-                  <View style={styles.statCardItem}>
-                    <View style={[styles.statIconBadge, { backgroundColor: '#E6F4EA' }]}>
-                      <Ionicons name="checkmark-circle" size={16} color={theme.isDark ? "#111111" : "#15803D"} />
+                </View>
+
+                {/* Stat Box 2: Liked / Saved Opportunities */}
+                <View style={{ flex: 1, position: 'relative', backgroundColor: 'transparent', borderRadius: 16 }}>
+                  {theme.isDark && (
+                    <>
+                      {/* Outer soft glow */}
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: -6,
+                          left: -6,
+                          right: -6,
+                          bottom: -6,
+                          borderRadius: 22,
+                          borderWidth: 4,
+                          borderColor: 'rgba(255, 140, 0, 0.04)',
+                        }}
+                        pointerEvents="none"
+                      />
+                      {/* Inner intense glow */}
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: -2,
+                          left: -2,
+                          right: -2,
+                          bottom: -2,
+                          borderRadius: 18,
+                          borderWidth: 2,
+                          borderColor: 'rgba(255, 140, 0, 0.15)',
+                        }}
+                        pointerEvents="none"
+                      />
+                    </>
+                  )}
+                  <TouchableOpacity
+                    style={[
+                      styles.statCardItem,
+                      filterLikedOnly && styles.statCardItemActive
+                    ]}
+                    onPress={() => {
+                      setFilterLikedOnly(!filterLikedOnly);
+                      setFilterMyJobsOnly(false);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <View style={[styles.statIconBadge, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
+                      <Ionicons name="heart" size={15} color={theme.isDark ? "#111111" : "#EF4444"} />
                     </View>
-                    <Text style={[styles.statCountVal, { fontSize: 12, color: theme.isDark ? '#111111' : '#15803D', fontWeight: '800', lineHeight: 22 }]} numberOfLines={1} adjustsFontSizeToFit>{t('profile.verified') || 'Verified'}</Text>
-                    <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.profile_text') || 'Profile'}</Text>
-                  </View>
-                )}
+                    <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{likedJobsCount}</Text>
+                    <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.saved_jobs') || 'Favorites'}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Stat Box 3: My Postings (Employer) / Verified Status (Job Seeker) */}
+                <View style={{ flex: 1, position: 'relative', backgroundColor: 'transparent', borderRadius: 16 }}>
+                  {theme.isDark && (
+                    <>
+                      {/* Outer soft glow */}
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: -6,
+                          left: -6,
+                          right: -6,
+                          bottom: -6,
+                          borderRadius: 22,
+                          borderWidth: 4,
+                          borderColor: 'rgba(255, 140, 0, 0.04)',
+                        }}
+                        pointerEvents="none"
+                      />
+                      {/* Inner intense glow */}
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: -2,
+                          left: -2,
+                          right: -2,
+                          bottom: -2,
+                          borderRadius: 18,
+                          borderWidth: 2,
+                          borderColor: 'rgba(255, 140, 0, 0.15)',
+                        }}
+                        pointerEvents="none"
+                      />
+                    </>
+                  )}
+                  {isEmployer ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.statCardItem,
+                        filterMyJobsOnly && styles.statCardItemActive
+                      ]}
+                      onPress={() => {
+                        setFilterMyJobsOnly(!filterMyJobsOnly);
+                        setFilterLikedOnly(false);
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      <View style={[styles.statIconBadge, { backgroundColor: '#FEF3C7' }]}>
+                        <Ionicons name="create" size={15} color={theme.isDark ? "#111111" : "#D97706"} />
+                      </View>
+                      <Text style={styles.statCountVal} numberOfLines={1} adjustsFontSizeToFit>{myJobsCount}</Text>
+                      <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.my_posts') || 'My Posts'}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.statCardItem}>
+                      <View style={[styles.statIconBadge, { backgroundColor: '#E6F4EA' }]}>
+                        <Ionicons name="checkmark-circle" size={16} color={theme.isDark ? "#111111" : "#15803D"} />
+                      </View>
+                      <Text style={[styles.statCountVal, { fontSize: 12, color: theme.isDark ? '#111111' : '#15803D', fontWeight: '800', lineHeight: 22 }]} numberOfLines={1} adjustsFontSizeToFit>{t('profile.verified') || 'Verified'}</Text>
+                      <Text style={styles.statLabelText} numberOfLines={1} adjustsFontSizeToFit>{t('profile.profile_text') || 'Profile'}</Text>
+                    </View>
+                  )}
+                </View>
               </View>
             </View>
           </View>
-        </View>
 
-        {/* Search Container with zIndex to overlay suggestions */}
-        <View style={{ zIndex: 99, position: 'relative' }}>
-          <View style={styles.searchWrapper}>
-            <Ionicons name="search-outline" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder={t('jobs.search_placeholder')}
-              placeholderTextColor={theme.textLight}
-              value={search}
-              onChangeText={setSearch}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
-              autoCorrect={false}
-              spellCheck={false}
-              autoComplete="off"
-              multiline={false}
-            />
-            {search.length > 0 && (
-              <TouchableOpacity onPress={() => setSearch('')} style={{ marginRight: 8 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={styles.searchFilterBtn} onPress={() => setFilterModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="options-outline" size={18} color={theme.textPrimary} />
-            </TouchableOpacity>
-          </View>
-          
-          {/* Search Suggestions Dropdown Overlay */}
-          {searchFocused && suggestions.length > 0 && (
-            <View style={styles.suggestionsDropdown}>
-              {suggestions.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.suggestionItem}
-                  onPressIn={() => {
-                    setSearch(item);
-                    setSearchFocused(false);
-                  }}
-                >
-                  <Ionicons name="search-outline" size={14} color={theme.textSecondary} style={{ marginRight: 10 }} />
-                  <Text style={{ fontSize: 14, color: theme.textPrimary, flex: 1, fontWeight: '600' }}>{item}</Text>
-                  <Ionicons name="arrow-up-sharp" size={12} color={theme.textLight} style={{ marginLeft: 'auto', transform: [{ rotate: '-45deg' }] }} />
+          {/* Search Container with zIndex to overlay suggestions */}
+          <View style={{ zIndex: 99, position: 'relative' }}>
+            <View style={styles.searchWrapper}>
+              <Ionicons name="search-outline" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder={t('jobs.search_placeholder')}
+                placeholderTextColor={theme.textLight}
+                value={search}
+                onChangeText={setSearch}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+                autoCorrect={false}
+                spellCheck={false}
+                autoComplete="off"
+                multiline={false}
+              />
+              {search.length > 0 && (
+                <TouchableOpacity onPress={() => setSearch('')} style={{ marginRight: 8 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
                 </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Quick Tag Recommendations */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.relatedScroll}
-          contentContainerStyle={{ gap: 8, paddingRight: 20 }}
-        >
-          {['Interests', 'ui ux designer', 'mobile app', 'developer', 'manager', 'marketing'].map((item, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={[styles.relatedTag, search === item && styles.relatedTagActive]}
-              onPress={() => setSearch(item === 'Interests' ? '' : item)}
-            >
-              <Text style={[styles.relatedTagText, search === item && styles.relatedTagTextActive]}>{item}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Section Header: Categories */}
-        <Text style={styles.sectionLabel}>Browse by Category</Text>
-
-        {/* Modern minimalistic category pills with glowing count bubble */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoryCardsScroll}
-          contentContainerStyle={{ gap: 10, paddingRight: 20 }}
-        >
-          {CATEGORIES.map((cat) => {
-            const count = cat === 'All' ? jobs.length : jobs.filter((j) => j.category === cat).length;
-            const isActive = activeCategory === cat;
-
-            // Map modern Ionicons to categories
-            let iconName = "briefcase-outline";
-            let pillColor = "#E6F4EA";
-            let iconColor = "#137333";
-
-            if (cat === 'Technology') { iconName = "laptop-outline"; pillColor = "#E0F2FE"; iconColor = "#0369A1"; }
-            else if (cat === 'Design') { iconName = "brush-outline"; pillColor = "#FCE7F3"; iconColor = "#BE185D"; }
-            else if (cat === 'Marketing') { iconName = "trending-up-outline"; pillColor = "#FEF3C7"; iconColor = "#B45309"; }
-            else if (cat === 'Finance') { iconName = "cash-outline"; pillColor = "#DCFCE7"; iconColor = "#15803D"; }
-            else if (cat === 'Healthcare') { iconName = "heart-half-outline"; pillColor = "#FEE2E2"; iconColor = "#B91C1C"; }
-            else if (cat === 'Education') { iconName = "book-outline"; pillColor = "#EDE9FE"; iconColor = "#6D28D9"; }
-            else if (cat === 'Engineering') { iconName = "construct-outline"; pillColor = "#F1F5F9"; iconColor = "#475569"; }
-
-            return (
-              <TouchableOpacity
-                key={cat}
-                style={[
-                  styles.categoryPill,
-                  isActive && styles.categoryPillActive
-                ]}
-                onPress={() => {
-                  setActiveCategory(cat);
-                  if (trackCategoryView) {
-                    trackCategoryView(cat);
-                  }
-                }}
-                activeOpacity={0.9}
-              >
-                <View style={[styles.categoryIconCircle, { backgroundColor: isActive ? theme.accentYellow : pillColor }]}>
-                  <Ionicons name={iconName} size={15} color={isActive ? "#1A1A1A" : iconColor} />
-                </View>
-                <Text style={[styles.categoryPillText, isActive && styles.categoryPillTextActive]} numberOfLines={1} adjustsFontSizeToFit>{cat}</Text>
-                <View style={[styles.countBubble, isActive && { backgroundColor: '#E8F542' }]}>
-                  <Text style={[styles.countBubbleText, isActive && { color: '#1A1A1A' }]} numberOfLines={1} adjustsFontSizeToFit>{count}</Text>
-                </View>
+              )}
+              <TouchableOpacity style={styles.searchFilterBtn} onPress={() => setFilterModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="options-outline" size={18} color={theme.textPrimary} />
               </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+            </View>
 
-        {/* Opportunities Header */}
-        <View style={styles.listHeaderRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.listSectionTitle}>
-              {filterLikedOnly ? 'Favorite Jobs' : filterMyJobsOnly ? 'My Job Postings' : 'All Available Opportunities'}
-            </Text>
-            {userCountry && !filterLikedOnly && !filterMyJobsOnly && selectedLocations.length === 0 && (
-              <View style={styles.nearYouBadge}>
-                <Ionicons name="location" size={11} color={theme.isDark ? '#FF8C00' : '#15803D'} style={{ marginRight: 3 }} />
-                <Text style={styles.nearYouBadgeText}>Showing {userCountry} jobs first</Text>
+            {/* Search Suggestions Dropdown Overlay */}
+            {searchFocused && suggestions.length > 0 && (
+              <View style={styles.suggestionsDropdown}>
+                {suggestions.map((item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.suggestionItem}
+                    onPressIn={() => {
+                      setSearch(item);
+                      setSearchFocused(false);
+                    }}
+                  >
+                    <Ionicons name="search-outline" size={14} color={theme.textSecondary} style={{ marginRight: 10 }} />
+                    <Text style={{ fontSize: 14, color: theme.textPrimary, flex: 1, fontWeight: '600' }}>{item}</Text>
+                    <Ionicons name="arrow-up-sharp" size={12} color={theme.textLight} style={{ marginLeft: 'auto', transform: [{ rotate: '-45deg' }] }} />
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
           </View>
-          <Text style={styles.listSectionBadge}>{geoSortedFiltered.length} Jobs</Text>
-        </View>
+
+          {/* Quick Tag Recommendations */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.relatedScroll}
+            contentContainerStyle={{ gap: 8, paddingRight: 20 }}
+          >
+            {['Interests', 'ui ux designer', 'mobile app', 'developer', 'manager', 'marketing'].map((item, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={[styles.relatedTag, search === item && styles.relatedTagActive]}
+                onPress={() => setSearch(item === 'Interests' ? '' : item)}
+              >
+                <Text style={[styles.relatedTagText, search === item && styles.relatedTagTextActive]}>{item}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Section Header: Categories */}
+          <Text style={styles.sectionLabel}>Browse by Category</Text>
+
+          {/* Modern minimalistic category pills with glowing count bubble */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoryCardsScroll}
+            contentContainerStyle={{ gap: 10, paddingRight: 20 }}
+          >
+            {CATEGORIES.map((cat) => {
+              const count = cat === 'All' ? jobs.length : jobs.filter((j) => j.category === cat).length;
+              const isActive = activeCategory === cat;
+
+              // Map modern Ionicons to categories
+              let iconName = "briefcase-outline";
+              let pillColor = "#E6F4EA";
+              let iconColor = "#137333";
+
+              if (cat === 'Technology') { iconName = "laptop-outline"; pillColor = "#E0F2FE"; iconColor = "#0369A1"; }
+              else if (cat === 'Design') { iconName = "brush-outline"; pillColor = "#FCE7F3"; iconColor = "#BE185D"; }
+              else if (cat === 'Marketing') { iconName = "trending-up-outline"; pillColor = "#FEF3C7"; iconColor = "#B45309"; }
+              else if (cat === 'Finance') { iconName = "cash-outline"; pillColor = "#DCFCE7"; iconColor = "#15803D"; }
+              else if (cat === 'Healthcare') { iconName = "heart-half-outline"; pillColor = "#FEE2E2"; iconColor = "#B91C1C"; }
+              else if (cat === 'Education') { iconName = "book-outline"; pillColor = "#EDE9FE"; iconColor = "#6D28D9"; }
+              else if (cat === 'Engineering') { iconName = "construct-outline"; pillColor = "#F1F5F9"; iconColor = "#475569"; }
+
+              return (
+                <TouchableOpacity
+                  key={cat}
+                  style={[
+                    styles.categoryPill,
+                    isActive && styles.categoryPillActive
+                  ]}
+                  onPress={() => {
+                    setActiveCategory(cat);
+                    if (trackCategoryView) {
+                      trackCategoryView(cat);
+                    }
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={[styles.categoryIconCircle, { backgroundColor: isActive ? theme.accentYellow : pillColor }]}>
+                    <Ionicons name={iconName} size={15} color={isActive ? "#1A1A1A" : iconColor} />
+                  </View>
+                  <Text style={[styles.categoryPillText, isActive && styles.categoryPillTextActive]} numberOfLines={1} adjustsFontSizeToFit>{cat}</Text>
+                  <View style={[styles.countBubble, isActive && { backgroundColor: '#E8F542' }]}>
+                    <Text style={[styles.countBubbleText, isActive && { color: '#1A1A1A' }]} numberOfLines={1} adjustsFontSizeToFit>{count}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Opportunities Header */}
+          <View style={styles.listHeaderRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.listSectionTitle}>
+                {filterLikedOnly ? 'Favorite Jobs' : filterMyJobsOnly ? 'My Job Postings' : 'All Available Opportunities'}
+              </Text>
+              {userCountry && !filterLikedOnly && !filterMyJobsOnly && selectedLocations.length === 0 && (
+                <View style={styles.nearYouBadge}>
+                  <Ionicons name="location" size={11} color={theme.isDark ? '#FF8C00' : '#15803D'} style={{ marginRight: 3 }} />
+                  <Text style={styles.nearYouBadgeText}>Showing {userCountry} jobs first</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.listSectionBadge}>{geoSortedFiltered.length} Jobs</Text>
+          </View>
         </View>
       </View>
     );
@@ -1826,13 +1812,13 @@ export default function JobsScreen({ navigation, route }) {
         ListFooterComponent={screenLoading ? null : <AdBanner />}
         renderItem={({ item }) =>
           screenLoading ? null : (
-              <JobCard
-                job={item}
-                onPress={handleJobPress}
-                isLiked={likedJobs?.includes(item.id)}
-                onLike={handleLikePress}
-                t={t}
-              />
+            <JobCard
+              job={item}
+              onPress={handleJobPress}
+              isLiked={likedJobs?.includes(item.id)}
+              onLike={handleLikePress}
+              t={t}
+            />
           )
         }
         ListEmptyComponent={
@@ -2004,1370 +1990,1371 @@ export default function JobsScreen({ navigation, route }) {
   );
 }
 
-function getStyles(theme) { return StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.bgPrimary },
-  listContent: {
-    paddingBottom: 140, // Avoid overlapping floating navigation and AdBanner
-  },
-  headerContainer: {
-    paddingHorizontal: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  userAvatarCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#0F5132',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userAvatarImage: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-  },
-  userAvatarText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 },
-  headerSub: { fontSize: FONTS.sizes.xs, color: theme.textSecondary, fontWeight: '600' },
-  headerRight: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  headerIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: theme.bgCard,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 0,
-  },
+function getStyles(theme) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.bgPrimary },
+    listContent: {
+      paddingBottom: 140, // Avoid overlapping floating navigation and AdBanner
+    },
+    headerContainer: {
+      paddingHorizontal: 20,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: 12,
+      paddingBottom: 16,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      flex: 1,
+    },
+    userAvatarCircle: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: '#0F5132',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    userAvatarImage: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+    },
+    userAvatarText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    headerTitle: { fontSize: 24, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 },
+    headerSub: { fontSize: FONTS.sizes.xs, color: theme.textSecondary, fontWeight: '600' },
+    headerRight: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    headerIconBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 14,
+      backgroundColor: theme.bgCard,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 6,
+      elevation: 0,
+    },
 
-  searchWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.bgCard,
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    height: 52,
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 0,
-    marginBottom: 20,
-  },
-  searchInput: { flex: 1, fontSize: FONTS.sizes.md, color: theme.textPrimary, paddingVertical: 0 },
-  searchFilterBtn: {
-    padding: 4,
-    marginLeft: 6,
-  },
+    searchWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.bgCard,
+      borderRadius: 18,
+      paddingHorizontal: 16,
+      height: 52,
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 8,
+      elevation: 0,
+      marginBottom: 20,
+    },
+    searchInput: { flex: 1, fontSize: FONTS.sizes.md, color: theme.textPrimary, paddingVertical: 0 },
+    searchFilterBtn: {
+      padding: 4,
+      marginLeft: 6,
+    },
 
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.textPrimary,
-    marginBottom: 10,
-    paddingLeft: 2,
-  },
+    sectionLabel: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.textPrimary,
+      marginBottom: 10,
+      paddingLeft: 2,
+    },
 
-  // Related results tags
-  relatedScroll: {
-    marginBottom: 18,
-  },
-  relatedTag: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 14,
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6',
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
-  },
-  relatedTagText: {
-    fontSize: 13,
-    color: theme.isDark ? '#E2E8F0' : '#6B7280',
-    fontWeight: '600',
-  },
+    // Related results tags
+    relatedScroll: {
+      marginBottom: 18,
+    },
+    relatedTag: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 14,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6',
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+    },
+    relatedTagText: {
+      fontSize: 13,
+      color: theme.isDark ? '#E2E8F0' : '#6B7280',
+      fontWeight: '600',
+    },
 
-  // Short by tags
-  sortByScroll: {
-    marginBottom: 20,
-  },
-  sortByTag: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
-  },
-  sortByTagActive: {
-    backgroundColor: '#E6F4EA',
-    borderColor: '#34A853',
-  },
-  sortByTagText: {
-    fontSize: 13,
-    color: '#94A3B8',
-    fontWeight: '600',
-  },
-  sortByTagTextActive: {
-    color: '#137333',
-  },
+    // Short by tags
+    sortByScroll: {
+      marginBottom: 20,
+    },
+    sortByTag: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 12,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+    },
+    sortByTagActive: {
+      backgroundColor: '#E6F4EA',
+      borderColor: '#34A853',
+    },
+    sortByTagText: {
+      fontSize: 13,
+      color: '#94A3B8',
+      fontWeight: '600',
+    },
+    sortByTagTextActive: {
+      color: '#137333',
+    },
 
-  // Modern Horizontal Category Pill Styles
-  categoryCardsScroll: {
-    marginBottom: 24,
-    paddingLeft: 2,
-  },
-  categoryPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 0,
-    gap: 8,
-  },
-  categoryPillActive: {
-    backgroundColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
-    borderColor: theme.isDark ? '#FF8C00' : '#E8F542',
-    borderWidth: 1.5,
-    shadowColor: theme.isDark ? '#FF8C00' : '#E8F542',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: theme.isDark ? 0.6 : 0.15,
-    shadowRadius: theme.isDark ? 12 : 8,
-    elevation: theme.isDark ? 4 : 0,
-  },
-  categoryIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  categoryPillText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.isDark ? '#FFFFFF' : '#334155',
-  },
-  categoryPillTextActive: {
-    color: theme.isDark ? '#111111' : '#FFFFFF',
-  },
-  countBubble: {
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  countBubbleText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: theme.isDark ? '#E2E8F0' : '#64748B',
-  },
+    // Modern Horizontal Category Pill Styles
+    categoryCardsScroll: {
+      marginBottom: 24,
+      paddingLeft: 2,
+    },
+    categoryPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+      borderRadius: 16,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.03,
+      shadowRadius: 6,
+      elevation: 0,
+      gap: 8,
+    },
+    categoryPillActive: {
+      backgroundColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
+      borderColor: theme.isDark ? '#FF8C00' : '#E8F542',
+      borderWidth: 1.5,
+      shadowColor: theme.isDark ? '#FF8C00' : '#E8F542',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.isDark ? 0.6 : 0.15,
+      shadowRadius: theme.isDark ? 12 : 8,
+      elevation: theme.isDark ? 4 : 0,
+    },
+    categoryIconCircle: {
+      width: 28,
+      height: 28,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    categoryPillText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.isDark ? '#FFFFFF' : '#334155',
+    },
+    categoryPillTextActive: {
+      color: theme.isDark ? '#111111' : '#FFFFFF',
+    },
+    countBubble: {
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    countBubbleText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: theme.isDark ? '#E2E8F0' : '#64748B',
+    },
 
-  // 🌟 Premium Hero Gradient Card
-  heroGradientCard: {
-    backgroundColor: theme.isDark ? '#111111' : '#1A1A1A',
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: theme.isDark ? 2 : 0,
-    borderColor: theme.isDark ? '#FF8C00' : 'transparent',
-    shadowColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: theme.isDark ? 0.45 : 0.15,
-    shadowRadius: theme.isDark ? 32 : 16,
-    elevation: theme.isDark ? 8 : 0,
-  },
-  heroCardHeader: {
-    marginBottom: 16,
-  },
-  heroTagBadge: {
-    backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    marginBottom: 10,
-  },
-  heroTagText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    letterSpacing: 0.5,
-  },
-  heroTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.3,
-    marginBottom: 4,
-  },
-  heroSubText: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    lineHeight: 16,
-  },
-  statsGridRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  statCardItem: {
-    flex: 1,
-    width: '100%',
-    backgroundColor: theme.isDark ? '#FF8C00' : theme.bgCard,
-    borderWidth: 1,
-    borderColor: theme.isDark ? '#FF8C00' : theme.borderLight,
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    gap: 4,
-  },
-  statCardItemActive: {
-    borderColor: theme.isDark ? '#FF8C00' : '#E8F542',
-    borderWidth: theme.isDark ? 1 : 2.5,
-    borderRadius: 16,
-    shadowColor: theme.isDark ? '#FF8C00' : '#E8F542',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: theme.isDark ? 0.4 : 0.15,
-    shadowRadius: theme.isDark ? 12 : 8,
-    elevation: 3,
-  },
-  statIconBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
-  statCountVal: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: theme.isDark ? '#111111' : theme.textPrimary,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  statLabelText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: theme.isDark ? '#111111' : '#6B7280',
-    textTransform: 'uppercase',
-    textAlign: 'center',
-  },
+    // 🌟 Premium Hero Gradient Card
+    heroGradientCard: {
+      backgroundColor: theme.isDark ? '#111111' : '#1A1A1A',
+      borderRadius: 24,
+      padding: 20,
+      marginBottom: 24,
+      borderWidth: theme.isDark ? 2 : 0,
+      borderColor: theme.isDark ? '#FF8C00' : 'transparent',
+      shadowColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: theme.isDark ? 0.45 : 0.15,
+      shadowRadius: theme.isDark ? 32 : 16,
+      elevation: theme.isDark ? 8 : 0,
+    },
+    heroCardHeader: {
+      marginBottom: 16,
+    },
+    heroTagBadge: {
+      backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+      alignSelf: 'flex-start',
+      marginBottom: 10,
+    },
+    heroTagText: {
+      fontSize: 9,
+      fontWeight: '800',
+      color: '#1A1A1A',
+      letterSpacing: 0.5,
+    },
+    heroTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: '#FFFFFF',
+      letterSpacing: -0.3,
+      marginBottom: 4,
+    },
+    heroSubText: {
+      fontSize: 11,
+      color: '#9CA3AF',
+      lineHeight: 16,
+    },
+    statsGridRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    statCardItem: {
+      flex: 1,
+      width: '100%',
+      backgroundColor: theme.isDark ? '#FF8C00' : theme.bgCard,
+      borderWidth: 1,
+      borderColor: theme.isDark ? '#FF8C00' : theme.borderLight,
+      borderRadius: 16,
+      paddingVertical: 12,
+      paddingHorizontal: 6,
+      alignItems: 'center',
+      gap: 4,
+    },
+    statCardItemActive: {
+      borderColor: theme.isDark ? '#FF8C00' : '#E8F542',
+      borderWidth: theme.isDark ? 1 : 2.5,
+      borderRadius: 16,
+      shadowColor: theme.isDark ? '#FF8C00' : '#E8F542',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.isDark ? 0.4 : 0.15,
+      shadowRadius: theme.isDark ? 12 : 8,
+      elevation: 3,
+    },
+    statIconBadge: {
+      width: 28,
+      height: 28,
+      borderRadius: 10,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 2,
+    },
+    statCountVal: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: theme.isDark ? '#111111' : theme.textPrimary,
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    statLabelText: {
+      fontSize: 9,
+      fontWeight: '700',
+      color: theme.isDark ? '#111111' : '#6B7280',
+      textTransform: 'uppercase',
+      textAlign: 'center',
+    },
 
-  // Opportunities Section Header
-  listHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 6,
-    marginBottom: 16,
-  },
-  listSectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    letterSpacing: -0.2,
-  },
-  listSectionBadge: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    backgroundColor: theme.accentYellow,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-  },
-  nearYouBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#DCFCE7',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.4)' : '#BBF7D0',
-  },
-  nearYouBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: theme.isDark ? '#FF8C00' : '#15803D',
-  },
+    // Opportunities Section Header
+    listHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 6,
+      marginBottom: 16,
+    },
+    listSectionTitle: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: theme.textPrimary,
+      letterSpacing: -0.2,
+    },
+    listSectionBadge: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: '#1A1A1A',
+      backgroundColor: theme.accentYellow,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: '#CBD5E1',
+    },
+    nearYouBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 4,
+      backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#DCFCE7',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+      alignSelf: 'flex-start',
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.4)' : '#BBF7D0',
+    },
+    nearYouBadgeText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.isDark ? '#FF8C00' : '#15803D',
+    },
 
-  // 🌟 Redesigned Next-Level Job Cards (LinkedIn/Upwork Premium style)
-  cleanJobRow: {
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
-    borderRadius: 22,
-    padding: 16,
-    marginBottom: 14,
-    marginHorizontal: 20,
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 0,
-  },
-  premiumJobRow: {
-    borderColor: '#5C9E6A',
-    borderWidth: 1.5,
-    shadowColor: '#5C9E6A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 0,
-    backgroundColor: '#FCFDFD',
-  },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  cardHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  companyLogoSquare: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  companyLogoImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-  },
-  companyLogoInitial: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  companyNameContainer: {
-    flex: 1,
-  },
-  jobRowSubtitle: {
-    fontSize: 12,
-    color: theme.textSecondary,
-    fontWeight: '600',
-  },
-  jobRowTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: theme.isDark ? '#FFFFFF' : '#1A1A1A',
-    marginTop: 2,
-    letterSpacing: -0.2,
-  },
-  salaryBadgeContainer: {
-    backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#E6F4EA',
-    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.4)' : 'transparent',
-    borderWidth: theme.isDark ? 1 : 0,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-    marginLeft: 8,
-  },
-  jobRowSalaryText: {
-    color: theme.isDark ? '#FF8C00' : '#137333',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  cardTagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 12,
-  },
-  metaBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  metaBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: theme.accentGreen,
-  },
-  cardDivider: {
-    height: 1,
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
-    marginBottom: 12,
-  },
-  cardFooterRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  jobRowMetaText: {
-    fontSize: 10,
-    color: '#94A3B8',
-    fontWeight: '600',
-  },
-  rowHeartBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
-  },
-  rowHeartBtnActive: {
-    backgroundColor: '#FEE2E2',
-  },
-  rowHeartCountText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  rowHeartCountTextActive: {
-    color: '#EF4444',
-  },
-  applyArrowBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
-    borderWidth: 1,
-    borderColor: theme.isDark ? '#FF8C00' : '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 4,
-    shadowColor: theme.isDark ? '#FF8C00' : 'transparent',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: theme.isDark ? 0.6 : 0,
-    shadowRadius: theme.isDark ? 6 : 0,
-    elevation: theme.isDark ? 3 : 0,
-  },
-  applyBtnLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#1A1A1A',
-  },
-  relatedTagActive: {
-    backgroundColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
-    borderColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
-  },
-  relatedTagTextActive: {
-    color: theme.isDark ? '#111111' : '#FFFFFF',
-  },
+    // 🌟 Redesigned Next-Level Job Cards (LinkedIn/Upwork Premium style)
+    cleanJobRow: {
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
+      borderRadius: 22,
+      padding: 16,
+      marginBottom: 14,
+      marginHorizontal: 20,
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.04,
+      shadowRadius: 12,
+      elevation: 0,
+    },
+    premiumJobRow: {
+      borderColor: '#5C9E6A',
+      borderWidth: 1.5,
+      shadowColor: '#5C9E6A',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.12,
+      shadowRadius: 16,
+      elevation: 0,
+      backgroundColor: '#FCFDFD',
+    },
+    cardHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
+    },
+    cardHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      gap: 12,
+    },
+    companyLogoSquare: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    companyLogoImage: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+    },
+    companyLogoInitial: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    companyNameContainer: {
+      flex: 1,
+    },
+    jobRowSubtitle: {
+      fontSize: 12,
+      color: theme.textSecondary,
+      fontWeight: '600',
+    },
+    jobRowTitle: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: theme.isDark ? '#FFFFFF' : '#1A1A1A',
+      marginTop: 2,
+      letterSpacing: -0.2,
+    },
+    salaryBadgeContainer: {
+      backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#E6F4EA',
+      borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.4)' : 'transparent',
+      borderWidth: theme.isDark ? 1 : 0,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 10,
+      marginLeft: 8,
+    },
+    jobRowSalaryText: {
+      color: theme.isDark ? '#FF8C00' : '#137333',
+      fontSize: 11,
+      fontWeight: '800',
+    },
+    cardTagsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginBottom: 12,
+    },
+    metaBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+      borderRadius: 10,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    metaBadgeText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.accentGreen,
+    },
+    cardDivider: {
+      height: 1,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
+      marginBottom: 12,
+    },
+    cardFooterRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    jobRowMetaText: {
+      fontSize: 10,
+      color: '#94A3B8',
+      fontWeight: '600',
+    },
+    rowHeartBtn: {
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      borderRadius: 8,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
+    },
+    rowHeartBtnActive: {
+      backgroundColor: '#FEE2E2',
+    },
+    rowHeartCountText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: '#64748B',
+    },
+    rowHeartCountTextActive: {
+      color: '#EF4444',
+    },
+    applyArrowBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
+      borderWidth: 1,
+      borderColor: theme.isDark ? '#FF8C00' : '#CBD5E1',
+      borderRadius: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      gap: 4,
+      shadowColor: theme.isDark ? '#FF8C00' : 'transparent',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme.isDark ? 0.6 : 0,
+      shadowRadius: theme.isDark ? 6 : 0,
+      elevation: theme.isDark ? 3 : 0,
+    },
+    applyBtnLabel: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#1A1A1A',
+    },
+    relatedTagActive: {
+      backgroundColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
+      borderColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
+    },
+    relatedTagTextActive: {
+      color: theme.isDark ? '#111111' : '#FFFFFF',
+    },
 
-  // Detail View
-  detailNav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
-    backgroundColor: theme.bgPrimary,
-  },
-  detailNavTitle: { fontSize: FONTS.sizes.lg, fontWeight: '700', color: theme.textPrimary },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: theme.bgCard,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  // Upwork Style Detail Page Layout
-  upworkHeaderContainer: {
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
-    borderRadius: 24,
-    marginHorizontal: 16,
-    marginTop: 8,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
-  },
-  upworkPosterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  upworkPosterAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: theme.accentYellow,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: theme.accentGreen,
-  },
-  upworkPosterAvatarImg: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-  },
-  upworkPosterAvatarText: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: theme.textPrimary,
-  },
-  upworkPosterName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.textPrimary,
-    marginBottom: 2,
-  },
-  upworkCategoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    marginBottom: 8,
-  },
-  upworkCategoryText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.accentGreen,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  upworkDotDivider: {
-    fontSize: 12,
-    color: theme.isDark ? '#737373' : '#94A3B8',
-    marginHorizontal: 8,
-  },
-  upworkDateText: {
-    fontSize: 12,
-    color: theme.isDark ? '#A3A3A3' : '#64748B',
-    fontWeight: '500',
-  },
-  upworkJobTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    lineHeight: 28,
-    marginBottom: 8,
-    letterSpacing: -0.3,
-  },
-  upworkCompanyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  upworkCompanyName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.isDark ? '#E2E8F0' : '#334155',
-  },
-  upworkLocationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#C8E6C9',
-  },
-  upworkLocationText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#2E7D32',
-  },
-  upworkDivider: {
-    height: 1,
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
-    marginVertical: 18,
-  },
-  specsChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 14,
-  },
-  specChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
-  },
-  specChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  upworkStatsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#111111',
-    borderRadius: 20,
-    marginHorizontal: 16,
-    marginVertical: 10,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  upworkStatBox: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  upworkStatVal: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: theme.isDark ? '#FF8C00' : '#C8D900',
-  },
-  upworkStatLbl: {
-    fontSize: 11,
-    color: '#94A3B8',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  upworkStatDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: '#334155',
-  },
-  upworkSectionCard: {
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
-    borderRadius: 24,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
-  },
-  upworkSectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    marginBottom: 12,
-  },
-  upworkDescText: {
-    fontSize: 14,
-    color: theme.isDark ? '#CBD5E1' : '#334155',
-    lineHeight: 22,
-  },
-  upworkRequirementsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  upworkReqChip: {
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
-  },
-  upworkReqChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.textSecondary,
-  },
-  upworkClientSection: {
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
-    borderRadius: 24,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
-  },
-  upworkClientRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  upworkClientAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
-  },
-  upworkClientAvatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  upworkClientAvatarText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: theme.textSecondary,
-  },
-  upworkClientName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.textPrimary,
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 6,
-  },
-  verifiedBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#15803D',
-  },
-  upworkClientTitle: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
-    marginBottom: 6,
-  },
-  upworkClientMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  upworkClientMetaText: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  upworkApplyBtn: {
-    backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
-    borderRadius: 28,
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    marginBottom: 8,
-    shadowColor: theme.isDark ? '#FF8C00' : '#E8F542',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: theme.isDark ? 0.8 : 0.25,
-    shadowRadius: theme.isDark ? 16 : 12,
-    elevation: 5,
-  },
-  upworkApplyBtnText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1A1A1A',
-  },
+    // Detail View
+    detailNav: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
+      backgroundColor: theme.bgPrimary,
+    },
+    detailNavTitle: { fontSize: FONTS.sizes.lg, fontWeight: '700', color: theme.textPrimary },
+    iconBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 14,
+      backgroundColor: theme.bgCard,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    // Upwork Style Detail Page Layout
+    upworkHeaderContainer: {
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
+      borderRadius: 24,
+      marginHorizontal: 16,
+      marginTop: 8,
+      padding: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.04,
+      shadowRadius: 16,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+    },
+    upworkPosterRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    upworkPosterAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      backgroundColor: theme.accentYellow,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+      borderWidth: 2,
+      borderColor: theme.accentGreen,
+    },
+    upworkPosterAvatarImg: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+    },
+    upworkPosterAvatarText: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: theme.textPrimary,
+    },
+    upworkPosterName: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.textPrimary,
+      marginBottom: 2,
+    },
+    upworkCategoryRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      marginBottom: 8,
+    },
+    upworkCategoryText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.accentGreen,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    upworkDotDivider: {
+      fontSize: 12,
+      color: theme.isDark ? '#737373' : '#94A3B8',
+      marginHorizontal: 8,
+    },
+    upworkDateText: {
+      fontSize: 12,
+      color: theme.isDark ? '#A3A3A3' : '#64748B',
+      fontWeight: '500',
+    },
+    upworkJobTitle: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: theme.textPrimary,
+      lineHeight: 28,
+      marginBottom: 8,
+      letterSpacing: -0.3,
+    },
+    upworkCompanyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    upworkCompanyName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.isDark ? '#E2E8F0' : '#334155',
+    },
+    upworkLocationBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#E8F5E9',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: '#C8E6C9',
+    },
+    upworkLocationText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: '#2E7D32',
+    },
+    upworkDivider: {
+      height: 1,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
+      marginVertical: 18,
+    },
+    specsChipsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 14,
+    },
+    specChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 10,
+    },
+    specChipText: {
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    upworkStatsContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#111111',
+      borderRadius: 20,
+      marginHorizontal: 16,
+      marginVertical: 10,
+      paddingVertical: 16,
+      paddingHorizontal: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    upworkStatBox: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    upworkStatVal: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: theme.isDark ? '#FF8C00' : '#C8D900',
+    },
+    upworkStatLbl: {
+      fontSize: 11,
+      color: '#94A3B8',
+      fontWeight: '600',
+      marginTop: 2,
+    },
+    upworkStatDivider: {
+      width: 1,
+      height: 24,
+      backgroundColor: '#334155',
+    },
+    upworkSectionCard: {
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
+      borderRadius: 24,
+      marginHorizontal: 16,
+      marginVertical: 8,
+      padding: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.04,
+      shadowRadius: 16,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+    },
+    upworkSectionTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.textPrimary,
+      marginBottom: 12,
+    },
+    upworkDescText: {
+      fontSize: 14,
+      color: theme.isDark ? '#CBD5E1' : '#334155',
+      lineHeight: 22,
+    },
+    upworkRequirementsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    upworkReqChip: {
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+    },
+    upworkReqChipText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.textSecondary,
+    },
+    upworkClientSection: {
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
+      borderRadius: 24,
+      marginHorizontal: 16,
+      marginVertical: 8,
+      padding: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.04,
+      shadowRadius: 16,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+    },
+    upworkClientRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    upworkClientAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+    },
+    upworkClientAvatarImage: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+    },
+    upworkClientAvatarText: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.textSecondary,
+    },
+    upworkClientName: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.textPrimary,
+    },
+    verifiedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#DCFCE7',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      marginLeft: 6,
+    },
+    verifiedBadgeText: {
+      fontSize: 9,
+      fontWeight: '700',
+      color: '#15803D',
+    },
+    upworkClientTitle: {
+      fontSize: 12,
+      color: '#64748B',
+      fontWeight: '500',
+      marginBottom: 6,
+    },
+    upworkClientMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    upworkClientMetaText: {
+      fontSize: 11,
+      color: '#64748B',
+      fontWeight: '500',
+    },
+    upworkApplyBtn: {
+      backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
+      borderRadius: 28,
+      height: 56,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 10,
+      marginBottom: 8,
+      shadowColor: theme.isDark ? '#FF8C00' : '#E8F542',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: theme.isDark ? 0.8 : 0.25,
+      shadowRadius: theme.isDark ? 16 : 12,
+      elevation: 5,
+    },
+    upworkApplyBtnText: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: '#1A1A1A',
+    },
 
-  // Poster Profile Styles
-  posterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  posterAvatarCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.accentYellow,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  posterAvatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  posterAvatarText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: theme.textPrimary,
-  },
-  posterName: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: theme.textPrimary,
-  },
-  posterTitle: {
-    fontSize: 12,
-    color: theme.textSecondary,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  posterContactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  posterContactText: {
-    fontSize: 12,
-    color: theme.textSecondary,
-    fontWeight: '500',
-  },
-  cardPosterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  cardPosterText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#D97706',
-  },
+    // Poster Profile Styles
+    posterRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+    },
+    posterAvatarCircle: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: theme.accentYellow,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    posterAvatarImage: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+    },
+    posterAvatarText: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.textPrimary,
+    },
+    posterName: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: theme.textPrimary,
+    },
+    posterTitle: {
+      fontSize: 12,
+      color: theme.textSecondary,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    posterContactRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    posterContactText: {
+      fontSize: 12,
+      color: theme.textSecondary,
+      fontWeight: '500',
+    },
+    cardPosterRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+      backgroundColor: '#FEF3C7',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      alignSelf: 'flex-start',
+    },
+    cardPosterText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: '#D97706',
+    },
 
-  emptyBox: { alignItems: 'center', paddingVertical: 60, gap: 12, paddingHorizontal: 40 },
-  emptyText: { fontSize: FONTS.sizes.md, color: theme.textLight, textAlign: 'center' },
+    emptyBox: { alignItems: 'center', paddingVertical: 60, gap: 12, paddingHorizontal: 40 },
+    emptyText: { fontSize: FONTS.sizes.md, color: theme.textLight, textAlign: 'center' },
 
-  // Direct Apply Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)', // Elegant backdrop color
-    justifyContent: 'flex-end',
-  },
-  modalDismissArea: {
-    flex: 1,
-  },
-  modalContent: {
-    backgroundColor: theme.isDark ? '#1A1A1A' : '#FFFFFF',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: 24,
-    paddingTop: 10,
-    paddingBottom: 40,
-    maxHeight: '90%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  modalHandle: {
-    width: 48,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#E2E8F0',
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  modalHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    letterSpacing: -0.5,
-  },
-  modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalSubtitle: {
-    fontSize: 13,
-    color: theme.textSecondary,
-    lineHeight: 18,
-    marginBottom: 20,
-    fontWeight: '500',
-  },
-  modalRecruiterCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
-    borderRadius: 20,
-    padding: 16,
-    gap: 14,
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#F1F5F9',
-    marginBottom: 18,
-  },
-  modalRecruiterAvatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
-    backgroundColor: theme.isDark ? '#FF8C00' : theme.accentYellow,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalRecruiterAvatarText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: theme.isDark ? '#111111' : theme.textPrimary,
-  },
-  modalRecruiterName: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: theme.textPrimary,
-  },
-  modalRecruiterTitle: {
-    fontSize: 12,
-    color: theme.textSecondary,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  modalContactGrid: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 22,
-  },
-  modalContactCard: {
-    flex: 1,
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#E2E8F0',
-    borderRadius: 16,
-    padding: 12,
-  },
-  modalContactHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  modalContactLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: theme.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  modalContactValue: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.textPrimary,
-  },
-  modalActionsContainer: {
-    gap: 12,
-  },
-  whatsappActionBtn: {
-    backgroundColor: '#25D366',
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#25D366',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  whatsappBtnTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  whatsappBtnSub: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.85)',
-    fontWeight: '600',
-    marginTop: 1,
-  },
-  emailActionBtn: {
-    backgroundColor: '#1E293B',
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#1E293B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  emailBtnTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  emailBtnSub: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.85)',
-    fontWeight: '600',
-    marginTop: 1,
-  },
-  appApplyBtn: {
-    backgroundColor: theme.isDark ? '#FF8C00' : '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: theme.isDark ? '#FF8C00' : '#E2E8F0',
-    borderRadius: 16,
-    height: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 6,
-    shadowColor: theme.isDark ? '#FF8C00' : 'transparent',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: theme.isDark ? 0.6 : 0,
-    shadowRadius: theme.isDark ? 8 : 0,
-    elevation: theme.isDark ? 3 : 0,
-  },
-  appApplyBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.isDark ? '#111111' : theme.textPrimary,
-  },
-  requirementsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 4,
-  },
-  premiumReqChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EBF7EC',
-    borderColor: '#D4EAD7',
-    borderWidth: 1.2,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 4,
-  },
-  premiumReqText: {
-    fontSize: 12,
-    color: '#15803D',
-    fontWeight: '700',
-  },
+    // Direct Apply Modal Styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(15, 23, 42, 0.75)', // Elegant backdrop color
+      justifyContent: 'flex-end',
+    },
+    modalDismissArea: {
+      flex: 1,
+    },
+    modalContent: {
+      backgroundColor: theme.isDark ? '#1A1A1A' : '#FFFFFF',
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
+      paddingHorizontal: 24,
+      paddingTop: 10,
+      paddingBottom: 40,
+      maxHeight: '90%',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -10 },
+      shadowOpacity: 0.15,
+      shadowRadius: 20,
+      elevation: 10,
+    },
+    modalHandle: {
+      width: 48,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: '#E2E8F0',
+      alignSelf: 'center',
+      marginBottom: 20,
+    },
+    modalHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    modalTitle: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: theme.textPrimary,
+      letterSpacing: -0.5,
+    },
+    modalCloseBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalSubtitle: {
+      fontSize: 13,
+      color: theme.textSecondary,
+      lineHeight: 18,
+      marginBottom: 20,
+      fontWeight: '500',
+    },
+    modalRecruiterCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
+      borderRadius: 20,
+      padding: 16,
+      gap: 14,
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#F1F5F9',
+      marginBottom: 18,
+    },
+    modalRecruiterAvatar: {
+      width: 46,
+      height: 46,
+      borderRadius: 16,
+      backgroundColor: theme.isDark ? '#FF8C00' : theme.accentYellow,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalRecruiterAvatarText: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.isDark ? '#111111' : theme.textPrimary,
+    },
+    modalRecruiterName: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: theme.textPrimary,
+    },
+    modalRecruiterTitle: {
+      fontSize: 12,
+      color: theme.textSecondary,
+      fontWeight: '600',
+      marginTop: 2,
+    },
+    modalContactGrid: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 22,
+    },
+    modalContactCard: {
+      flex: 1,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#E2E8F0',
+      borderRadius: 16,
+      padding: 12,
+    },
+    modalContactHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 6,
+    },
+    modalContactLabel: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.3,
+    },
+    modalContactValue: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.textPrimary,
+    },
+    modalActionsContainer: {
+      gap: 12,
+    },
+    whatsappActionBtn: {
+      backgroundColor: '#25D366',
+      borderRadius: 18,
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      shadowColor: '#25D366',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    whatsappBtnTitle: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    whatsappBtnSub: {
+      fontSize: 10,
+      color: 'rgba(255, 255, 255, 0.85)',
+      fontWeight: '600',
+      marginTop: 1,
+    },
+    emailActionBtn: {
+      backgroundColor: '#1E293B',
+      borderRadius: 18,
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      shadowColor: '#1E293B',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    emailBtnTitle: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    emailBtnSub: {
+      fontSize: 10,
+      color: 'rgba(255, 255, 255, 0.85)',
+      fontWeight: '600',
+      marginTop: 1,
+    },
+    appApplyBtn: {
+      backgroundColor: theme.isDark ? '#FF8C00' : '#FFFFFF',
+      borderWidth: 1.5,
+      borderColor: theme.isDark ? '#FF8C00' : '#E2E8F0',
+      borderRadius: 16,
+      height: 52,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 6,
+      shadowColor: theme.isDark ? '#FF8C00' : 'transparent',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.isDark ? 0.6 : 0,
+      shadowRadius: theme.isDark ? 8 : 0,
+      elevation: theme.isDark ? 3 : 0,
+    },
+    appApplyBtnText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.isDark ? '#111111' : theme.textPrimary,
+    },
+    requirementsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 4,
+    },
+    premiumReqChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#EBF7EC',
+      borderColor: '#D4EAD7',
+      borderWidth: 1.2,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      marginBottom: 4,
+    },
+    premiumReqText: {
+      fontSize: 12,
+      color: '#15803D',
+      fontWeight: '700',
+    },
 
-  // ─── Filter Sheet Modal Styles ──────────────────────────────────────────────
-  filterModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'flex-end',
-  },
-  filterModalContent: {
-    backgroundColor: theme.isDark ? '#1A1A1A' : '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 34,
-    maxHeight: '90%',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  filterModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  filterModalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    letterSpacing: -0.3,
-  },
-  filterSectionTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 16,
-    marginBottom: 10,
-  },
-  filterPillsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 6,
-  },
-  filterSelectPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 14,
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6',
-    borderWidth: 1.2,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
-  },
-  filterSelectPillActive: {
-    backgroundColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
-    borderColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
-  },
-  filterPillLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.isDark ? '#A3A3A3' : '#4B5563',
-  },
-  filterPillLabelActive: {
-    color: theme.isDark ? '#111111' : '#FFFFFF',
-  },
-  filterModalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 24,
-    gap: 12,
-  },
-  filterResetBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterResetBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: theme.isDark ? '#A3A3A3' : '#6B7280',
-  },
-  filterApplyBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 16,
-    backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
-    borderWidth: 1.5,
-    borderColor: theme.isDark ? '#FF8C00' : '#CBD5E1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: theme.isDark ? '#FF8C00' : 'transparent',
-    shadowOffset: theme.isDark ? { width: 0, height: 4 } : { width: 0, height: 0 },
-    shadowOpacity: theme.isDark ? 0.6 : 0,
-    shadowRadius: theme.isDark ? 8 : 0,
-    elevation: theme.isDark ? 3 : 0,
-  },
-  filterApplyBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#1A1A1A',
-  },
+    // ─── Filter Sheet Modal Styles ──────────────────────────────────────────────
+    filterModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      justifyContent: 'flex-end',
+    },
+    filterModalContent: {
+      backgroundColor: theme.isDark ? '#1A1A1A' : '#FFFFFF',
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: 24,
+      paddingTop: 24,
+      paddingBottom: 34,
+      maxHeight: '90%',
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: -10 },
+      shadowOpacity: 0.12,
+      shadowRadius: 20,
+      elevation: 8,
+    },
+    filterModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    filterModalTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: theme.textPrimary,
+      letterSpacing: -0.3,
+    },
+    filterSectionTitle: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: theme.textPrimary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginTop: 16,
+      marginBottom: 10,
+    },
+    filterPillsContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 6,
+    },
+    filterSelectPill: {
+      paddingHorizontal: 16,
+      paddingVertical: 9,
+      borderRadius: 14,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6',
+      borderWidth: 1.2,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+    },
+    filterSelectPillActive: {
+      backgroundColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
+      borderColor: theme.isDark ? '#FF8C00' : '#1A1A1A',
+    },
+    filterPillLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.isDark ? '#A3A3A3' : '#4B5563',
+    },
+    filterPillLabelActive: {
+      color: theme.isDark ? '#111111' : '#FFFFFF',
+    },
+    filterModalFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 24,
+      gap: 12,
+    },
+    filterResetBtn: {
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : '#E5E7EB',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    filterResetBtnText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: theme.isDark ? '#A3A3A3' : '#6B7280',
+    },
+    filterApplyBtn: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 16,
+      backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
+      borderWidth: 1.5,
+      borderColor: theme.isDark ? '#FF8C00' : '#CBD5E1',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: theme.isDark ? '#FF8C00' : 'transparent',
+      shadowOffset: theme.isDark ? { width: 0, height: 4 } : { width: 0, height: 0 },
+      shadowOpacity: theme.isDark ? 0.6 : 0,
+      shadowRadius: theme.isDark ? 8 : 0,
+      elevation: theme.isDark ? 3 : 0,
+    },
+    filterApplyBtnText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: '#1A1A1A',
+    },
 
-  // ─── Collapsible Country Dropdown Styles ───────────────────────────────────
-  dropdownSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderWidth: 1.2,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
-    marginTop: 6,
-  },
-  dropdownLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  dropdownSelectedText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.textPrimary,
-    flex: 1,
-  },
-  dropdownListContainer: {
-    backgroundColor: theme.isDark ? '#1A1A1A' : '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1.2,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
-    marginTop: 8,
-    padding: 10,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: theme.isDark ? 0.2 : 0.05,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  dropdownSearchWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F9FAFB',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.2)' : '#F3F4F6',
-  },
-  dropdownSearchInput: {
-    fontSize: 12,
-    color: theme.textPrimary,
-    flex: 1,
-    padding: 0,
-  },
-  dropdownScroll: {
-    maxHeight: 150,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-  },
-  dropdownItemActive: {
-    backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
-  },
-  dropdownItemText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.isDark ? '#D4D4D4' : '#4B5563',
-  },
-  dropdownItemTextActive: {
-    color: theme.isDark ? '#111111' : '#1A1A1A',
-    fontWeight: '700',
-  },
-  profileWarningBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
-    borderRadius: 16,
-    padding: 14,
-    marginHorizontal: 20,
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  warningBannerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 8,
-  },
-  warningIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FEE2E2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  warningTextContainer: {
-    flex: 1,
-  },
-  warningTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#991B1B',
-  },
-  warningDesc: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#B91C1C',
-    marginTop: 1,
-  },
-  warningActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-  },
-  warningActionText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#DC2626',
-    marginRight: 2,
-  },
-  suggestionsDropdown: {
-    position: 'absolute',
-    top: 56,
-    left: 0,
-    right: 0,
-    backgroundColor: theme.isDark ? '#1A1A1A' : '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.3)' : '#EEF2F0',
-    paddingVertical: 8,
-    shadowColor: theme.isDark ? '#FF8C00' : '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: theme.isDark ? 0.25 : 0.1,
-    shadowRadius: theme.isDark ? 16 : 12,
-    elevation: 8,
-    zIndex: 999,
-  },
-  suggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  suggestionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.isDark ? '#E2E8F0' : '#0A2417',
-  },
-});
+    // ─── Collapsible Country Dropdown Styles ───────────────────────────────────
+    dropdownSelector: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6',
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderWidth: 1.2,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+      marginTop: 6,
+    },
+    dropdownLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    dropdownSelectedText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.textPrimary,
+      flex: 1,
+    },
+    dropdownListContainer: {
+      backgroundColor: theme.isDark ? '#1A1A1A' : '#FFFFFF',
+      borderRadius: 16,
+      borderWidth: 1.2,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+      marginTop: 8,
+      padding: 10,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.isDark ? 0.2 : 0.05,
+      shadowRadius: 10,
+      elevation: 3,
+    },
+    dropdownSearchWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F9FAFB',
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.2)' : '#F3F4F6',
+    },
+    dropdownSearchInput: {
+      fontSize: 12,
+      color: theme.textPrimary,
+      flex: 1,
+      padding: 0,
+    },
+    dropdownScroll: {
+      maxHeight: 150,
+    },
+    dropdownItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+    },
+    dropdownItemActive: {
+      backgroundColor: theme.isDark ? '#FF8C00' : '#E8F542',
+    },
+    dropdownItemText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.isDark ? '#D4D4D4' : '#4B5563',
+    },
+    dropdownItemTextActive: {
+      color: theme.isDark ? '#111111' : '#1A1A1A',
+      fontWeight: '700',
+    },
+    profileWarningBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: '#FEF2F2',
+      borderWidth: 1,
+      borderColor: '#FEE2E2',
+      borderRadius: 16,
+      padding: 14,
+      marginHorizontal: 20,
+      marginTop: 12,
+      marginBottom: 8,
+    },
+    warningBannerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: 8,
+    },
+    warningIconCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: '#FEE2E2',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+    },
+    warningTextContainer: {
+      flex: 1,
+    },
+    warningTitle: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: '#991B1B',
+    },
+    warningDesc: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: '#B91C1C',
+      marginTop: 1,
+    },
+    warningActionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: '#FCA5A5',
+    },
+    warningActionText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: '#DC2626',
+      marginRight: 2,
+    },
+    suggestionsDropdown: {
+      position: 'absolute',
+      top: 56,
+      left: 0,
+      right: 0,
+      backgroundColor: theme.isDark ? '#1A1A1A' : '#FFFFFF',
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.3)' : '#EEF2F0',
+      paddingVertical: 8,
+      shadowColor: theme.isDark ? '#FF8C00' : '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: theme.isDark ? 0.25 : 0.1,
+      shadowRadius: theme.isDark ? 16 : 12,
+      elevation: 8,
+      zIndex: 999,
+    },
+    suggestionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    suggestionText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.isDark ? '#E2E8F0' : '#0A2417',
+    },
+  });
 }

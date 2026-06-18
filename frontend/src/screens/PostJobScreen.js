@@ -259,6 +259,53 @@ const QUICK_SKILLS = {
   Research: ['Data Analysis', 'Laboratory Work', 'Grant Applications', 'Scientific Writing', 'Statistics'],
   Freelance: ['Time Management', 'Self-Marketing', 'Invoicing', 'Client Relations', 'Proposal Writing'],
   Internship: ['Eagerness to Learn', 'Team Collaboration', 'MS Office', 'Organization', 'Communication'],
+  'Beauty Parlour': ['Makeup', 'Hair Styling', 'Facial', 'Manicure', 'Pedicure', 'Waxing', 'Threading', 'Mehendi'],
+  'Driving': ['Car Driving', 'Truck Driving', 'Valid License', 'Route Knowledge', 'Safe Driving', 'Delivery'],
+  'Electrician': ['Wiring', 'Circuit Board', 'Meter Fitting', 'AC Repair', 'Fan Fitting', 'Safety Rules'],
+  'Plumbing': ['Pipe Fitting', 'Leak Repair', 'Bathroom Fitting', 'Drain Cleaning', 'Water Tank'],
+  'Carpentry': ['Wood Cutting', 'Furniture Making', 'Door Fitting', 'Polish Work', 'Measurement'],
+  'Tailoring': ['Stitching', 'Cutting', 'Machine Work', 'Dress Design', 'Measurement', 'Alterations'],
+  'Cooking / Chef': ['Cooking', 'Baking', 'Menu Planning', 'Hygiene', 'Food Presentation', 'BBQ', 'Biryani'],
+  'Cleaning Services': ['Cleaning', 'Mopping', 'Washing', 'Dusting', 'Sanitizing', 'Deep Cleaning'],
+  'Mechanic / Auto': ['Engine Repair', 'Oil Change', 'Brake Repair', 'Tyre Change', 'Car Wash', 'Diagnostics'],
+  'Welding / Fabrication': ['Welding', 'Metal Cutting', 'Gas Welding', 'Arc Welding', 'Grinding', 'Fabrication'],
+  'Painting': ['Wall Painting', 'Polish', 'Putty Work', 'Spray Paint', 'Interior Painting', 'Brush Work'],
+  'Delivery / Rider': ['Bike Riding', 'Parcel Delivery', 'Route Planning', 'Punctuality', 'Customer Handling'],
+  'Telecommunication': ['Network Setup', 'Fiber Optic', 'SIM Activation', 'Troubleshooting', 'Customer Support'],
+  'Aviation': ['Flight Operations', 'Ground Handling', 'Safety Checks', 'Passenger Service', 'Navigation'],
+  'Maritime / Shipping': ['Ship Operations', 'Cargo Handling', 'Port Logistics', 'Navigation', 'Safety'],
+  'Oil & Gas': ['Drilling', 'Pipeline Work', 'HSE Safety', 'Mechanical Maintenance', 'Equipment Operation'],
+  'Mining': ['Excavation', 'Drilling', 'Safety Compliance', 'Heavy Equipment', 'Blasting', 'Surveying'],
+  'Pharmacy': ['Dispensing', 'Drug Knowledge', 'Prescription Reading', 'Stock Management', 'Customer Care'],
+  'Veterinary': ['Animal Care', 'Vaccination', 'Surgery Assist', 'Diagnosis', 'Grooming', 'Record Keeping'],
+  'Fitness / Gym': ['Personal Training', 'Nutrition', 'Weight Training', 'Cardio', 'Class Instruction'],
+  'Sports': ['Coaching', 'Team Management', 'Physical Fitness', 'First Aid', 'Game Strategy'],
+  'Event Management': ['Event Planning', 'Decoration', 'Coordination', 'Vendor Management', 'Photography'],
+  'Photography / Video': ['Photography', 'Video Editing', 'Lighting Setup', 'Premiere Pro', 'Camera Operation'],
+  'Fashion': ['Styling', 'Trend Knowledge', 'Clothing Design', 'Retail Sales', 'Visual Merchandising'],
+  'Jewelry': ['Jewelry Making', 'Stone Setting', 'Polishing', 'Gold/Silver Work', 'Customer Service'],
+  'E-Commerce': ['Product Listing', 'Order Management', 'Customer Service', 'Shopify', 'Amazon', 'Daraz'],
+  'Translation / Languages': ['English', 'Urdu', 'Arabic', 'Translation', 'Interpretation', 'Proofreading'],
+  'Data Entry': ['Typing', 'MS Excel', 'Accuracy', 'MS Word', 'Data Entry', 'Computer Skills'],
+  'Printing / Publishing': ['Printing Machine', 'Design Layout', 'Color Management', 'Offset Printing'],
+  'Architecture': ['AutoCAD', '3D Modeling', 'Site Planning', 'Building Design', 'Structural Drawing'],
+  'Interior Design': ['Space Planning', 'Color Schemes', '3D Visualization', 'Material Selection', 'Client Liaison'],
+  'Environmental': ['Environmental Compliance', 'Waste Management', 'Field Surveys', 'Report Writing'],
+  'Social Work': ['Community Outreach', 'Counseling', 'Case Management', 'Report Writing', 'Empathy'],
+  'Teaching / Tuition': ['Teaching', 'Lesson Planning', 'Subject Knowledge', 'Patience', 'Communication'],
+  'IT Support': ['Troubleshooting', 'Network Support', 'Hardware Repair', 'Windows/Linux', 'Remote Support'],
+  'Cybersecurity': ['Ethical Hacking', 'Firewall Management', 'Network Security', 'Penetration Testing'],
+  'Artificial Intelligence': ['Machine Learning', 'Python', 'Data Science', 'TensorFlow', 'NLP', 'Deep Learning'],
+  'Blockchain': ['Smart Contracts', 'Solidity', 'Web3', 'Crypto', 'DeFi', 'NFT Development'],
+  'Graphic Design': ['Photoshop', 'Illustrator', 'Logo Design', 'Canva', 'Banner Design', 'CorelDRAW'],
+  'Content Creation': ['Video Making', 'Script Writing', 'TikTok', 'YouTube', 'Reels', 'Editing'],
+  'SEO / Digital Marketing': ['SEO', 'Google Ads', 'Facebook Ads', 'Analytics', 'Keyword Research'],
+  'Call Center': ['Communication', 'English Speaking', 'Call Handling', 'Customer Support', 'CRM'],
+  'Banking': ['Cash Handling', 'Account Opening', 'Loan Processing', 'KYC', 'MS Excel', 'Banking Software'],
+  'Insurance': ['Policy Selling', 'Claims Processing', 'Risk Assessment', 'Client Relations', 'Negotiation'],
+  'Import / Export': ['Customs Clearance', 'Documentation', 'Freight', 'Trade Laws', 'Logistics'],
+  'Textile': ['Fabric Knowledge', 'Loom Operation', 'Quality Check', 'Dyeing', 'Weaving'],
+  'Garments': ['Stitching', 'Cutting', 'Pattern Making', 'Quality Control', 'Export Packaging'],
 };
 
 function PostJobSkeleton({ theme }) {
@@ -412,7 +459,7 @@ export default function PostJobScreen({ navigation }) {
     // Strict validation to filter out vulgar, inappropriate, or non-professional content
     const inappropriateKeywords = [
       // --- ENGLISH PROFANITY & INAPPROPRIATE TERMS ---
-      'sex', 'porn', 'xxx', 'fuck', 'nude', 'naked', 'erotic', 'escort', 'sensual', 'adult', 
+      'sex', 'porn', 'xxx', 'fuck', 'nude', 'naked', 'erotic', 'escort', 'sensual', 'adult',
       'dating', 'hookup', 'pussy', 'dick', 'cunt', 'bitch', 'asshole', 'massage parlour',
       'whore', 'bastard', 'slut', 'blowjob', 'handjob', 'orgasm', 'penis', 'vagina', 'clitoris',
       'semen', 'sperm', 'ejaculate', 'anal', 'lesbian', 'gay', 'homosexual', 'rape', 'incest',
@@ -461,12 +508,12 @@ export default function PostJobScreen({ navigation }) {
       'luda', 'ludi', 'luden',
       'chati', 'chatiyan', 'jangh', 'koocha',
       'behuda', 'behuda bat', 'fahas', 'fahashi', 'fahaash', 'behuda post',
-      'kutte ka bacha', 'kaminey ki aulad', 'saale sahab', 'bhadwa giri', 'gandu giri', 'randi khana', 
-      'randi rona', 'dalaal giri', 'behanchod', 'daley ka bacha', 'chudne wali', 'chudne wala', 
-      'loda lassan', 'gand fatna', 'gand phatna', 'gand fati', 'gand phati', 'gand phat gayi', 
-      'chut ka pani', 'lund choos', 'muth maro', 'muth marna', 'muthbaaz', 'bhonsdi', 'bhonsdike', 
-      'chutiyap', 'kutiya', 'harami bacha', 'harami pan', 'gandu pan', 'tatte choos', 'tatta choos', 
-      'lawdey', 'laudeya', 'chudaap', 'chudapa', 'suar', 'suar ki nasal', 'suar ka bacha', 'badmaash', 
+      'kutte ka bacha', 'kaminey ki aulad', 'saale sahab', 'bhadwa giri', 'gandu giri', 'randi khana',
+      'randi rona', 'dalaal giri', 'behanchod', 'daley ka bacha', 'chudne wali', 'chudne wala',
+      'loda lassan', 'gand fatna', 'gand phatna', 'gand fati', 'gand phati', 'gand phat gayi',
+      'chut ka pani', 'lund choos', 'muth maro', 'muth marna', 'muthbaaz', 'bhonsdi', 'bhonsdike',
+      'chutiyap', 'kutiya', 'harami bacha', 'harami pan', 'gandu pan', 'tatte choos', 'tatta choos',
+      'lawdey', 'laudeya', 'chudaap', 'chudapa', 'suar', 'suar ki nasal', 'suar ka bacha', 'badmaash',
       'tharki', 'tharkipan', 'jismfarosh', 'chinalpuna', 'gashtipuna', 'be sharam', 'besharam',
 
       // --- URDU SCRIPT VULGAR WORDS ---
@@ -485,8 +532,8 @@ export default function PostJobScreen({ navigation }) {
     };
 
     if (
-      containsInappropriateContent(title) || 
-      containsInappropriateContent(company) || 
+      containsInappropriateContent(title) ||
+      containsInappropriateContent(company) ||
       containsInappropriateContent(description) ||
       selectedSkills.some(skill => containsInappropriateContent(skill))
     ) {
@@ -496,12 +543,12 @@ export default function PostJobScreen({ navigation }) {
         const currentStrikes = currentStrikesStr ? Number(currentStrikesStr) : 0;
         const newStrikes = currentStrikes + 1;
         await AsyncStorage.setItem(strikeKey, String(newStrikes));
-        
+
         // 1st offense: 5 minutes (300000ms), 2nd+ offense: 2 hours (7200000ms)
         const banDuration = newStrikes === 1 ? 5 * 60000 : 2 * 60 * 60000;
         const banUntil = Date.now() + banDuration;
         await AsyncStorage.setItem(banKey, String(banUntil));
-        
+
         const durationText = newStrikes === 1 ? '5 minutes' : '2 hours';
         Alert.alert(
           'Inappropriate Content Detected',
@@ -514,6 +561,11 @@ export default function PostJobScreen({ navigation }) {
           'Your job posting contains terms that violate our professional community guidelines. Please ensure your listing is strictly professional and career-oriented.'
         );
       }
+      return;
+    }
+
+    if (selectedSkills.length < 3) {
+      Alert.alert('Skills Required', 'Please add at least 3 skills or requirements before posting the job.');
       return;
     }
 
@@ -583,10 +635,10 @@ export default function PostJobScreen({ navigation }) {
   if (loading) {
     return (
       <Modal visible={true} transparent={false} animationType="fade" statusBarTranslucent={true}>
-        <SplashScreen 
-          message="Uploading job details..." 
-          subMessage="Publishing your premium opportunity dynamically" 
-          showLottie={true} 
+        <SplashScreen
+          message="Uploading job details..."
+          subMessage="Publishing your premium opportunity dynamically"
+          showLottie={true}
         />
       </Modal>
     );
@@ -628,7 +680,7 @@ export default function PostJobScreen({ navigation }) {
           <Text style={styles.blockedSub}>
             To maintain a professional and authentic job marketplace, BKJ requires all employers to have a valid phone number before posting job opportunities.
           </Text>
-          
+
           <TouchableOpacity
             style={styles.blockedBtn}
             onPress={() => navigation.navigate('Profile')}
@@ -645,13 +697,13 @@ export default function PostJobScreen({ navigation }) {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <StatusBar barStyle={theme.isDark ? "light-content" : "dark-content"} backgroundColor={theme.bgPrimary} />
-      
+
       {theme.isDark && (
-        <LinearGradient 
-          colors={['rgba(255, 140, 0, 0.12)', 'rgba(255, 140, 0, 0.05)', 'rgba(0,0,0,0)']} 
-          style={StyleSheet.absoluteFillObject} 
-          start={{ x: 0.5, y: 0 }} 
-          end={{ x: 0.5, y: 0.6 }} 
+        <LinearGradient
+          colors={['rgba(255, 140, 0, 0.12)', 'rgba(255, 140, 0, 0.05)', 'rgba(0,0,0,0)']}
+          style={StyleSheet.absoluteFillObject}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.6 }}
         />
       )}
       <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top > 0 ? insets.top : 16 }]} showsVerticalScrollIndicator={false}>
@@ -838,7 +890,25 @@ export default function PostJobScreen({ navigation }) {
 
           {/* Skill Tags / Requirements */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t('post_job.skills_label')}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <Text style={styles.label}>{t('post_job.skills_label')}</Text>
+              <View style={{
+                backgroundColor: selectedSkills.length >= 3 ? '#D1FAE5' : '#FEE2E2',
+                borderRadius: 20,
+                paddingHorizontal: 10,
+                paddingVertical: 3,
+                borderWidth: 1,
+                borderColor: selectedSkills.length >= 3 ? '#6EE7B7' : '#FECACA',
+              }}>
+                <Text style={{
+                  fontSize: 11,
+                  fontWeight: '700',
+                  color: selectedSkills.length >= 3 ? '#065F46' : '#DC2626'
+                }}>
+                  {selectedSkills.length}/3 min skills
+                </Text>
+              </View>
+            </View>
 
             {/* Quick Skills list based on category */}
             <Text style={styles.skillHintText}>Add recommended skills for {selectedCategory}:</Text>
@@ -893,9 +963,9 @@ export default function PostJobScreen({ navigation }) {
               <Text style={styles.label}>{t('post_job.description_label')}</Text>
               <Text style={[
                 styles.charCounter,
-                description.length >= 30 ? { color: '#059669' } : { color: '#DC2626' }
+                description.length >= 50 ? { color: '#059669' } : { color: '#DC2626' }
               ]}>
-                {description.length} / 30 chars min
+                {description.length} / 50 chars min
               </Text>
             </View>
             <View style={[styles.inputWrapper, { height: 140, alignItems: 'flex-start', paddingVertical: 14 }]}>
@@ -990,235 +1060,237 @@ export default function PostJobScreen({ navigation }) {
   );
 }
 
-function getStyles(theme) { return StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.bgPrimary },
-  scroll: { paddingHorizontal: 20, paddingBottom: 150, paddingTop: 0 },
+function getStyles(theme) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.bgPrimary },
+    scroll: { paddingHorizontal: 20, paddingBottom: 150, paddingTop: 0 },
 
-  header: { paddingTop: 12, paddingBottom: 20, paddingHorizontal: 2 },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 },
-  headerSub: { fontSize: FONTS.sizes.xs + 1, color: theme.textSecondary, marginTop: 2 },
+    header: { paddingTop: 12, paddingBottom: 20, paddingHorizontal: 2 },
+    headerTitle: { fontSize: 24, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 },
+    headerSub: { fontSize: FONTS.sizes.xs + 1, color: theme.textSecondary, marginTop: 2 },
 
-  card: {
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : theme.bgCard, borderRadius: 28, padding: 22,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
-    borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
-    shadowOpacity: theme.isDark ? 0 : 0.06, shadowRadius: 18, elevation: 0,
-  },
+    card: {
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : theme.bgCard, borderRadius: 28, padding: 22,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+      borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+      shadowOpacity: theme.isDark ? 0 : 0.06, shadowRadius: 18, elevation: 0,
+    },
 
-  inputGroup: { marginBottom: 18 },
-  label: { fontSize: 13, fontWeight: '700', color: theme.textPrimary, marginBottom: 8, paddingLeft: 2 },
-  inputWrapper: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9', borderRadius: 16,
-    borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
-    paddingHorizontal: 16, height: 52,
-  },
-  inputIcon: { marginRight: 10 },
-  input: { flex: 1, fontSize: FONTS.sizes.md, color: theme.textPrimary, fontWeight: '500' },
+    inputGroup: { marginBottom: 18 },
+    label: { fontSize: 13, fontWeight: '700', color: theme.textPrimary, marginBottom: 8, paddingLeft: 2 },
+    inputWrapper: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9', borderRadius: 16,
+      borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
+      paddingHorizontal: 16, height: 52,
+    },
+    inputIcon: { marginRight: 10 },
+    input: { flex: 1, fontSize: FONTS.sizes.md, color: theme.textPrimary, fontWeight: '500' },
 
-  dropdownTrigger: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9', borderRadius: 16,
-    borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
-    paddingHorizontal: 16, height: 52,
-  },
-  dropdownLeft: { flexDirection: 'row', alignItems: 'center' },
-  flagText: { fontSize: 18, marginRight: 10 },
-  dropdownText: { fontSize: FONTS.sizes.md, color: theme.textPrimary, fontWeight: '600' },
+    dropdownTrigger: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9', borderRadius: 16,
+      borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
+      paddingHorizontal: 16, height: 52,
+    },
+    dropdownLeft: { flexDirection: 'row', alignItems: 'center' },
+    flagText: { fontSize: 18, marginRight: 10 },
+    dropdownText: { fontSize: FONTS.sizes.md, color: theme.textPrimary, fontWeight: '600' },
 
-  selectorTabs: { flexDirection: 'row', backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#EEF2F0', borderRadius: 14, padding: 4 },
-  selectorTabBtn: { flex: 1, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  selectorTabBtnActive: { backgroundColor: theme.isDark ? '#FFFFFF' : '#111111' },
-  selectorTabText: { fontSize: 12, fontWeight: '700', color: theme.isDark ? 'rgba(255,255,255,0.7)' : theme.textSecondary },
-  selectorTabTextActive: { color: theme.isDark ? '#111111' : theme.textWhite },
+    selectorTabs: { flexDirection: 'row', backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#EEF2F0', borderRadius: 14, padding: 4 },
+    selectorTabBtn: { flex: 1, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    selectorTabBtnActive: { backgroundColor: theme.isDark ? '#FFFFFF' : '#111111' },
+    selectorTabText: { fontSize: 12, fontWeight: '700', color: theme.isDark ? 'rgba(255,255,255,0.7)' : theme.textSecondary },
+    selectorTabTextActive: { color: theme.isDark ? '#111111' : theme.textWhite },
 
-  salaryInputRow: { flexDirection: 'row', alignItems: 'center' },
-  currencySymbol: { fontSize: FONTS.sizes.md, fontWeight: '700', color: theme.textSecondary, marginRight: 4 },
-  salarySeparator: { fontSize: 13, fontWeight: '700', color: theme.textSecondary, marginHorizontal: 10 },
-  salaryUnit: { fontSize: 13, fontWeight: '700', color: theme.textSecondary, marginLeft: 10 },
+    salaryInputRow: { flexDirection: 'row', alignItems: 'center' },
+    currencySymbol: { fontSize: FONTS.sizes.md, fontWeight: '700', color: theme.textSecondary, marginRight: 4 },
+    salarySeparator: { fontSize: 13, fontWeight: '700', color: theme.textSecondary, marginHorizontal: 10 },
+    salaryUnit: { fontSize: 13, fontWeight: '700', color: theme.textSecondary, marginLeft: 10 },
 
-  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9',
-    borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
-  },
-  chipActive: { backgroundColor: theme.accentYellow, borderColor: theme.accentYellowDark },
-  chipText: { fontSize: FONTS.sizes.xs, fontWeight: '700', color: theme.textSecondary },
-  chipTextActive: { color: theme.textPrimary },
+    chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: {
+      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9',
+      borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
+    },
+    chipActive: { backgroundColor: theme.accentYellow, borderColor: theme.accentYellowDark },
+    chipText: { fontSize: FONTS.sizes.xs, fontWeight: '700', color: theme.textSecondary },
+    chipTextActive: { color: theme.textPrimary },
 
-  skillHintText: { fontSize: 11, color: theme.textSecondary, fontWeight: '600', marginBottom: 6, paddingLeft: 2 },
-  skillAddBtn: {
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12,
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#EBF7EC', borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#D4EAD7',
-  },
-  skillAddBtnDisabled: {
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.02)' : '#F3F5F4', borderColor: theme.isDark ? 'transparent' : '#EEF2F0', opacity: 0.5,
-  },
-  skillAddBtnText: { fontSize: 11, fontWeight: '700', color: theme.isDark ? '#4ADE80' : '#15803D' },
+    skillHintText: { fontSize: 11, color: theme.textSecondary, fontWeight: '600', marginBottom: 6, paddingLeft: 2 },
+    skillAddBtn: {
+      paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#EBF7EC', borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#D4EAD7',
+    },
+    skillAddBtnDisabled: {
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.02)' : '#F3F5F4', borderColor: theme.isDark ? 'transparent' : '#EEF2F0', opacity: 0.5,
+    },
+    skillAddBtnText: { fontSize: 11, fontWeight: '700', color: theme.isDark ? '#4ADE80' : '#15803D' },
 
-  skillInputWrapper: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9', borderRadius: 16,
-    borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
-    paddingLeft: 16, paddingRight: 6, height: 52,
-  },
-  skillInput: { flex: 1, fontSize: 13, color: theme.textPrimary, fontWeight: '500' },
-  skillAddIconButton: {
-    width: 38, height: 38, borderRadius: 12,
-    backgroundColor: '#111111', alignItems: 'center', justifyContent: 'center',
-  },
+    skillInputWrapper: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9', borderRadius: 16,
+      borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
+      paddingLeft: 16, paddingRight: 6, height: 52,
+    },
+    skillInput: { flex: 1, fontSize: 13, color: theme.textPrimary, fontWeight: '500' },
+    skillAddIconButton: {
+      width: 38, height: 38, borderRadius: 12,
+      backgroundColor: '#111111', alignItems: 'center', justifyContent: 'center',
+    },
 
-  activeSkillTag: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0', borderRadius: 12,
-    paddingHorizontal: 10, paddingVertical: 6,
-  },
-  activeSkillText: { fontSize: 11, fontWeight: '700', color: theme.textPrimary },
+    activeSkillTag: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0', borderRadius: 12,
+      paddingHorizontal: 10, paddingVertical: 6,
+    },
+    activeSkillText: { fontSize: 11, fontWeight: '700', color: theme.textPrimary },
 
-  descriptionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  charCounter: { fontSize: 11, fontWeight: '700' },
+    descriptionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    charCounter: { fontSize: 11, fontWeight: '700' },
 
-  postBtn: {
-    backgroundColor: theme.isDark ? '#FFFFFF' : '#111111',
-    borderRadius: 26, height: 54,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    marginTop: 18,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: theme.isDark ? 0 : 0.15, shadowRadius: 8, elevation: 0,
-  },
-  postBtnText: { fontSize: FONTS.sizes.md + 1, fontWeight: '800', color: theme.isDark ? '#111111' : theme.textWhite },
+    postBtn: {
+      backgroundColor: theme.isDark ? '#FFFFFF' : '#111111',
+      borderRadius: 26, height: 54,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      marginTop: 18,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.isDark ? 0 : 0.15, shadowRadius: 8, elevation: 0,
+    },
+    postBtnText: { fontSize: FONTS.sizes.md + 1, fontWeight: '800', color: theme.isDark ? '#111111' : theme.textWhite },
 
-  successContainer: { flex: 1, backgroundColor: theme.bgPrimary, justifyContent: 'center', padding: 20 },
-  successCard: {
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : theme.bgCard, borderRadius: 28, padding: 36, alignItems: 'center',
-    borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: theme.isDark ? 0 : 0.06, shadowRadius: 18, elevation: 0,
-  },
-  successIcon: { marginBottom: 12 },
-  successTitle: { fontSize: 24, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5, marginBottom: 8 },
-  successSub: { fontSize: FONTS.sizes.sm, color: theme.textSecondary, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
-  postAnotherBtn: {
-    backgroundColor: theme.isDark ? '#FFFFFF' : '#111111', borderRadius: 26, height: 52,
-    paddingHorizontal: 28, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: theme.isDark ? 0 : 0.15, shadowRadius: 8, elevation: 0,
-  },
-  postAnotherBtnText: { fontSize: FONTS.sizes.sm + 1, fontWeight: '800', color: theme.isDark ? '#111111' : theme.textWhite },
+    successContainer: { flex: 1, backgroundColor: theme.bgPrimary, justifyContent: 'center', padding: 20 },
+    successCard: {
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : theme.bgCard, borderRadius: 28, padding: 36, alignItems: 'center',
+      borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: theme.isDark ? 0 : 0.06, shadowRadius: 18, elevation: 0,
+    },
+    successIcon: { marginBottom: 12 },
+    successTitle: { fontSize: 24, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5, marginBottom: 8 },
+    successSub: { fontSize: FONTS.sizes.sm, color: theme.textSecondary, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
+    postAnotherBtn: {
+      backgroundColor: theme.isDark ? '#FFFFFF' : '#111111', borderRadius: 26, height: 52,
+      paddingHorizontal: 28, alignItems: 'center', justifyContent: 'center',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: theme.isDark ? 0 : 0.15, shadowRadius: 8, elevation: 0,
+    },
+    postAnotherBtnText: { fontSize: FONTS.sizes.sm + 1, fontWeight: '800', color: theme.isDark ? '#111111' : theme.textWhite },
 
-  // Modal styling
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalDismissArea: {
-    flex: 1,
-  },
-  modalContent: {
-    backgroundColor: theme.bgCard,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: '65%',
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  modalHandle: {
-    width: 42,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : '#E5E7EB',
-    alignSelf: 'center',
-    marginVertical: 10,
-  },
-  modalHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 4,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: theme.textPrimary,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
-  },
-  modalItemFlag: {
-    fontSize: 22,
-    marginRight: 14,
-  },
-  modalItemText: {
-    fontSize: FONTS.sizes.md,
-    fontWeight: '700',
-    color: theme.textPrimary,
-  },
-  blockedContainer: {
-    flex: 1,
-    backgroundColor: theme.bgPrimary,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  blockedCard: {
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : theme.bgCard,
-    borderRadius: 28,
-    padding: 36,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: theme.isDark ? 0 : 0.05,
-    shadowRadius: 18,
-    elevation: theme.isDark ? 0 : 2,
-  },
-  blockedIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: theme.isDark ? 'rgba(239, 68, 68, 0.1)' : '#FEE2E2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 0,
-    marginBottom: 20,
-  },
-  blockedTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: theme.isDark ? '#FCA5A5' : '#991B1B',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  blockedSub: {
-    fontSize: 13,
-    color: theme.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
-    paddingHorizontal: 8,
-  },
-  blockedBtn: {
-    backgroundColor: theme.isDark ? '#FFFFFF' : theme.accentYellow,
-    borderRadius: 24,
-    height: 52,
-    paddingHorizontal: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    shadowColor: theme.accentYellow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-  },
-  blockedBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: theme.isDark ? '#111111' : theme.textPrimary,
-  },
-}); }
+    // Modal styling
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    modalDismissArea: {
+      flex: 1,
+    },
+    modalContent: {
+      backgroundColor: theme.bgCard,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      maxHeight: '65%',
+      paddingHorizontal: 20,
+      paddingBottom: 40,
+    },
+    modalHandle: {
+      width: 42,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : '#E5E7EB',
+      alignSelf: 'center',
+      marginVertical: 10,
+    },
+    modalHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+      paddingHorizontal: 4,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: theme.textPrimary,
+    },
+    modalItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
+    },
+    modalItemFlag: {
+      fontSize: 22,
+      marginRight: 14,
+    },
+    modalItemText: {
+      fontSize: FONTS.sizes.md,
+      fontWeight: '700',
+      color: theme.textPrimary,
+    },
+    blockedContainer: {
+      flex: 1,
+      backgroundColor: theme.bgPrimary,
+      justifyContent: 'center',
+      padding: 24,
+    },
+    blockedCard: {
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : theme.bgCard,
+      borderRadius: 28,
+      padding: 36,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: theme.isDark ? 0 : 0.05,
+      shadowRadius: 18,
+      elevation: theme.isDark ? 0 : 2,
+    },
+    blockedIconCircle: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: theme.isDark ? 'rgba(239, 68, 68, 0.1)' : '#FEE2E2',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 0,
+      marginBottom: 20,
+    },
+    blockedTitle: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: theme.isDark ? '#FCA5A5' : '#991B1B',
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    blockedSub: {
+      fontSize: 13,
+      color: theme.textSecondary,
+      textAlign: 'center',
+      lineHeight: 20,
+      marginBottom: 24,
+      paddingHorizontal: 8,
+    },
+    blockedBtn: {
+      backgroundColor: theme.isDark ? '#FFFFFF' : theme.accentYellow,
+      borderRadius: 24,
+      height: 52,
+      paddingHorizontal: 24,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      shadowColor: theme.accentYellow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+    },
+    blockedBtnText: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: theme.isDark ? '#111111' : theme.textPrimary,
+    },
+  });
+}
