@@ -84,17 +84,17 @@ export default function UsersClient({ initialUsers }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Users size={32} color="var(--accent-color)" />
-          <div>
-            <h1>Users Management</h1>
-            <p className="subtitle">View and moderate all users (Employers & Job Seekers).</p>
-          </div>
+      <div style={{ marginBottom: 40, display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Users size={32} color="var(--accent-color)" style={{ flexShrink: 0 }} />
+            Users Management
+          </h1>
+          <p className="subtitle">View and moderate all users (Employers & Job Seekers).</p>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-color)', padding: '8px 16px', borderRadius: 24, border: '1px solid var(--border-color)', width: 300 }}>
-          <Search size={18} color="var(--text-secondary)" style={{ marginRight: 8 }} />
+        <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-color)', padding: '8px 16px', borderRadius: 24, border: '1px solid var(--border-color)', width: '100%', maxWidth: 350 }}>
+          <Search size={18} color="var(--text-secondary)" style={{ marginRight: 8, flexShrink: 0 }} />
           <input 
             type="text" 
             placeholder="Search users..." 

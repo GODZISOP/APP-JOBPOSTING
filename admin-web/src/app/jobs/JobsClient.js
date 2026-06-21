@@ -59,12 +59,12 @@ export default function JobsClient({ initialJobs }) {
   return (
     <div>
       <div style={{ marginBottom: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Briefcase size={32} color="var(--accent-color)" />
-          <div>
-            <h1>Jobs Management</h1>
-            <p className="subtitle">Approve, reject, or manage all job listings on the platform.</p>
-          </div>
+        <div>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Briefcase size={32} color="var(--accent-color)" style={{ flexShrink: 0 }} />
+            Jobs Management
+          </h1>
+          <p className="subtitle">Approve, reject, or manage all job listings on the platform.</p>
         </div>
         <button 
           onClick={handleRefresh} 
