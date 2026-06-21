@@ -24,6 +24,7 @@ const { width } = Dimensions.get('window');
 
 const CATEGORIES = [
   'All',
+  'Pending',
   'Technology',
   'Design',
   'Marketing',
@@ -104,6 +105,10 @@ const CATEGORY_THEMES = {
   All: {
     bg: '#FFFFFF',
     img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&q=80', // Premium modern office overview
+  },
+  Pending: {
+    bg: '#FFFFFF',
+    img: 'https://images.unsplash.com/photo-1506784926709-22f1ec395907?w=400&q=80', // Hourglass / waiting concept
   },
   'Beauty Parlour': {
     bg: '#FFFFFF',
@@ -284,7 +289,7 @@ function JobCard({ job, onPress, isLiked, onLike, t }) {
   // Dynamic tags
   const isUnder24Hours = job.createdAtTimestamp ? (Date.now() - job.createdAtTimestamp <= 24 * 60 * 60 * 1000) : false;
   const isHot = isUnder24Hours && (job.likes >= 10);
-  const isPremium = job.likes >= 10;
+  const isPremium = job.is_top || job.likes >= 10;
 
   return (
     <TouchableOpacity
@@ -305,10 +310,10 @@ function JobCard({ job, onPress, isLiked, onLike, t }) {
           </View>
           <View style={styles.companyNameContainer}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text style={[styles.jobRowSubtitle, { flexShrink: 1, marginBottom: 0, lineHeight: 16 }]} numberOfLines={1}>{job.company}</Text>
+              <Text style={[styles.jobRowSubtitle, { flexShrink: 1, marginBottom: 0, lineHeight: 16 }]} numberOfLines={2}>{job.company}</Text>
               <Ionicons name="checkmark-circle" size={13} color="#15803D" />
             </View>
-            <Text style={styles.jobRowTitle} numberOfLines={1}>{job.title}</Text>
+            <Text style={styles.jobRowTitle} numberOfLines={2}>{job.title}</Text>
           </View>
         </View>
 
@@ -321,9 +326,8 @@ function JobCard({ job, onPress, isLiked, onLike, t }) {
       {/* Middle Tags Row */}
       <View style={styles.cardTagsRow}>
         {isPremium && (
-          <View style={[styles.metaBadge, { backgroundColor: '#E8F542', borderColor: '#C8D900', borderWidth: 1 }]}>
-            <Ionicons name="sparkles" size={10} color="#1A1A1A" style={{ marginRight: 3 }} />
-            <Text style={[styles.metaBadgeText, { color: '#1A1A1A', fontWeight: '800' }]}>{t ? t('jobs.featured') : 'Featured 👑'}</Text>
+          <View style={[styles.metaBadge, { backgroundColor: '#E8F542', borderWidth: 0 }]}>
+            <Text style={[styles.metaBadgeText, { color: '#1A1A1A', fontWeight: '800' }]}>{t ? t('jobs.featured') : 'Featured'}</Text>
           </View>
         )}
         {isHot && (
@@ -1184,9 +1188,15 @@ export default function JobsScreen({ navigation, route }) {
 
   const filtered = React.useMemo(() => {
     return jobs.filter((j) => {
-      // 1. Category match
-      const matchCat = activeCategory === 'All' || j.category === activeCategory;
 
+      let matchCat = false;
+      if (activeCategory === 'Pending') {
+        matchCat = j.status === 'pending' || !j.status; // Treat old jobs without status as pending
+      } else if (activeCategory === 'All') {
+        matchCat = j.status === 'approved'; // Only show explicitly approved jobs
+      } else {
+        matchCat = j.status === 'approved' && (j.category === activeCategory || (j.category && j.category.toLowerCase().includes(activeCategory.toLowerCase())));
+      }
       // 2. Enhanced query search match (matches title, company, category, location, type, skills with fuzzy matching)
       const q = search.trim().toLowerCase();
       const matchSearch = q === '' || (
@@ -1286,16 +1296,19 @@ export default function JobsScreen({ navigation, route }) {
     } else if (userCountry && selectedLocations.length === 0) {
       // Geo-sort only if not searching
       const countryLower = userCountry.toLowerCase();
+      const topJobs = [];
       const local = [];
       const others = [];
       list.forEach(j => {
-        if (j.location && j.location.toLowerCase().includes(countryLower)) {
+        if (j.is_top) {
+          topJobs.push(j);
+        } else if (j.location && j.location.toLowerCase().includes(countryLower)) {
           local.push(j);
         } else {
           others.push(j);
         }
       });
-      list = [...local, ...others];
+      list = [...topJobs, ...local, ...others];
     }
 
     return list;
@@ -1309,8 +1322,8 @@ export default function JobsScreen({ navigation, route }) {
 
   // Redesigned dashboard header to match the user's reference image exactly
   const renderHeader = () => {
-    const totalJobsCount = jobs.length;
-    const likedJobsCount = likedJobs?.length || 0;
+    const totalJobsCount = jobs.filter(j => j.status === 'approved').length;
+    const likedJobsCount = jobs.filter(j => likedJobs?.includes(j.id)).length;
     const myJobsCount = jobs.filter(j => user && (j.postedBy === user.id || j.posterProfile?.id === user.id)).length;
     const isEmployer = user?.role === 'employer';
 
@@ -1681,7 +1694,14 @@ export default function JobsScreen({ navigation, route }) {
             contentContainerStyle={{ gap: 10, paddingRight: 20 }}
           >
             {CATEGORIES.map((cat) => {
-              const count = cat === 'All' ? jobs.length : jobs.filter((j) => j.category === cat).length;
+              let count = 0;
+              if (cat === 'All') {
+                count = jobs.filter((j) => j.status === 'approved').length;
+              } else if (cat === 'Pending') {
+                count = jobs.filter((j) => j.status === 'pending' || !j.status).length;
+              } else {
+                count = jobs.filter((j) => j.status === 'approved' && (j.category === cat || (j.category && j.category.toLowerCase().includes(cat.toLowerCase())))).length;
+              }
               const isActive = activeCategory === cat;
 
               // Map modern Ionicons to categories
@@ -2335,14 +2355,7 @@ function getStyles(theme) {
       elevation: 0,
     },
     premiumJobRow: {
-      borderColor: '#5C9E6A',
-      borderWidth: 1.5,
-      shadowColor: '#5C9E6A',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.12,
-      shadowRadius: 16,
-      elevation: 0,
-      backgroundColor: '#FCFDFD',
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : '#FCFDFD',
     },
     cardHeaderRow: {
       flexDirection: 'row',
@@ -2389,6 +2402,8 @@ function getStyles(theme) {
       letterSpacing: -0.2,
     },
     salaryBadgeContainer: {
+      maxWidth: '50%',
+      flexShrink: 1,
       backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#E6F4EA',
       borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.4)' : 'transparent',
       borderWidth: theme.isDark ? 1 : 0,

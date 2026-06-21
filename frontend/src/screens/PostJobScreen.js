@@ -431,7 +431,7 @@ export default function PostJobScreen({ navigation }) {
     }
 
     if (selectedSkills.length < 3) {
-      Alert.alert('Requirements Required', `Please select or type and add (+ button) at least 3 skills or requirements (current count: ${selectedSkills.length}).`);
+      Alert.alert('Requirements Required', `Please select or type at least 3 skills or requirements (current count: ${selectedSkills.length}).`);
       return;
     }
 
@@ -439,7 +439,7 @@ export default function PostJobScreen({ navigation }) {
     const banKey = `@bkj_post_ban_until_${user?.id || 'guest'}`;
     try {
       const banUntilStr = await AsyncStorage.getItem(banKey);
-      if (banUntilStr) {
+      if  (banUntilStr) {
         const banUntil = Number(banUntilStr);
         const now = Date.now();
         if (now < banUntil) {
@@ -657,8 +657,8 @@ export default function PostJobScreen({ navigation }) {
               loop={false}
             />
           </View>
-          <Text style={styles.successTitle}>Job Posted Live!</Text>
-          <Text style={styles.successSub}>Your premium job listing has been verified and is now live for global candidate discovery.</Text>
+          <Text style={styles.successTitle}>Submitted to BKJ!</Text>
+          <Text style={styles.successSub}>Your job posting has been successfully submitted to the BKJ Team. We will review and approve your post shortly.</Text>
 
           <TouchableOpacity style={styles.postAnotherBtn} onPress={handleReset} activeOpacity={0.88}>
             <Text style={styles.postAnotherBtnText}>Post Another Listing</Text>

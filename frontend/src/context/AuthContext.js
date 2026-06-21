@@ -423,17 +423,24 @@ export const AuthProvider = ({ children }) => {
 
 
   // ✅ NAYA - popup bhi trigger hoga, likerProfile bhi pass hoga
-  const addNotification = (title, message, type = 'system', likerProfile = null) => {
+  const addNotification = (title, message, type = 'system', likerProfile = null, jobId = null) => {
     const newNotif = {
       id: Math.random().toString(),
       title, message,
       time: 'Just now',
       type,
       likerProfile,
+      job_id: jobId,
     };
 
     // Bell icon list mein add karo
-    setNotifications(prev => [newNotif, ...prev]);
+    setNotifications(prev => {
+      let updatedList = prev;
+      if (jobId && type === 'system') {
+        updatedList = prev.filter(n => !(n.type === 'system' && String(n.job_id) === String(jobId)));
+      }
+      return [newNotif, ...updatedList];
+    });
 
     // ✅ Popup toast trigger karo (yeh line missing thi!)
     setNotification(null); // pehle reset karo same notif ke liye
@@ -441,6 +448,29 @@ export const AuthProvider = ({ children }) => {
       setNotification({ title, message, type, likerProfile });
       setTimeout(() => setNotification(null), 4000); // auto-dismiss
     }, 50);
+
+    // ✅ Persist in AsyncStorage so it appears in Profile Notifications after reload
+    if (user) {
+      const saveNotification = async () => {
+        try {
+          const saved = await AsyncStorage.getItem('@bkj_global_notifications');
+          let list = saved ? JSON.parse(saved) : [];
+          if (jobId && type === 'system') {
+            // We don't save job status notifications locally anymore since fetchRealNotifications generates them dynamically
+            return;
+          }
+          list.unshift({
+            ...newNotif,
+            owner_id: user.id, // required for fetchRealNotifications to find it
+            created_at: new Date().toISOString()
+          });
+          await AsyncStorage.setItem('@bkj_global_notifications', JSON.stringify(list));
+        } catch (e) {
+          console.warn('Failed to save notification to AsyncStorage:', e);
+        }
+      };
+      saveNotification();
+    }
   };
 
   const triggerLocalNotification = async (title, body) => {
@@ -565,19 +595,15 @@ export const AuthProvider = ({ children }) => {
           }
         }
 
-        localNotifs = uniqueLocal.map(n => {
-          const isOwnLike = n.owner_id === n.likerId || n.likerId === user.id;
-          return {
+        localNotifs = uniqueLocal
+          // Ignore legacy job status notifications saved in AsyncStorage
+          .filter(n => !(n.type === 'system' && n.job_id) && n.type !== 'post')
+          // Do not show notifications for self-likes
+          .filter(n => n.likerId !== user.id)
+          .map(n => ({
             ...n,
-            title: isOwnLike ? `You saved your job! ❤️` : n.title,
-            message: isOwnLike
-              ? (n.message.includes('"')
-                ? `You saved your listing "${n.message.split('"')[1]}".`
-                : `You saved your job listing.`)
-              : n.message,
             time: formatTimeAgo(n.created_at)
-          };
-        });
+          }));
         console.log(`📝 [DEBUG fetchRealNotifications] Filtered unique localNotifs matching owner_id:`, localNotifs.length);
       }
 
@@ -668,9 +694,49 @@ export const AuthProvider = ({ children }) => {
           };
         });
 
-        // When online, use live database notifications as the sole source of truth.
-        // This automatically filters out any deleted users or unliked jobs.
-        const mergedNotifs = [...dbNotifs];
+        // Query user's jobs to retroactively show them as notifications
+        let systemJobsNotifs = [];
+        try {
+          const { data: myJobs } = await supabase
+            .from('jobs')
+            .select('id, title, status, created_at')
+            .eq('posted_by', user.id);
+
+          if (myJobs) {
+            systemJobsNotifs = myJobs
+              .filter(job => job.status === 'approved' || job.status === 'pending' || job.status === 'rejected')
+              .map(job => {
+                let notifTitle = 'Job Status Update';
+                let notifMessage = `Your job post "${job.title}" has an update.`;
+                
+                if (job.status === 'approved') {
+                  notifTitle = 'Job Approved ✅';
+                  notifMessage = `BKJ has approved your job post: "${job.title}".`;
+                } else if (job.status === 'pending') {
+                  notifTitle = 'Job Pending ⏳';
+                  notifMessage = `Your job post "${job.title}" is under review.`;
+                } else if (job.status === 'rejected') {
+                  notifTitle = 'Job Rejected ❌';
+                  notifMessage = `Your job post "${job.title}" was rejected.`;
+                }
+
+                return {
+                  id: `sys_${job.status}_${job.id}`,
+                  job_id: job.id,
+                  title: notifTitle,
+                  message: notifMessage,
+                  created_at: job.created_at,
+                  time: formatTimeAgo(job.created_at),
+                  type: 'system'
+                };
+              });
+          }
+        } catch (e) {
+          console.warn('Failed to fetch user jobs for notifications', e);
+        }
+
+        // Merge live database notifications (likes), local system notifications, and retroactive jobs.
+        const mergedNotifs = [...dbNotifs, ...localNotifs, ...systemJobsNotifs];
 
         const uniqueNotifs = [];
         const seenKeys = new Set();
@@ -1046,6 +1112,8 @@ export const AuthProvider = ({ children }) => {
           title,
           location,
           phone,
+          isBanned: data?.is_banned || false,
+          banReason: data?.ban_reason || null,
           avatar: getTransformedAvatarUrl(data?.avatar_url || sessionUser?.user_metadata?.avatar_url || sessionUser?.user_metadata?.picture || null),
           joinDate: data?.join_date
             ? new Date(data.join_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
@@ -1330,6 +1398,99 @@ export const AuthProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [user, isMockMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Realtime Job Status Notifications ───────────────────
+  useEffect(() => {
+    if (!user || isMockMode) return;
+
+    const channel = supabase
+      .channel('public:jobs')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'jobs' },
+        (payload) => {
+          console.log('Realtime job update payload:', payload);
+
+          if (payload.eventType === 'DELETE') {
+            setJobs(prevJobs => prevJobs.filter(j => j.id !== payload.old.id));
+            return;
+          }
+
+          if (payload.eventType === 'UPDATE') {
+            const newStatus = payload.new.status;
+            
+            setJobs(prevJobs => {
+              const existingJob = prevJobs.find(j => j.id === payload.new.id);
+              if (!existingJob) return prevJobs; // Job not in our list
+
+              // Check if status actually changed AND it belongs to the current user
+              if (existingJob.status !== newStatus && payload.new.posted_by === user.id) {
+                if (newStatus === 'approved') {
+                  addNotification(
+                    'Job Approved ✅',
+                    `BKJ has approved your job post: "${payload.new.title}".`,
+                    'system',
+                    null,
+                    payload.new.id
+                  );
+                } else if (newStatus === 'rejected') {
+                  addNotification(
+                    'Job Rejected ❌',
+                    `Your job post "${payload.new.title}" was rejected.`,
+                    'system',
+                    null,
+                    payload.new.id
+                  );
+                }
+              }
+
+              // Update the job and unshift it to the top so recent updates take precedence
+              const updatedJob = { 
+                ...existingJob, 
+                ...payload.new, 
+                is_top: payload.new.is_top,
+                top_updated_at: payload.new.top_updated_at ? new Date(payload.new.top_updated_at).getTime() : 0
+              };
+              const filteredJobs = prevJobs.filter(j => j.id !== payload.new.id);
+              filteredJobs.unshift(updatedJob);
+              
+              return filteredJobs.sort((a, b) => {
+                if (a.is_top && b.is_top) {
+                  return (b.top_updated_at || b.createdAtTimestamp) - (a.top_updated_at || a.createdAtTimestamp);
+                }
+                if (a.is_top === b.is_top) return 0;
+                return a.is_top ? -1 : 1;
+              });
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    // ─── Realtime Profile/Ban Status ───────────────────
+    const profileChannel = supabase
+      .channel('public:profiles_ban')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        (payload) => {
+          console.log('Realtime profile update payload:', payload);
+          if (payload.new.is_banned !== undefined) {
+            setUser(prevUser => ({
+              ...prevUser,
+              isBanned: payload.new.is_banned,
+              banReason: payload.new.ban_reason
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(profileChannel);
+    };
+  }, [user, isMockMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const rankJobs = (jobList, prefs = categoryPreferences) => {
     return [...jobList].sort((a, b) => {
       const scoreA = prefs[a.category] || 0;
@@ -1527,6 +1688,9 @@ export const AuthProvider = ({ children }) => {
         return {
           id: job.id,
           title: job.title,
+          status: job.status,
+          is_top: job.is_top || false,
+          top_updated_at: job.top_updated_at ? new Date(job.top_updated_at).getTime() : 0,
           company: employerName || job.company || 'Anonymous Employer',
           location: job.location,
           salary: job.salary,
@@ -1554,8 +1718,23 @@ export const AuthProvider = ({ children }) => {
         };
       });
       const fifteenDaysAgo = Date.now() - 15 * 24 * 60 * 60 * 1000;
-      const activeJobs = mapped.filter(job => job.createdAtTimestamp >= fifteenDaysAgo);
-      setJobs(rankJobs(activeJobs));
+      const activeJobs = mapped.filter(job => {
+        if (job.status === 'deleted') return false;
+        const isRecent = job.createdAtTimestamp >= fifteenDaysAgo;
+        const isApproved = job.status === 'approved';
+        const noStatus = !job.status; // Fallback if SQL column not added yet
+        const isMine = user && job.postedBy === user.id;
+        return isRecent && (isApproved || noStatus || isMine);
+      });
+      const ranked = rankJobs(activeJobs);
+      const sortedByTop = ranked.sort((a, b) => {
+        if (a.is_top && b.is_top) {
+          return (b.top_updated_at || b.createdAtTimestamp) - (a.top_updated_at || a.createdAtTimestamp);
+        }
+        if (a.is_top === b.is_top) return 0;
+        return a.is_top ? -1 : 1;
+      });
+      setJobs(sortedByTop);
       // Prefetch all avatars to disk cache to ensure instant rendering
       mapped.forEach((job) => {
         if (job.posterProfile?.avatar) {
@@ -1615,7 +1794,7 @@ export const AuthProvider = ({ children }) => {
       });
       const targetOwner = jobToUpdate.postedBy || jobToUpdate.posted_by;
 
-      if (user) {
+      if (user && targetOwner !== user.id) {
         if (isCurrentlyLiked) {
           console.log(`📝 [DEBUG likeJob] Removing local bookmark notification for owner: ${targetOwner}`);
           await removeSharedLocalNotification(targetOwner, user.id, jobId, jobTitle || jobToUpdate.title);
@@ -2243,11 +2422,12 @@ export const AuthProvider = ({ children }) => {
         },
         ...prev,
       ]);
-      addNotification('Job Posted! 🚀', `Your job posting "${jobData.title}" is now live.`, 'post');
+      addNotification('Pending Approval ⏳', `Your job posting "${jobData.title}" has been submitted successfully. The BKJ Team will review and approve your post shortly.`, 'post');
       return { success: true };
     }
     try {
-      const { error } = await retryAsync(async () => {
+      let insertedJobId = null;
+      const { error, data } = await retryAsync(async () => {
         const res = await supabase.from('jobs').insert([
           {
             title: jobData.title,
@@ -2260,7 +2440,7 @@ export const AuthProvider = ({ children }) => {
             requirements: jobData.requirements || [],
             posted_by: user.id,
           },
-        ]);
+        ]).select();
         if (res.error) {
           const errMsg = res.error.message?.toLowerCase() || '';
           if (errMsg.includes('network') || errMsg.includes('timeout') || errMsg.includes('fetch') || res.error.status === 0) {
@@ -2270,7 +2450,18 @@ export const AuthProvider = ({ children }) => {
         return res;
       });
       if (error) throw error;
-      addNotification('Job Posted! 🚀', `Your job posting "${jobData.title}" is now live.`, 'post');
+      
+      if (data && data.length > 0) {
+        insertedJobId = data[0].id;
+      }
+      
+      addNotification(
+        'Job Pending ⏳', 
+        `Your job posting "${jobData.title}" has been submitted successfully and is pending approval.`, 
+        'system', 
+        null, 
+        insertedJobId
+      );
       await fetchJobs();
       return { success: true };
     } catch (err) {
@@ -2286,8 +2477,13 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     }
     try {
-      const { error } = await supabase.from('jobs').delete().eq('id', jobId);
-      if (error) throw error;
+      const { error } = await supabase.from('jobs').update({ status: 'deleted' }).eq('id', jobId);
+      if (error) {
+        // Fallback if update fails
+        const { data, error: delErr } = await supabase.from('jobs').delete().eq('id', jobId).select();
+        if (delErr) throw delErr;
+        if (!data || data.length === 0) throw new Error('Permission denied.');
+      }
       setJobs((prev) => prev.filter((j) => j.id !== jobId));
       addNotification('Job Deleted', 'Your job posting was deleted successfully.', 'system');
       return { success: true };

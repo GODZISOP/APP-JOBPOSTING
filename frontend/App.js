@@ -156,12 +156,29 @@ function MainTabs() {
   );
 }
 
+import BanScreen from './src/screens/BanScreen';
+
 // ─── Root Navigator ────────────────────────────────────────────────────────────
 function RootNavigator() {
   const { user, loading, loggingOut, isGuest, setIsGuest, signingUp, loggingIn } = useAuth();
   const { theme } = useTheme();
   const [transitioningToDashboard, setTransitioningToDashboard] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [splashType, setSplashType] = useState(null);
+  const prevIsBanned = useRef(user?.isBanned);
+
+  useEffect(() => {
+    if (prevIsBanned.current !== undefined && user?.isBanned !== undefined) {
+      if (!prevIsBanned.current && user.isBanned) {
+        setSplashType('suspended');
+        setTimeout(() => setSplashType(null), 2500);
+      } else if (prevIsBanned.current && !user.isBanned) {
+        setSplashType('unbanned');
+        setTimeout(() => setSplashType(null), 3000);
+      }
+    }
+    prevIsBanned.current = user?.isBanned;
+  }, [user?.isBanned]);
 
   useEffect(() => {
     if (!loading) {
@@ -172,15 +189,24 @@ function RootNavigator() {
   const showDashboard = user !== null || isGuest;
 
   // Determine if splash overlay is active
-  const showSplash = loading || loggingOut || signingUp || loggingIn || transitioningToDashboard;
+  const showSplash = loading || loggingOut || signingUp || loggingIn || transitioningToDashboard || splashType !== null;
 
   // Determine splash parameters
   let splashMessage = '';
   let splashSubMessage = '';
   let splashIsSignOut = false;
   let splashShowLottie = false;
+  let splashTypeProp = undefined;
 
-  if (loggingOut) {
+  if (splashType === 'suspended') {
+    splashMessage = "Account Suspended";
+    splashSubMessage = "You have been banned from BKJ.";
+    splashTypeProp = 'suspended';
+  } else if (splashType === 'unbanned') {
+    splashMessage = "Welcome Back!";
+    splashSubMessage = "Your account has been unbanned. 🎉";
+    splashTypeProp = 'unbanned';
+  } else if (loggingOut) {
     splashMessage = "Logging out...";
     splashSubMessage = "See you soon!";
     splashIsSignOut = true;
@@ -207,7 +233,10 @@ function RootNavigator() {
     <View style={{ flex: 1, backgroundColor: theme.bgPrimary }}>
       <NavigationContainer linking={linking}>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {showDashboard ? (
+          {user?.isBanned ? (
+            // 🚫 Banned user screen
+            <Stack.Screen name="Ban" component={BanScreen} />
+          ) : showDashboard ? (
             // ✅ Active session or guest browsing mode
             <Stack.Screen name="Main" component={MainTabs} />
           ) : (
@@ -249,6 +278,7 @@ function RootNavigator() {
             subMessage={splashSubMessage}
             isSignOut={splashIsSignOut}
             showLottie={splashShowLottie}
+            type={splashTypeProp}
           />
         </View>
       )}
@@ -356,7 +386,11 @@ function InAppNotification() {
               </View>
             )
           ) : (
-            <View style={styles.notificationIndicator} />
+            <Image 
+              source={require('./assets/icon.png')} 
+              style={[styles.toastAvatar, { borderWidth: 1, borderColor: '#334155' }]} 
+              resizeMode="cover" 
+            />
           )}
           <View style={{ flex: 1 }}>
             <Text style={styles.notificationTitle}>{activeNotif?.title || ''}</Text>

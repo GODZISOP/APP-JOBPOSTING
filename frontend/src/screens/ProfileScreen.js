@@ -244,7 +244,7 @@ function ProfileJobCard({ job, onPress, isLiked, onLike, t, user, theme, styles 
   // Dynamic tags
   const isUnder24Hours = job.createdAtTimestamp ? (Date.now() - job.createdAtTimestamp <= 24 * 60 * 60 * 1000) : false;
   const isHot = isUnder24Hours && (job.likes >= 10);
-  const isPremium = job.likes >= 10;
+  const isPremium = job.is_top || job.likes >= 10;
 
   return (
     <View style={[
@@ -253,8 +253,8 @@ function ProfileJobCard({ job, onPress, isLiked, onLike, t, user, theme, styles 
       {
         marginHorizontal: 0,
         marginBottom: 12,
-        borderColor: theme.isDark ? (isPremium ? '#FF8C00' : 'rgba(255, 140, 0, 0.2)') : (isPremium ? '#5C9E6A' : theme.borderLight),
-        shadowColor: theme.isDark ? (isPremium ? '#FF8C00' : 'rgba(255, 140, 0, 0.5)') : '#000',
+        borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.2)' : theme.borderLight,
+        shadowColor: theme.isDark ? 'rgba(255, 140, 0, 0.5)' : '#000',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: theme.isDark ? 0.15 : 0.04,
         shadowRadius: theme.isDark ? 8 : 12,
@@ -279,10 +279,10 @@ function ProfileJobCard({ job, onPress, isLiked, onLike, t, user, theme, styles 
             </View>
             <View style={styles.companyNameContainer}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Text style={[styles.jobRowSubtitle, { flexShrink: 1, marginBottom: 0, lineHeight: 16 }]} numberOfLines={1}>{job.company || 'BKJ Employer'}</Text>
+                <Text style={[styles.jobRowSubtitle, { flexShrink: 1, marginBottom: 0, lineHeight: 16 }]} numberOfLines={2}>{job.company || 'BKJ Employer'}</Text>
                 <Ionicons name="checkmark-circle" size={13} color={theme.isDark ? '#FF8C00' : '#15803D'} />
               </View>
-              <Text style={styles.jobRowTitle} numberOfLines={1}>{job.title}</Text>
+              <Text style={styles.jobRowTitle} numberOfLines={2}>{job.title}</Text>
             </View>
           </View>
 
@@ -294,10 +294,21 @@ function ProfileJobCard({ job, onPress, isLiked, onLike, t, user, theme, styles 
 
         {/* Middle Tags Row */}
         <View style={styles.cardTagsRow}>
+          {job.status === 'rejected' && (
+            <View style={[styles.metaBadge, { backgroundColor: '#FEE2E2', borderColor: '#EF4444', borderWidth: 1 }]}>
+              <Ionicons name="close-circle" size={11} color="#EF4444" style={{ marginRight: 3 }} />
+              <Text style={[styles.metaBadgeText, { color: '#EF4444', fontWeight: '800' }]}>{t ? t('jobs.rejected') : 'Rejected ❌'}</Text>
+            </View>
+          )}
+          {job.status === 'pending' && (
+            <View style={[styles.metaBadge, { backgroundColor: '#FEF3C7', borderColor: '#F59E0B', borderWidth: 1 }]}>
+              <Ionicons name="time" size={11} color="#B45309" style={{ marginRight: 3 }} />
+              <Text style={[styles.metaBadgeText, { color: '#B45309', fontWeight: '800' }]}>{t ? t('jobs.pending') : 'Pending ⏳'}</Text>
+            </View>
+          )}
           {isPremium && (
-            <View style={[styles.metaBadge, { backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#E8F542', borderColor: theme.isDark ? '#FF8C00' : '#C8D900', borderWidth: 1 }]}>
-              <Ionicons name="sparkles" size={10} color={theme.isDark ? '#FF8C00' : '#1A1A1A'} style={{ marginRight: 3 }} />
-              <Text style={[styles.metaBadgeText, { color: theme.isDark ? '#FF8C00' : '#1A1A1A', fontWeight: '800' }]}>{t ? t('jobs.featured') : 'Featured 👑'}</Text>
+            <View style={[styles.metaBadge, { backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#E8F542', borderWidth: 0 }]}>
+              <Text style={[styles.metaBadgeText, { color: theme.isDark ? '#FF8C00' : '#1A1A1A', fontWeight: '800' }]}>{t ? t('jobs.featured') : 'Featured'}</Text>
             </View>
           )}
           {isHot && (
@@ -575,7 +586,7 @@ export default function ProfileScreen() {
   const navigation = useNavigation();
   const { user, logout, updateProfile, getMyJobs, getUserById, setIsGuest, jobs, likedJobs, likeJob, appliedJobs, notifications, fetchJobs, fetchRealNotifications, deleteJob, updateJob, closeHiring, userCountry } = useAuth();
   const myJobs = getMyJobs ? getMyJobs() : [];
-  const bookmarkedJobs = (jobs || []).filter(j => likedJobs?.includes(j.id));
+  const bookmarkedJobs = Array.from(new Map((jobs || []).filter(j => likedJobs?.includes(j.id)).map(j => [j.id, j])).values());
   const appliedJobsList = (jobs || []).reduce((acc, job) => {
     const applyInfo = appliedJobs?.find(item => {
       const id = typeof item === 'object' ? item.jobId : item;
@@ -1308,8 +1319,8 @@ export default function ProfileScreen() {
             </View>
             <View style={[styles.editRow, { paddingLeft: 12, alignItems: 'center' }]}>
               <Ionicons name="call" size={18} color={theme.textSecondary} style={{ marginRight: 6 }} />
-              {/* Dropdown Selector */}
-              <TouchableOpacity
+              {/* Country Code (Fixed) */}
+              <View
                 style={{
                   paddingHorizontal: 4,
                   marginRight: 8,
@@ -1318,13 +1329,11 @@ export default function ProfileScreen() {
                   justifyContent: 'center',
                   height: '100%',
                 }}
-                onPress={() => setShowCountryCodeModal(true)}
-                activeOpacity={0.8}
               >
-                <Text style={{ fontSize: 13, color: theme.textPrimary, fontWeight: '700', textAlignVertical: 'center', includeFontPadding: false }}>
-                  {selectedCountryCode.flag} {selectedCountryCode.code} ▾
+                <Text style={{ fontSize: 13, color: theme.textPrimary, fontWeight: '700', textAlignVertical: 'center', includeFontPadding: false, opacity: 0.7 }}>
+                  {selectedCountryCode.flag} {selectedCountryCode.code}
                 </Text>
-              </TouchableOpacity>
+              </View>
               <TextInput
                 style={[styles.editInput, { flex: 1, height: '100%' }]}
                 value={editPhone}
@@ -1644,6 +1653,29 @@ export default function ProfileScreen() {
 
             <View style={styles.divider} />
 
+            <TouchableOpacity 
+              style={styles.settingsRow} 
+              onPress={async () => {
+                const email = 'bkjadmin@gmail.com';
+                const subject = `BKJ Support - ${user?.name || 'User'}`;
+                const gmailUrl = `googlegmail://co?to=${email}&subject=${encodeURIComponent(subject)}`;
+                const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}`;
+                try {
+                  await Linking.openURL(gmailUrl);
+                } catch {
+                  await Linking.openURL(mailtoUrl);
+                }
+              }}
+            >
+              <View style={[styles.settingsIconWrap, { backgroundColor: '#FEF3C7' }]}>
+                <Ionicons name="mail" size={16} color="#D97706" />
+              </View>
+              <Text style={[styles.settingsLabel, { flex: 1 }]}>Contact Support</Text>
+              <Ionicons name="chevron-forward" size={16} color={theme.textLight} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
             <TouchableOpacity style={styles.settingsRow} onPress={handleLogout}>
               <View style={[styles.settingsIconWrap, { backgroundColor: '#FEE2E2' }]}>
                 <Ionicons name="log-out" size={16} color="#EF4444" />
@@ -1754,9 +1786,12 @@ export default function ProfileScreen() {
                                 </View>
                               )
                             ) : isSystem ? (
-                              <View style={[styles.igIconCircle, { backgroundColor: '#EFF6FF' }]}>
-                                <Ionicons name="sparkles" size={18} color="#3B82F6" />
-                              </View>
+                              <Image 
+                                source={require('../../assets/icon.png')} 
+                                style={[styles.igAvatarImage, { borderWidth: 1, borderColor: theme.borderLight }]} 
+                                contentFit="cover" 
+                                transition={200} 
+                              />
                             ) : (
                               <View style={[styles.igIconCircle, { backgroundColor: '#ECFDF5' }]}>
                                 <Ionicons name="briefcase" size={18} color="#10B981" />
@@ -3018,23 +3053,23 @@ function getStyles(theme) {
     },
     igNotifText: {
       fontSize: 13.5,
-      color: theme.textSecondary,
+      color: theme.isDark ? '#E2E8F0' : '#475569',
       fontWeight: '400',
       lineHeight: 19,
     },
     igBoldName: {
-      fontWeight: '700',
+      fontWeight: '800',
       color: theme.textPrimary,
     },
     igTimeText: {
       fontSize: 12.5,
-      color: theme.textLight,
-      fontWeight: '400',
+      color: theme.isDark ? '#64748B' : '#94A3B8',
+      fontWeight: '500',
     },
     igSubText: {
       fontSize: 12.5,
-      color: theme.textLight,
-      fontWeight: '400',
+      color: theme.isDark ? '#94A3B8' : '#64748B',
+      fontWeight: '500',
       marginTop: 2,
       lineHeight: 17,
     },
@@ -3557,6 +3592,8 @@ function getStyles(theme) {
       letterSpacing: -0.2,
     },
     salaryBadgeContainer: {
+      maxWidth: '50%',
+      flexShrink: 1,
       backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#E6F4EA',
       borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.4)' : 'transparent',
       borderWidth: theme.isDark ? 1 : 0,

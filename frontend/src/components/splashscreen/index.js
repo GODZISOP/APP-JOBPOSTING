@@ -100,7 +100,7 @@ function DotProgress({ active }) {
 }
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
-export default function SplashScreen({ message, subMessage, isSignOut, showLottie }) {
+export default function SplashScreen({ message, subMessage, isSignOut, showLottie, type }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const [stepIdx, setStepIdx] = useState(0);
@@ -167,14 +167,21 @@ export default function SplashScreen({ message, subMessage, isSignOut, showLotti
     ],
   });
 
-  const isSimple = isSignOut || showLottie;
+  const isSimple = isSignOut || showLottie || type === 'suspended' || type === 'unbanned';
+
+  let domeColor = theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#B2E2B9';
+  if (type === 'suspended') {
+    domeColor = theme.isDark ? 'rgba(239, 68, 68, 0.15)' : '#FECACA';
+  } else if (type === 'unbanned') {
+    domeColor = theme.isDark ? 'rgba(34, 197, 94, 0.15)' : '#BBF7D0';
+  }
 
   return (
     // Single white root — no two-section split
     <View style={styles.root}>
 
-      {/* ── GREEN DOME HERO (arch shape via huge borderRadius at bottom) ─── */}
-      <View style={[styles.heroDome, isSimple && { height: SH * 0.46 }]}>
+      {/* ── GREEN/RED DOME HERO (arch shape via huge borderRadius at bottom) ─── */}
+      <View style={[styles.heroDome, isSimple && { height: SH * 0.46 }, { backgroundColor: domeColor }]}>
 
         {/* Sparkles inside dome */}
         <Sparkle x={24} y={38} delay={0} size={10} />
@@ -198,8 +205,22 @@ export default function SplashScreen({ message, subMessage, isSignOut, showLotti
         )}
 
         {/* Signout lottie */}
-        {isSimple && (
+        {(isSignOut || showLottie) && !type && (
           <LottieView source={require('../../../assets/signout.json')} style={styles.lottieMain} autoPlay loop />
+        )}
+        
+        {/* Suspended Icon */}
+        {type === 'suspended' && (
+          <View style={{ alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+            <Text style={{ fontSize: 80 }}>🚫</Text>
+          </View>
+        )}
+
+        {/* Unbanned Icon */}
+        {type === 'unbanned' && (
+          <View style={{ alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+            <Text style={{ fontSize: 80 }}>🎉</Text>
+          </View>
         )}
       </View>
 
