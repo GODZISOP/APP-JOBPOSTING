@@ -17,15 +17,7 @@ export default function LogoutButton() {
   };
 
   return (
-    <button onClick={handleLogout} className="nav-link" style={{ 
-      background: 'transparent', 
-      border: 'none', 
-      cursor: 'pointer',
-      width: '100%',
-      textAlign: 'left',
-      marginTop: 'auto',
-      paddingTop: 14
-    }}>
+    <button onClick={handleLogout} className="nav-link logout-btn">
       <LogOut size={20} color="var(--warning)" />
       <span style={{ color: 'var(--warning)' }}>Logout</span>
     </button>

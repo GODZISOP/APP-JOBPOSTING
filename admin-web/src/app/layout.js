@@ -10,14 +10,14 @@ export const metadata = {
 
 function Sidebar() {
   return (
-    <aside className="sidebar glass-card" style={{ display: 'flex', flexDirection: 'column' }}>
-      <div style={{ marginBottom: 48 }}>
+    <aside className="sidebar glass-card">
+      <div className="sidebar-header">
         <h2 style={{ color: 'var(--accent-color)', fontSize: 28, letterSpacing: '-1px' }}>
           BKJ<span style={{ color: 'white' }}> ADMIN</span>
         </h2>
       </div>
 
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+      <nav className="sidebar-nav">
         <Link href="/" className="nav-link">
           <LayoutDashboard size={20} />
           <span>Dashboard</span>
@@ -31,7 +31,7 @@ function Sidebar() {
           <span>Users Management</span>
         </Link>
 
-        <div style={{ marginTop: 'auto', paddingTop: 20 }}>
+        <div className="logout-container">
           <LogoutButton />
         </div>
       </nav>

@@ -224,3 +224,25 @@ h2 {
   background-color: var(--danger-bg);
   color: var(--danger);
 }
+
+.sidebar-header { margin-bottom: 48px; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.logout-container { margin-top: auto; padding-top: 20px; }
+.logout-btn { background: transparent; border: none; cursor: pointer; width: 100%; text-align: left; padding-top: 14px; }
+
+@media (max-width: 768px) {
+  .app-layout { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: relative; padding: 20px; border-right: none; border-bottom: 1px solid var(--card-border); z-index: 50; }
+  .sidebar-header { margin-bottom: 20px; text-align: center; }
+  .sidebar-nav { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .logout-container { margin-top: 0; padding-top: 0; display: flex; align-items: center; }
+  .logout-btn { width: auto; padding-top: 14px; margin-top: 0; }
+  .main-content { margin-left: 0; padding: 16px; width: 100%; }
+  
+  .card { padding: 16px; }
+  .admin-table td, .admin-table th { padding: 12px 10px; font-size: 13px; }
+  
+  /* Make stat cards wrap better */
+  div[style*='grid-template-columns'] { grid-template-columns: 1fr !important; gap: 16px !important; }
+}
+
