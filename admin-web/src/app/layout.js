@@ -13,7 +13,7 @@ function Sidebar() {
     <aside className="sidebar glass-card" style={{ display: 'flex', flexDirection: 'column' }}>
       <div style={{ marginBottom: 48 }}>
         <h2 style={{ color: 'var(--accent-color)', fontSize: 28, letterSpacing: '-1px' }}>
-          JobLink<span style={{ color: 'white' }}> Admin</span>
+          BKJ<span style={{ color: 'white' }}> ADMIN</span>
         </h2>
       </div>
 
@@ -29,10 +29,6 @@ function Sidebar() {
         <Link href="/users" className="nav-link">
           <Users size={20} />
           <span>Users Management</span>
-        </Link>
-        <Link href="/categories" className="nav-link">
-          <Tags size={20} />
-          <span>Categories</span>
         </Link>
 
         <div style={{ marginTop: 'auto', paddingTop: 20 }}>

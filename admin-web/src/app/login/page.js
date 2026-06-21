@@ -58,7 +58,7 @@ export default function LoginPage() {
       }}>
         <div style={{ textAlign: 'center', marginBottom: 10 }}>
           <h1 style={{ color: 'var(--accent-color)', fontSize: 32, letterSpacing: '-1px', marginBottom: 8 }}>
-            JobLink<span style={{ color: 'white' }}> Admin</span>
+            BKJ<span style={{ color: 'white' }}> ADMIN</span>
           </h1>
           <p className="subtitle" style={{ fontSize: 14 }}>Sign in to manage your platform</p>
         </div>

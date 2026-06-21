@@ -35,7 +35,7 @@ export default async function Dashboard() {
     <div>
       <div style={{ marginBottom: 40 }}>
         <h1>Dashboard Overview</h1>
-        <p className="subtitle">Welcome to the JobLink Admin Panel. Here's what's happening today.</p>
+        <p className="subtitle">Welcome to the BKJ Admin Panel. Here's what's happening today.</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24, marginBottom: 48 }}>
