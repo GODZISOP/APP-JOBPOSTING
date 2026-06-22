@@ -12,37 +12,43 @@ async function getStats() {
     // Total jobs
     const { count: jobsCount } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true });
     
-    // Note: If 'status' column doesn't exist yet, this will fail. We use a try/catch to fallback.
     let pendingJobsCount = 0;
     try {
-      const { count } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      const { count, error } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      if (error) throw error;
       pendingJobsCount = count || 0;
     } catch (e) {
-      console.warn("Status column might not exist yet.");
+      console.warn("Status column might not exist yet for pending.", e);
     }
 
     // Active/Approved jobs
     let activeJobsCount = 0;
     try {
-      const { count } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'approved');
-      // If no 'approved' jobs, fallback to calculating (Total - Pending) for "Active"
-      activeJobsCount = count || (jobsCount ? jobsCount - pendingJobsCount : 0);
+      const { count, error } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'approved');
+      if (error) throw error;
+      // We no longer fallback to Total-Pending because status column exists
+      activeJobsCount = count !== null ? count : 0;
     } catch (e) {
+      console.warn("Status column might not exist yet for approved.", e);
       activeJobsCount = jobsCount ? jobsCount - pendingJobsCount : 0;
     }
 
     // Featured jobs
     let featuredJobsCount = 0;
     try {
-      const { count } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).or('is_top.eq.true,likes.gte.10');
-      featuredJobsCount = count || 0;
-    } catch (e) {
+      // First try to check if is_top exists
+      const { count: topCount, error: topError } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('is_top', true);
+      if (!topError && topCount) featuredJobsCount += topCount;
+      
+      // Try to check if likes column exists
       try {
-        const { count } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('is_top', true);
-        featuredJobsCount = count || 0;
-      } catch (err) {
-        console.warn("is_top or likes column might not exist yet.");
+        const { count: likesCount, error: likesError } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).gte('likes', 10);
+        if (!likesError && likesCount) featuredJobsCount += likesCount;
+      } catch (e) {
+        // Ignored
       }
+    } catch (e) {
+      console.warn("Featured logic failed.", e);
     }
 
     return { 
