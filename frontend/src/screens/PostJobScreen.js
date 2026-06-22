@@ -435,27 +435,6 @@ export default function PostJobScreen({ navigation }) {
       return;
     }
 
-    // Check if user is currently post-banned
-    const banKey = `@bkj_post_ban_until_${user?.id || 'guest'}`;
-    try {
-      const banUntilStr = await AsyncStorage.getItem(banKey);
-      if  (banUntilStr) {
-        const banUntil = Number(banUntilStr);
-        const now = Date.now();
-        if (now < banUntil) {
-          const remainingMs = banUntil - now;
-          const remainingMins = Math.ceil(remainingMs / 60000);
-          Alert.alert(
-            'Posting Blocked',
-            `You have been temporarily banned from posting due to guideline violations. Please try again in ${remainingMins} minutes.`
-          );
-          return;
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to check post ban storage:', e);
-    }
-
     // Strict validation to filter out vulgar, inappropriate, or non-professional content
     const inappropriateKeywords = [
       // --- ENGLISH PROFANITY & INAPPROPRIATE TERMS ---
@@ -537,30 +516,10 @@ export default function PostJobScreen({ navigation }) {
       containsInappropriateContent(description) ||
       selectedSkills.some(skill => containsInappropriateContent(skill))
     ) {
-      try {
-        const strikeKey = `@bkj_post_strikes_${user?.id || 'guest'}`;
-        const currentStrikesStr = await AsyncStorage.getItem(strikeKey);
-        const currentStrikes = currentStrikesStr ? Number(currentStrikesStr) : 0;
-        const newStrikes = currentStrikes + 1;
-        await AsyncStorage.setItem(strikeKey, String(newStrikes));
-
-        // 1st offense: 5 minutes (300000ms), 2nd+ offense: 2 hours (7200000ms)
-        const banDuration = newStrikes === 1 ? 5 * 60000 : 2 * 60 * 60000;
-        const banUntil = Date.now() + banDuration;
-        await AsyncStorage.setItem(banKey, String(banUntil));
-
-        const durationText = newStrikes === 1 ? '5 minutes' : '2 hours';
-        Alert.alert(
-          'Inappropriate Content Detected',
-          `Your job posting contains terms that violate our professional community guidelines. Due to this violation, your posting privileges have been restricted for ${durationText}.`
-        );
-      } catch (e) {
-        console.warn('Failed to update strike/ban status:', e);
-        Alert.alert(
-          'Inappropriate Content Detected',
-          'Your job posting contains terms that violate our professional community guidelines. Please ensure your listing is strictly professional and career-oriented.'
-        );
-      }
+      Alert.alert(
+        'Inappropriate Content Detected',
+        'This post cannot be submitted because it contains inappropriate terms. Please ensure your listing is strictly professional and career-oriented.'
+      );
       return;
     }
 
