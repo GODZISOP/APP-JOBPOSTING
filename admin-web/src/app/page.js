@@ -21,7 +21,37 @@ async function getStats() {
       console.warn("Status column might not exist yet.");
     }
 
-    return { usersCount: usersCount || 0, jobsCount: jobsCount || 0, pendingJobsCount };
+    // Active/Approved jobs
+    let activeJobsCount = 0;
+    try {
+      const { count } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'approved');
+      // If no 'approved' jobs, fallback to calculating (Total - Pending) for "Active"
+      activeJobsCount = count || (jobsCount ? jobsCount - pendingJobsCount : 0);
+    } catch (e) {
+      activeJobsCount = jobsCount ? jobsCount - pendingJobsCount : 0;
+    }
+
+    // Featured jobs
+    let featuredJobsCount = 0;
+    try {
+      const { count } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).or('is_top.eq.true,likes.gte.10');
+      featuredJobsCount = count || 0;
+    } catch (e) {
+      try {
+        const { count } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('is_top', true);
+        featuredJobsCount = count || 0;
+      } catch (err) {
+        console.warn("is_top or likes column might not exist yet.");
+      }
+    }
+
+    return { 
+      usersCount: usersCount || 0, 
+      jobsCount: jobsCount || 0, 
+      pendingJobsCount, 
+      activeJobsCount,
+      featuredJobsCount 
+    };
   } catch (error) {
     console.error('Error fetching stats:', error);
     return null;
@@ -62,7 +92,18 @@ export default async function Dashboard() {
           </div>
         </div>
 
-        {/* Stat Card 3 */}
+        {/* Stat Card 3 - Active Jobs */}
+        <div className="card glass-card" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: 16, borderRadius: 16, color: '#3B82F6' }}>
+            <Activity size={28} />
+          </div>
+          <div>
+            <p className="subtitle" style={{ fontSize: 14 }}>Active Jobs</p>
+            <h2 style={{ fontSize: 32 }}>{stats?.activeJobsCount || 0}</h2>
+          </div>
+        </div>
+
+        {/* Stat Card 4 - Pending */}
         <div className="card glass-card" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: 16, borderRadius: 16, color: 'var(--warning)' }}>
             <Clock size={28} />
@@ -70,6 +111,17 @@ export default async function Dashboard() {
           <div>
             <p className="subtitle" style={{ fontSize: 14 }}>Pending Approval</p>
             <h2 style={{ fontSize: 32 }}>{stats?.pendingJobsCount || 0}</h2>
+          </div>
+        </div>
+
+        {/* Stat Card 5 - Featured Ads */}
+        <div className="card glass-card" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: 16, borderRadius: 16, color: '#EF4444' }}>
+            <Activity size={28} />
+          </div>
+          <div>
+            <p className="subtitle" style={{ fontSize: 14 }}>Featured Ads</p>
+            <h2 style={{ fontSize: 32 }}>{stats?.featuredJobsCount || 0}</h2>
           </div>
         </div>
 
