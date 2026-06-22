@@ -9,6 +9,7 @@ const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (required for Vercel/Reverse proxies & rate limiter)
 const PORT = process.env.PORT || 5000;
 
 // ==========================================
