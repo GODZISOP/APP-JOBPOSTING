@@ -8,7 +8,7 @@ export async function POST(request) {
     const adminEmail = 'bkjadmin@gmail.com';
     const adminPassword = 'admin';
 
-    if (email === adminEmail && password === adminPassword) {
+    if (email.toLowerCase() === adminEmail && password === adminPassword) {
       const response = NextResponse.json({ success: true }, { status: 200 });
       
       // Set HttpOnly cookie for 30 days

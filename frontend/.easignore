@@ -1,0 +1,17 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+expo-debug.*
+android/
+ios/
+.claude/
+.git/
+eas_build_logs.txt
+__tests__/
