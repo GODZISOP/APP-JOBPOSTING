@@ -23,9 +23,8 @@ export default function LoginPage() {
       });
 
       if (res.ok) {
-        // Redirect to dashboard
-        router.push('/');
-        router.refresh();
+        // Redirect to dashboard (full reload ensures middleware sees the new cookie instantly)
+        window.location.href = '/';
       } else {
         const data = await res.json();
         setError(data.message || 'Invalid credentials');
