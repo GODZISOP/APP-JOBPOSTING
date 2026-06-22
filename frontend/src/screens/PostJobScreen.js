@@ -430,11 +430,7 @@ export default function PostJobScreen({ navigation }) {
       return;
     }
 
-    if (selectedSkills.length < 3) {
-      Alert.alert('Requirements Required', `Please select or type at least 3 skills or requirements (current count: ${selectedSkills.length}).`);
-      return;
-    }
-
+    // Removed minimum 3 skills requirement
     // Strict validation to filter out vulgar, inappropriate, or non-professional content
     const inappropriateKeywords = [
       // --- ENGLISH PROFANITY & INAPPROPRIATE TERMS ---
@@ -532,11 +528,7 @@ export default function PostJobScreen({ navigation }) {
       return;
     }
 
-    if (selectedSkills.length < 3) {
-      Alert.alert('Skills Required', 'Please add at least 3 skills or requirements before posting the job.');
-      return;
-    }
-
+    // Removed minimum 3 skills requirement
     if (description.trim().length < 50) {
       Alert.alert('Description Too Short', `Please enter a detailed description of at least 50 characters to attract premium candidates (current count: ${description.trim().length} characters).`);
       return;
