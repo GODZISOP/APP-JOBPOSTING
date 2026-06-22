@@ -21,12 +21,17 @@ async function getStats() {
       console.warn("Status column might not exist yet for pending.", e);
     }
 
-    // Active/Approved jobs
+    // Active/Approved jobs (App filters out jobs older than 15 days)
     let activeJobsCount = 0;
     try {
-      const { count, error } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'approved');
+      const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
+      const { count, error } = await supabaseAdmin
+        .from('jobs')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'approved')
+        .gte('created_at', fifteenDaysAgo); // Hide old jobs just like the app
+        
       if (error) throw error;
-      // We no longer fallback to Total-Pending because status column exists
       activeJobsCount = count !== null ? count : 0;
     } catch (e) {
       console.warn("Status column might not exist yet for approved.", e);
