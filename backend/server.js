@@ -121,9 +121,31 @@ app.get('/', (req, res) => {
 
 // Endpoint: Send beautiful HTML email with 8-digit OTP using standard SMTP Transporter (Nodemailer)
 app.post('/api/auth/send-otp', async (req, res, next) => {
-  const { email } = req.body;
+  const { email, phone } = req.body;
   if (!email) {
     return res.status(400).json({ success: false, message: 'Email address is required.' });
+  }
+
+  // Check if phone number is already registered
+  if (phone && supabaseAdmin) {
+    try {
+      const { data: existingUser, error } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('phone', phone)
+        .limit(1)
+        .maybeSingle(); // maybeSingle returns null if 0 rows, instead of throwing PGRST116
+
+      if (existingUser) {
+        return res.status(409).json({ 
+          success: false, 
+          error: 'already_registered_phone', 
+          message: 'This phone number is already registered to another account. Please sign in or use a different number.' 
+        });
+      }
+    } catch (err) {
+      console.error("Supabase phone check error:", err);
+    }
   }
 
   const otpCode = String(Math.floor(10000000 + Math.random() * 90000000));

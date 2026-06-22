@@ -388,11 +388,17 @@ export default function SignupScreen({ navigation }) {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email: email.trim().toLowerCase() })
+        body: JSON.stringify({ email: email.trim().toLowerCase(), phone: getFormattedPhone() })
       });
 
       const data = await response.json();
       if (!response.ok) {
+        if (data.error === 'already_registered_phone') {
+          setLocalSplash(false);
+          setLoading(false);
+          Alert.alert('Phone Number Taken', data.message || 'This phone number is already registered to another account. Please sign in or use a different number.');
+          return;
+        }
         throw new Error(data.error || 'Failed to send OTP email.');
       }
 
