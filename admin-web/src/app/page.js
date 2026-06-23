@@ -8,10 +8,10 @@ async function getStats() {
 
   try {
     const { count: usersCount } = await supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true });
-    
+
     // Total jobs
     const { count: jobsCount } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true });
-    
+
     let pendingJobsCount = 0;
     try {
       const { count, error } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'pending');
@@ -30,7 +30,7 @@ async function getStats() {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'approved')
         .gte('created_at', fifteenDaysAgo); // Hide old jobs just like the app
-        
+
       if (error) throw error;
       activeJobsCount = count !== null ? count : 0;
     } catch (e) {
@@ -44,7 +44,7 @@ async function getStats() {
       // First try to check if is_top exists
       const { count: topCount, error: topError } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('is_top', true);
       if (!topError && topCount) featuredJobsCount += topCount;
-      
+
       // Try to check if likes column exists
       try {
         const { count: likesCount, error: likesError } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).gte('likes', 10);
@@ -56,12 +56,12 @@ async function getStats() {
       console.warn("Featured logic failed.", e);
     }
 
-    return { 
-      usersCount: usersCount || 0, 
-      jobsCount: jobsCount || 0, 
-      pendingJobsCount, 
+    return {
+      usersCount: usersCount || 0,
+      jobsCount: jobsCount || 0,
+      pendingJobsCount,
       activeJobsCount,
-      featuredJobsCount 
+      featuredJobsCount
     };
   } catch (error) {
     console.error('Error fetching stats:', error);
@@ -80,7 +80,7 @@ export default async function Dashboard() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24, marginBottom: 48 }}>
-        
+
         {/* Stat Card 1 */}
         <div className="card glass-card" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <div style={{ backgroundColor: 'rgba(232, 245, 66, 0.1)', padding: 16, borderRadius: 16, color: 'var(--accent-color)' }}>
@@ -144,7 +144,7 @@ export default async function Dashboard() {
           <h2>Recent Activity</h2>
         </div>
         <p className="subtitle" style={{ marginBottom: 20 }}>Activity logging will appear here once users interact with the platform.</p>
-        
+
         {/* We can add a simple table here later for recent jobs/users */}
         <div style={{ padding: 40, textAlign: 'center', border: '1px dashed var(--card-border)', borderRadius: 12 }}>
           <p className="subtitle">No recent activity to display.</p>
