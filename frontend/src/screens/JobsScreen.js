@@ -394,7 +394,7 @@ function JobCard({ job, onPress, isLiked, onLike, t }) {
 function JobDetailView({ job, onBack, isLiked, onLike }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, applyToJob } = useAuth();
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [showMoreDesc, setShowMoreDesc] = useState(false);
@@ -728,8 +728,8 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
                   activeOpacity={0.88}
                   onPress={() => {
                     Alert.alert(
-                      'WhatsApp se Apply Karein',
-                      'Konsa WhatsApp open karna chahte hain?',
+                      i18n.language === 'en' ? 'Apply via WhatsApp' : 'WhatsApp se Apply Karein',
+                      i18n.language === 'en' ? 'Which WhatsApp do you want to open?' : 'Konsa WhatsApp open karna chahte hain?',
                       [
                         {
                           text: '💼 WhatsApp Business',
@@ -739,15 +739,15 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
                           text: '✅ Regular WhatsApp',
                           onPress: () => handleWhatsApp(employerPhone, employerName, job.title, false),
                         },
-                        { text: 'Cancel', style: 'cancel' },
+                        { text: i18n.language === 'en' ? 'Cancel' : 'Cancel', style: 'cancel' },
                       ]
                     );
                   }}
                 >
                   <Ionicons name="logo-whatsapp" size={24} color="#FFFFFF" />
                   <View style={{ marginLeft: 12, flex: 1 }}>
-                    <Text style={styles.whatsappBtnTitle}>Apply on WhatsApp</Text>
-                    <Text style={styles.whatsappBtnSub}>WhatsApp ya Business — choose karein</Text>
+                    <Text style={styles.whatsappBtnTitle}>{i18n.language === 'en' ? 'Apply on WhatsApp' : 'Apply on WhatsApp'}</Text>
+                    <Text style={styles.whatsappBtnSub}>{i18n.language === 'en' ? 'Choose WhatsApp or Business' : 'WhatsApp ya Business — choose karein'}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ opacity: 0.8 }} />
                 </TouchableOpacity>
