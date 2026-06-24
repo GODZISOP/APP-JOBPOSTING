@@ -9,8 +9,13 @@ async function getStats() {
   try {
     const { count: usersCount } = await supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true });
 
-    // Total jobs
-    const { count: jobsCount } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true });
+    // Total jobs (excluding deleted and expired older than 15 days)
+    const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
+    const { count: jobsCount } = await supabaseAdmin
+      .from('jobs')
+      .select('*', { count: 'exact', head: true })
+      .neq('status', 'deleted')
+      .gte('created_at', fifteenDaysAgo);
 
     let pendingJobsCount = 0;
     try {
@@ -21,15 +26,14 @@ async function getStats() {
       console.warn("Status column might not exist yet for pending.", e);
     }
 
-    // Active/Approved jobs (App filters out jobs older than 15 days)
+    // Active/Approved jobs — same 15-day window as app and Jobs Management
     let activeJobsCount = 0;
     try {
-      const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
       const { count, error } = await supabaseAdmin
         .from('jobs')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'approved')
-        .gte('created_at', fifteenDaysAgo); // Hide old jobs just like the app
+        .gte('created_at', fifteenDaysAgo);
 
       if (error) throw error;
       activeJobsCount = count !== null ? count : 0;
@@ -58,16 +62,39 @@ async function getStats() {
 
     let reportedJobs = [];
     try {
-      const { data, error } = await supabaseAdmin
+      // Step 1: Fetch raw reports
+      const { data: reportsData, error: reportsErr } = await supabaseAdmin
         .from('job_reports')
-        .select(`
-          *,
-          jobs:job_id (*),
-          profiles:reporter_id (name, email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
-        .limit(5);
-      if (!error && data) reportedJobs = data;
+        .limit(10);
+
+      if (!reportsErr && reportsData && reportsData.length > 0) {
+        // Step 2: Fetch job titles for those job IDs
+        const jobIds = [...new Set(reportsData.map(r => r.job_id).filter(Boolean))];
+        const { data: jobsData } = await supabaseAdmin
+          .from('jobs')
+          .select('id, title, company')
+          .in('id', jobIds);
+
+        // Step 3: Fetch reporter profiles
+        const reporterIds = [...new Set(reportsData.map(r => r.reporter_id).filter(Boolean))];
+        let profilesData = [];
+        if (reporterIds.length > 0) {
+          const { data: pData } = await supabaseAdmin
+            .from('profiles')
+            .select('id, name, email')
+            .in('id', reporterIds);
+          profilesData = pData || [];
+        }
+
+        // Step 4: Merge everything
+        reportedJobs = reportsData.map(report => ({
+          ...report,
+          job: jobsData?.find(j => j.id === report.job_id) || null,
+          reporter: profilesData?.find(p => p.id === report.reporter_id) || null,
+        }));
+      }
     } catch (e) {
       console.warn("Reported jobs logic failed.", e);
     }
@@ -189,8 +216,8 @@ export default async function Dashboard() {
               <tbody>
                 {stats.reportedJobs.map((report) => (
                   <tr key={report.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <td style={{ padding: 12 }}>{report.jobs?.title || 'Unknown Job'}</td>
-                    <td style={{ padding: 12 }}>{report.profiles?.name || report.profiles?.email || 'Anonymous'}</td>
+                    <td style={{ padding: 12 }}>{report.job?.title || 'Unknown Job'}</td>
+                    <td style={{ padding: 12 }}>{report.reporter?.name || report.reporter?.email || 'Anonymous'}</td>
                     <td style={{ padding: 12, color: '#EF4444' }}>{report.reason}</td>
                     <td style={{ padding: 12 }}>{new Date(report.created_at).toLocaleDateString()}</td>
                   </tr>

@@ -10,6 +10,7 @@ const blurhash = 'LKN]Rv%2Tw=w]~RBVZRi};RPxuwH';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../config/supabase';
 import { useTheme } from '../context/ThemeContext';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -278,7 +279,7 @@ const TYPE_COLORS = {
   'Daily Basis': { bg: '#E0F7FA', text: '#00838F' },
 };
 
-function JobCard({ job, onPress, isLiked, onLike, t }) {
+function JobCard({ job, onPress, isLiked, onLike, t, onReport }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const { user } = useAuth();
@@ -380,7 +381,12 @@ function JobCard({ job, onPress, isLiked, onLike, t }) {
               </Text>
             </View>
           </TouchableOpacity>
-
+          <TouchableOpacity
+            style={styles.applyArrowBtn}
+            onPress={(e) => { e.stopPropagation(); onReport(job); }}
+          >
+            <Text style={styles.applyBtnLabel}>Report</Text>
+          </TouchableOpacity>
           <View style={styles.applyArrowBtn}>
             <Text style={styles.applyBtnLabel}>{t ? t('jobs.apply_button') : 'Apply'}</Text>
             <Ionicons name="arrow-forward" size={12} color="#1A1A1A" />
@@ -397,8 +403,6 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
   const { t, i18n } = useTranslation();
   const { user, applyToJob } = useAuth();
   const [showApplyModal, setShowApplyModal] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState('');
   const [showMoreDesc, setShowMoreDesc] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -659,7 +663,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
         <TouchableOpacity
           style={[styles.upworkApplyBtn, { flex: 0, paddingHorizontal: 16, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#EF4444' }]}
           activeOpacity={0.85}
-          onPress={() => setShowReportModal(true)}
+          onPress={() => job.onReport && job.onReport(job)}
         >
           <Ionicons name="warning-outline" size={20} color="#EF4444" />
         </TouchableOpacity>
@@ -798,70 +802,6 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
           </View>
         </View>
       </Modal>
-
-      {/* Report Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showReportModal}
-        onRequestClose={() => setShowReportModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowReportModal(false)} />
-          <View style={[styles.modalContent, { backgroundColor: theme.cardBg }]}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHandle} />
-            </View>
-            <ScrollView contentContainerStyle={{ padding: 24 }} bounces={false}>
-              <Text style={styles.modalTitle}>Report Job</Text>
-              <Text style={styles.modalSub}>Please tell us why you are reporting this job.</Text>
-
-              <TextInput
-                style={[styles.searchInput, { height: 100, textAlignVertical: 'top', marginTop: 16, backgroundColor: theme.isDark ? '#2A2A2A' : '#F8FAFC', color: theme.textPrimary }]}
-                placeholder="Reason for reporting..."
-                placeholderTextColor={theme.textSecondary}
-                multiline
-                value={reportReason}
-                onChangeText={setReportReason}
-              />
-
-              <TouchableOpacity
-                style={[styles.appApplyBtn, { marginTop: 24, backgroundColor: '#EF4444' }]}
-                activeOpacity={0.85}
-                onPress={async () => {
-                  if (!reportReason.trim()) {
-                    Alert.alert('Error', 'Please enter a reason for reporting.');
-                    return;
-                  }
-                  
-                  // Insert report into Supabase (if table exists)
-                  // Using dynamic import of supabase to avoid scoping issues if it's not imported at top
-                  try {
-                    const { supabase } = require('../context/AuthContext');
-                    if (supabase) {
-                      await supabase.from('job_reports').insert({
-                        job_id: job.id,
-                        reporter_id: user?.id,
-                        reason: reportReason.trim()
-                      });
-                    }
-                  } catch (e) {
-                    console.log('Report insert failed, table might not exist yet', e);
-                  }
-
-                  setShowReportModal(false);
-                  setReportReason('');
-                  Alert.alert('Report Submitted', 'Thank you. Admin will review this job shortly.');
-                }}
-              >
-                <Ionicons name="flag" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                <Text style={[styles.appApplyBtnText, { color: '#FFFFFF' }]}>Submit Report</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
     </ScrollView>
   );
 }
@@ -1069,6 +1009,9 @@ export default function JobsScreen({ navigation, route }) {
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedJob, setSelectedJob] = useState(null);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportJobTarget, setReportJobTarget] = useState(null);
+  const [reportReason, setReportReason] = useState('');
 
   const suggestions = React.useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -1316,7 +1259,7 @@ export default function JobsScreen({ navigation, route }) {
 
       // 6. Global vs Country Specific targeted display logic
       let matchCountryTarget = true;
-      if (j.location && selectedLocations.length === 0 && !isGlobalSelected) { // Bypass user country restriction if explicit locations selected
+      if (activeCategory !== 'All' && j.location && selectedLocations.length === 0 && !isGlobalSelected) { // Bypass user country restriction if explicit locations selected or All tab
         const isGlobal = j.location.toLowerCase().includes('global');
         if (!isGlobal && userCountry) {
           // If it's a specific country job, only show to users in that country
@@ -1396,7 +1339,7 @@ export default function JobsScreen({ navigation, route }) {
 
   // Redesigned dashboard header to match the user's reference image exactly
   const renderHeader = () => {
-    const totalJobsCount = jobs.filter(j => j.status === 'approved').length;
+    const totalJobsCount = jobs.filter(j => j.status === 'approved' || (!j.status && j.postedBy !== user?.id)).length;
     const likedJobsCount = jobs.filter(j => likedJobs?.includes(j.id)).length;
     const myJobsCount = jobs.filter(j => user && (j.postedBy === user.id || j.posterProfile?.id === user.id)).length;
     const isEmployer = user?.role === 'employer';
@@ -1912,6 +1855,10 @@ export default function JobsScreen({ navigation, route }) {
               isLiked={likedJobs?.includes(item.id)}
               onLike={handleLikePress}
               t={t}
+              onReport={(jobTarget) => {
+                setReportJobTarget(jobTarget);
+                setShowReportModal(true);
+              }}
             />
           )
         }
@@ -2067,18 +2014,84 @@ export default function JobsScreen({ navigation, route }) {
 
       {/* Job Details Modal */}
       <Modal
-        visible={!!selectedJob}
         animationType="slide"
+        transparent={true}
+        visible={!!selectedJob && !showReportModal}
         onRequestClose={() => setSelectedJob(null)}
       >
-        {selectedJob && (
-          <JobDetailView
-            job={jobs.find(j => j.id === selectedJob.id) || selectedJob}
-            onBack={() => setSelectedJob(null)}
-            isLiked={likedJobs?.includes(selectedJob.id)}
-            onLike={handleLikePress}
-          />
-        )}
+        <JobDetailView
+          job={{
+            ...selectedJob, onReport: (jobTarget) => {
+              setReportJobTarget(jobTarget);
+              setShowReportModal(true);
+            }
+          }}
+          onBack={() => setSelectedJob(null)}
+          isLiked={likedJobs?.includes(selectedJob?.id)}
+          onLike={handleLikePress}
+        />
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showReportModal}
+        onRequestClose={() => {
+          setShowReportModal(false);
+          setReportJobTarget(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={{ ...StyleSheet.absoluteFillObject }} activeOpacity={1} onPress={() => { setShowReportModal(false); setReportJobTarget(null); }} />
+          <View style={[styles.modalContent, { backgroundColor: theme.bgCard || theme.cardBg }]}>
+            <View style={styles.modalHandle} />
+            <ScrollView contentContainerStyle={{ padding: 24 }} bounces={false}>
+              <Text style={styles.modalTitle}>Report Job</Text>
+              <Text style={styles.modalSubtitle}>Please tell us why you are reporting this job.</Text>
+
+              <TextInput
+                style={[styles.searchInput, { height: 100, textAlignVertical: 'top', marginTop: 16, backgroundColor: theme.isDark ? '#2A2A2A' : '#F8FAFC', color: theme.textPrimary }]}
+                placeholder="Reason for reporting..."
+                placeholderTextColor={theme.textSecondary}
+                multiline
+                value={reportReason}
+                onChangeText={setReportReason}
+              />
+
+              <TouchableOpacity
+                style={[styles.appApplyBtn, { marginTop: 24, backgroundColor: '#EF4444' }]}
+                activeOpacity={0.85}
+                onPress={async () => {
+                  if (!reportReason.trim()) {
+                    Alert.alert('Error', 'Please enter a reason for reporting.');
+                    return;
+                  }
+
+                  try {
+                    if (supabase && reportJobTarget) {
+                      await supabase.from('job_reports').insert({
+                        job_id: reportJobTarget.id,
+                        reporter_id: user?.id,
+                        reason: reportReason.trim()
+                      });
+                    }
+                  } catch (e) {
+                    console.log('Report insert failed:', e);
+                  }
+
+                  setShowReportModal(false);
+                  setReportReason('');
+                  setReportJobTarget(null);
+                  Alert.alert('Report Submitted', 'Thank you. Admin will review this job shortly.');
+                }}
+              >
+                <Ionicons name="flag" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={[styles.appApplyBtnText, { color: '#FFFFFF' }]}>Submit Report</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
     </View>
   );

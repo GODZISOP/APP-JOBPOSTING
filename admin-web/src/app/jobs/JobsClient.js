@@ -52,9 +52,15 @@ export default function JobsClient({ initialJobs }) {
     }, 1000);
   };
 
+  const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
   const pendingJobs = jobs.filter(j => j.status === 'pending');
-  const activeJobs = jobs.filter(j => j.status !== 'pending' && j.status !== 'rejected' && j.status !== 'deleted');
-  const archivedJobs = jobs.filter(j => j.status === 'rejected' || j.status === 'deleted');
+  const activeJobs = jobs.filter(j => 
+    j.status !== 'pending' && j.status !== 'rejected' && j.status !== 'deleted' &&
+    new Date(j.created_at) >= fifteenDaysAgo
+  );
+  const archivedJobs = jobs.filter(j => j.status === 'rejected' || j.status === 'deleted' || 
+    (j.status !== 'pending' && new Date(j.created_at) < fifteenDaysAgo)
+  );
 
   return (
     <div>

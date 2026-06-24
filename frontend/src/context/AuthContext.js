@@ -708,7 +708,7 @@ export const AuthProvider = ({ children }) => {
               .map(job => {
                 let notifTitle = 'Job Status Update';
                 let notifMessage = `Your job post "${job.title}" has an update.`;
-                
+
                 if (job.status === 'approved') {
                   notifTitle = 'Job Approved ✅';
                   notifMessage = `BKJ has approved your job post: "${job.title}".`;
@@ -1417,7 +1417,7 @@ export const AuthProvider = ({ children }) => {
 
           if (payload.eventType === 'UPDATE') {
             const newStatus = payload.new.status;
-            
+
             setJobs(prevJobs => {
               const existingJob = prevJobs.find(j => j.id === payload.new.id);
               if (!existingJob) return prevJobs; // Job not in our list
@@ -1444,15 +1444,15 @@ export const AuthProvider = ({ children }) => {
               }
 
               // Update the job and unshift it to the top so recent updates take precedence
-              const updatedJob = { 
-                ...existingJob, 
-                ...payload.new, 
+              const updatedJob = {
+                ...existingJob,
+                ...payload.new,
                 is_top: payload.new.is_top,
                 top_updated_at: payload.new.top_updated_at ? new Date(payload.new.top_updated_at).getTime() : 0
               };
               const filteredJobs = prevJobs.filter(j => j.id !== payload.new.id);
               filteredJobs.unshift(updatedJob);
-              
+
               return filteredJobs.sort((a, b) => {
                 if (a.is_top && b.is_top) {
                   return (b.top_updated_at || b.createdAtTimestamp) - (a.top_updated_at || a.createdAtTimestamp);
@@ -1720,11 +1720,11 @@ export const AuthProvider = ({ children }) => {
       const fifteenDaysAgo = Date.now() - 15 * 24 * 60 * 60 * 1000;
       const activeJobs = mapped.filter(job => {
         if (job.status === 'deleted') return false;
-        const isRecent = job.createdAtTimestamp >= fifteenDaysAgo;
         const isApproved = job.status === 'approved';
-        const noStatus = !job.status; // Fallback if SQL column not added yet
         const isMine = user && job.postedBy === user.id;
-        return isRecent && (isApproved || noStatus || isMine);
+        const notExpired = job.createdAtTimestamp >= fifteenDaysAgo;
+        // Show approved jobs within 15 days, OR own jobs (so employer can see their own)
+        return (isApproved && notExpired) || isMine;
       });
       const ranked = rankJobs(activeJobs);
       const sortedByTop = ranked.sort((a, b) => {
@@ -2459,16 +2459,16 @@ export const AuthProvider = ({ children }) => {
         return res;
       });
       if (error) throw error;
-      
+
       if (data && data.length > 0) {
         insertedJobId = data[0].id;
       }
-      
+
       addNotification(
-        'Job Pending ⏳', 
-        `Your job posting "${jobData.title}" has been submitted successfully and is pending approval.`, 
-        'system', 
-        null, 
+        'Job Pending ⏳',
+        `Your job posting "${jobData.title}" has been submitted successfully and is pending approval.`,
+        'system',
+        null,
         insertedJobId
       );
       await fetchJobs();
