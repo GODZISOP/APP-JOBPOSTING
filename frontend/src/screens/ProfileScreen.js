@@ -1052,7 +1052,11 @@ export default function ProfileScreen() {
       if (res?.success) {
         setEditing(false);
       } else {
-        Alert.alert(t('profile.update_failed'), res?.message || t('profile.update_error_body'));
+        if (res?.error === 'number_already_registered') {
+          Alert.alert('Number Already Registered', res.message);
+        } else {
+          Alert.alert(t('profile.update_failed'), res?.message || t('profile.update_error_body'));
+        }
       }
     }, 1500);
   };

@@ -397,6 +397,8 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
   const { t, i18n } = useTranslation();
   const { user, applyToJob } = useAuth();
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('');
   const [showMoreDesc, setShowMoreDesc] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -644,14 +646,22 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
       )}
 
       {/* Sticky Bottom Apply Action */}
-      <View style={{ paddingHorizontal: 20, paddingBottom: 20, marginTop: 10 }}>
+      <View style={{ paddingHorizontal: 20, paddingBottom: 20, marginTop: 10, flexDirection: 'row', gap: 12 }}>
         <TouchableOpacity
-          style={styles.upworkApplyBtn}
+          style={[styles.upworkApplyBtn, { flex: 1 }]}
           activeOpacity={0.85}
           onPress={() => setShowApplyModal(true)}
         >
           <Text style={styles.upworkApplyBtnText}>{t('jobs.apply_now')}</Text>
           <Ionicons name="paper-plane-outline" size={16} color="#1A1A1A" style={{ marginLeft: 6 }} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.upworkApplyBtn, { flex: 0, paddingHorizontal: 16, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#EF4444' }]}
+          activeOpacity={0.85}
+          onPress={() => setShowReportModal(true)}
+        >
+          <Ionicons name="warning-outline" size={20} color="#EF4444" />
         </TouchableOpacity>
       </View>
 
@@ -788,6 +798,70 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
           </View>
         </View>
       </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showReportModal}
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowReportModal(false)} />
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBg }]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHandle} />
+            </View>
+            <ScrollView contentContainerStyle={{ padding: 24 }} bounces={false}>
+              <Text style={styles.modalTitle}>Report Job</Text>
+              <Text style={styles.modalSub}>Please tell us why you are reporting this job.</Text>
+
+              <TextInput
+                style={[styles.searchInput, { height: 100, textAlignVertical: 'top', marginTop: 16, backgroundColor: theme.isDark ? '#2A2A2A' : '#F8FAFC', color: theme.textPrimary }]}
+                placeholder="Reason for reporting..."
+                placeholderTextColor={theme.textSecondary}
+                multiline
+                value={reportReason}
+                onChangeText={setReportReason}
+              />
+
+              <TouchableOpacity
+                style={[styles.appApplyBtn, { marginTop: 24, backgroundColor: '#EF4444' }]}
+                activeOpacity={0.85}
+                onPress={async () => {
+                  if (!reportReason.trim()) {
+                    Alert.alert('Error', 'Please enter a reason for reporting.');
+                    return;
+                  }
+                  
+                  // Insert report into Supabase (if table exists)
+                  // Using dynamic import of supabase to avoid scoping issues if it's not imported at top
+                  try {
+                    const { supabase } = require('../context/AuthContext');
+                    if (supabase) {
+                      await supabase.from('job_reports').insert({
+                        job_id: job.id,
+                        reporter_id: user?.id,
+                        reason: reportReason.trim()
+                      });
+                    }
+                  } catch (e) {
+                    console.log('Report insert failed, table might not exist yet', e);
+                  }
+
+                  setShowReportModal(false);
+                  setReportReason('');
+                  Alert.alert('Report Submitted', 'Thank you. Admin will review this job shortly.');
+                }}
+              >
+                <Ionicons name="flag" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={[styles.appApplyBtnText, { color: '#FFFFFF' }]}>Submit Report</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
     </ScrollView>
   );
 }

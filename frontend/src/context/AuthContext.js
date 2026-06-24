@@ -2216,11 +2216,20 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('🧩 [PROFILE] updateProfile start', { updates });
 
-      // 1. Skip auth metadata phone update here in React Native because
-      //    Supabase auth.updateUser can hang on some mobile environments.
-      //    Phone is saved in the profile record below instead.
-      if (updates.phone !== undefined) {
-        console.log('🧩 [PROFILE] skipping auth.updateUser for phone');
+      // 1. Check for duplicate phone number
+      if (updates.phone !== undefined && updates.phone !== user?.phone) {
+        console.log('🧩 [PROFILE] checking duplicate phone number', updates.phone);
+        const { data: existingProfiles, error: phoneErr } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('phone', updates.phone)
+          .neq('id', user.id);
+
+        if (phoneErr) {
+          console.warn('Failed to check phone uniqueness:', phoneErr);
+        } else if (existingProfiles && existingProfiles.length > 0) {
+          return { success: false, error: 'number_already_registered', message: 'This phone number is already registered to another account.' };
+        }
       }
 
       // 2. Avatar upload

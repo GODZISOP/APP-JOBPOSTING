@@ -56,12 +56,29 @@ async function getStats() {
       console.warn("Featured logic failed.", e);
     }
 
+    let reportedJobs = [];
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('job_reports')
+        .select(`
+          *,
+          jobs:job_id (*),
+          profiles:reporter_id (name, email)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      if (!error && data) reportedJobs = data;
+    } catch (e) {
+      console.warn("Reported jobs logic failed.", e);
+    }
+
     return {
       usersCount: usersCount || 0,
       jobsCount: jobsCount || 0,
       pendingJobsCount,
       activeJobsCount,
-      featuredJobsCount
+      featuredJobsCount,
+      reportedJobs
     };
   } catch (error) {
     console.error('Error fetching stats:', error);
@@ -145,10 +162,47 @@ export default async function Dashboard() {
         </div>
         <p className="subtitle" style={{ marginBottom: 20 }}>Activity logging will appear here once users interact with the platform.</p>
 
-        {/* We can add a simple table here later for recent jobs/users */}
         <div style={{ padding: 40, textAlign: 'center', border: '1px dashed var(--card-border)', borderRadius: 12 }}>
           <p className="subtitle">No recent activity to display.</p>
         </div>
+      </div>
+
+      {/* Reported Jobs Section */}
+      <div className="card glass-card" style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+          <Activity color="#EF4444" />
+          <h2>Reported Jobs</h2>
+        </div>
+        <p className="subtitle" style={{ marginBottom: 20 }}>Jobs that users have flagged or reported for review.</p>
+        
+        {stats?.reportedJobs && stats.reportedJobs.length > 0 ? (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--card-border)', color: 'var(--text-secondary)' }}>
+                  <th style={{ padding: 12 }}>Job Title</th>
+                  <th style={{ padding: 12 }}>Reporter</th>
+                  <th style={{ padding: 12 }}>Reason</th>
+                  <th style={{ padding: 12 }}>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.reportedJobs.map((report) => (
+                  <tr key={report.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: 12 }}>{report.jobs?.title || 'Unknown Job'}</td>
+                    <td style={{ padding: 12 }}>{report.profiles?.name || report.profiles?.email || 'Anonymous'}</td>
+                    <td style={{ padding: 12, color: '#EF4444' }}>{report.reason}</td>
+                    <td style={{ padding: 12 }}>{new Date(report.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div style={{ padding: 40, textAlign: 'center', border: '1px dashed var(--card-border)', borderRadius: 12 }}>
+            <p className="subtitle">No reported jobs.</p>
+          </div>
+        )}
       </div>
     </div>
   );
