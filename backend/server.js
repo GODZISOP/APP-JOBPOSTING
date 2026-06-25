@@ -148,6 +148,42 @@ app.post('/api/auth/send-otp', async (req, res, next) => {
     }
   }
 
+  // Check if email is already registered
+  if (email && supabaseAdmin) {
+    try {
+      // 1. Check in profiles table
+      const { data: existingProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('email', email.toLowerCase().trim())
+        .limit(1)
+        .maybeSingle();
+
+      if (existingProfile) {
+        return res.status(409).json({ 
+          success: false, 
+          error: 'already_registered_email', 
+          message: 'This email address is already registered. Please sign in or use a different email.' 
+        });
+      }
+
+      // 2. Check in auth users list
+      const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
+      if (listData?.users) {
+        const emailExists = listData.users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase().trim());
+        if (emailExists) {
+          return res.status(409).json({
+            success: false,
+            error: 'already_registered_email',
+            message: 'This email address is already registered. Please sign in or use a different email.'
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Supabase email duplicate check error:", err);
+    }
+  }
+
   const otpCode = String(Math.floor(10000000 + Math.random() * 90000000));
   try {
     

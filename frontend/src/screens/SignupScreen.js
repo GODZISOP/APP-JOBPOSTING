@@ -399,6 +399,12 @@ export default function SignupScreen({ navigation }) {
           Alert.alert('Phone Number Taken', data.message || 'This phone number is already registered to another account. Please sign in or use a different number.');
           return;
         }
+        if (data.error === 'already_registered_email') {
+          setLocalSplash(false);
+          setLoading(false);
+          Alert.alert('Email Already Registered', data.message || 'This email address is already registered. Please sign in or use a different email.');
+          return;
+        }
         throw new Error(data.error || 'Failed to send OTP email.');
       }
 
