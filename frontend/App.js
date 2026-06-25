@@ -41,6 +41,7 @@ import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import JobsScreen from './src/screens/JobsScreen';
 import PostJobScreen from './src/screens/PostJobScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -267,6 +268,7 @@ function RootNavigator() {
               <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
             </>
           )}
+          <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
         </Stack.Navigator>
       </NavigationContainer>
 

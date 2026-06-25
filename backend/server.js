@@ -580,6 +580,64 @@ app.delete('/api/admin/jobs/:id', async (req, res, next) => {
   }
 });
 
+// Endpoint: Delete account completely (for Play Store Compliance)
+app.post('/api/auth/delete-account', async (req, res, next) => {
+  if (!supabaseAdmin) {
+    return res.status(500).json({ success: false, error: 'Supabase connection not initialized on backend.' });
+  }
+
+  const { userId } = req.body;
+  if (!userId) {
+    return res.status(400).json({ success: false, error: 'User ID is required.' });
+  }
+
+  try {
+    console.log(`🗑️ [DELETE ACCOUNT] Initiating permanent account deletion for user: ${userId}`);
+
+    // 1. Delete applications submitted by user
+    await supabaseAdmin.from('applications').delete().eq('applicant_id', userId);
+
+    // 2. Delete likes (bookmarks) related to user
+    await supabaseAdmin.from('likes').delete().eq('user_id', userId);
+    await supabaseAdmin.from('likes').delete().eq('owner_id', userId);
+
+    // 2.5. Delete reports related to the user (filed by them or against their jobs)
+    try {
+      // Delete reports filed by this user
+      await supabaseAdmin.from('job_reports').delete().eq('reporter_id', userId);
+      
+      // Get user's jobs to delete reports filed against those jobs
+      const { data: userJobs } = await supabaseAdmin.from('jobs').select('id').eq('posted_by', userId);
+      if (userJobs && userJobs.length > 0) {
+        const jobIds = userJobs.map(j => j.id);
+        await supabaseAdmin.from('job_reports').delete().in('job_id', jobIds);
+      }
+      console.log(`🗑️ [DELETE ACCOUNT] Deleted reports related to user: ${userId}`);
+    } catch (reportErr) {
+      console.warn("⚠️ Failed to manually delete job reports (non-fatal):", reportErr.message);
+    }
+
+    // 3. Delete jobs posted by user
+    await supabaseAdmin.from('jobs').delete().eq('posted_by', userId);
+
+    // 4. Delete user profile
+    await supabaseAdmin.from('profiles').delete().eq('id', userId);
+
+    // 5. Delete Supabase Auth record using Admin SDK
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    if (authError) {
+      console.warn(`⚠️ Auth record deletion failed or already deleted: ${authError.message}`);
+    }
+
+    console.log(`✅ [DELETE ACCOUNT] Account and all related data successfully deleted for user: ${userId}`);
+    res.json({ success: true, message: 'Account and associated data deleted successfully.' });
+
+  } catch (err) {
+    console.error('Error in delete-account route:', err);
+    res.status(500).json({ success: false, error: err.message || 'Failed to delete account.' });
+  }
+});
+
 // ==========================================
 // ERROR HANDLING MIDDLEWARE
 // ==========================================

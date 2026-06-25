@@ -24,7 +24,7 @@ export default function SignupScreen({ navigation }) {
   const [showPass, setShowPass] = useState(false);
   const [role, setRole] = useState('jobseeker');
   const [loading, setLoading] = useState(false);
-  
+
   const [localSplash, setLocalSplash] = useState(false);
   const [localSplashMessage, setLocalSplashMessage] = useState('');
   const [localSplashSub, setLocalSplashSub] = useState('');
@@ -296,7 +296,7 @@ export default function SignupScreen({ navigation }) {
         'kamine', 'laundiy', 'bastard', 'asshole', 'slut', 'whore', 'boobs', 'butt', 'gndu', 'chutya',
         'maderchod', 'behanchod', 'kamina', 'randee', 'saala', 'saali', 'dalla'
       ];
-      
+
       const cleanName = name.trim().toLowerCase().replace(/[^a-z0-9\s]/g, ''); // clean special characters like s*x, s3x
       // Normalize common leet-speak / bypasses
       const normalized = cleanName
@@ -403,7 +403,7 @@ export default function SignupScreen({ navigation }) {
       }
 
       setEmailOtpCode(data.otp);
-      
+
       setTimeout(() => {
         setLocalSplash(false);
         setLoading(false);
@@ -580,18 +580,18 @@ export default function SignupScreen({ navigation }) {
                       justifyContent: 'center',
                       height: '100%',
                     }}
-                    onPress={() => setShowCountryCodeModal(true)}
-                    activeOpacity={0.8}
+                    onPress={() => !userCountry && setShowCountryCodeModal(true)}
+                    activeOpacity={userCountry ? 1 : 0.8}
                   >
                     <Text style={{ fontSize: 14, color: theme.textPrimary, fontWeight: '700', textAlignVertical: 'center', includeFontPadding: false }}>
-                      {selectedCountryCode.flag} {selectedCountryCode.code} ▾
+                      {selectedCountryCode.flag} {selectedCountryCode.code}{!userCountry ? ' ▾' : ''}
                     </Text>
                   </TouchableOpacity>
                 </View>
               ),
               rightElement: phone ? (
-                <TouchableOpacity 
-                  onPress={() => setPhone('')} 
+                <TouchableOpacity
+                  onPress={() => setPhone('')}
                   style={styles.eyeBtn}
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
@@ -626,7 +626,7 @@ export default function SignupScreen({ navigation }) {
           {/* Login Link */}
           <View style={styles.loginRow}>
             <Text style={styles.loginText}>{t('auth.already_have_account')} </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => {
                 if (navigation.canGoBack()) {
                   navigation.goBack();
@@ -738,175 +738,177 @@ export default function SignupScreen({ navigation }) {
   );
 }
 
-function getStyles(theme) { return StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.bgPrimary },
-  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 },
+function getStyles(theme) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.bgPrimary },
+    scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 },
 
-  header: { alignItems: 'center', paddingTop: 56, paddingBottom: 20 },
-  backBtn: {
-    position: 'absolute', left: 0, top: 56,
-    width: 40, height: 40, borderRadius: 14,
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-    borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 0,
-  },
-  logoCircle: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: 'transparent',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 8,
-  },
-  appName: { fontSize: 20, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 },
+    header: { alignItems: 'center', paddingTop: 56, paddingBottom: 20 },
+    backBtn: {
+      position: 'absolute', left: 0, top: 56,
+      width: 40, height: 40, borderRadius: 14,
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+      borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 0,
+    },
+    logoCircle: {
+      width: 56, height: 56, borderRadius: 28,
+      backgroundColor: 'transparent',
+      alignItems: 'center', justifyContent: 'center', marginBottom: 8,
+    },
+    appName: { fontSize: 20, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 },
 
-  card: {
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : theme.bgCard, borderRadius: 28, padding: 24,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
-    borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
-    shadowOpacity: 0.06, shadowRadius: 20, elevation: 0,
-  },
-  cardTitle: { fontSize: 22, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 },
-  cardSubtitle: { fontSize: FONTS.sizes.sm, color: theme.textSecondary, marginTop: 2, marginBottom: 20 },
+    card: {
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : theme.bgCard, borderRadius: 28, padding: 24,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+      borderWidth: 1, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+      shadowOpacity: 0.06, shadowRadius: 20, elevation: 0,
+    },
+    cardTitle: { fontSize: 22, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 },
+    cardSubtitle: { fontSize: FONTS.sizes.sm, color: theme.textSecondary, marginTop: 2, marginBottom: 20 },
 
-  roleRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  roleBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    height: 42, borderRadius: 14, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9',
-    borderWidth: 2, borderColor: 'transparent',
-  },
-  roleBtnActive: { backgroundColor: theme.accentYellow, borderColor: '#C8D900' },
-  roleBtnText: { fontSize: FONTS.sizes.xs + 1, fontWeight: '700', color: theme.textSecondary },
-  roleBtnTextActive: { color: theme.textPrimary },
+    roleRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+    roleBtn: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      height: 42, borderRadius: 14, backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9',
+      borderWidth: 2, borderColor: 'transparent',
+    },
+    roleBtnActive: { backgroundColor: theme.accentYellow, borderColor: '#C8D900' },
+    roleBtnText: { fontSize: FONTS.sizes.xs + 1, fontWeight: '700', color: theme.textSecondary },
+    roleBtnTextActive: { color: theme.textPrimary },
 
-  inputGroup: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: theme.textPrimary, marginBottom: 8, paddingLeft: 2 },
-  inputWrapper: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9', borderRadius: 16,
-    borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
-    paddingHorizontal: 16, height: 52,
-  },
-  inputWrapperError: {
-    borderColor: '#EF4444',
-    backgroundColor: theme.isDark ? 'rgba(239, 68, 68, 0.1)' : '#FFF5F5',
-  },
-  inputIcon: { marginRight: 10 },
-  input: { flex: 1, fontSize: FONTS.sizes.md, color: theme.textPrimary, fontWeight: '500' },
-  eyeBtn: { padding: 4 },
+    inputGroup: { marginBottom: 16 },
+    label: { fontSize: 13, fontWeight: '600', color: theme.textPrimary, marginBottom: 8, paddingLeft: 2 },
+    inputWrapper: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9', borderRadius: 16,
+      borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
+      paddingHorizontal: 16, height: 52,
+    },
+    inputWrapperError: {
+      borderColor: '#EF4444',
+      backgroundColor: theme.isDark ? 'rgba(239, 68, 68, 0.1)' : '#FFF5F5',
+    },
+    inputIcon: { marginRight: 10 },
+    input: { flex: 1, fontSize: FONTS.sizes.md, color: theme.textPrimary, fontWeight: '500' },
+    eyeBtn: { padding: 4 },
 
-  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 5, paddingLeft: 2 },
-  errorText: { fontSize: 12, color: '#EF4444', fontWeight: '500', flex: 1 },
+    errorRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 5, paddingLeft: 2 },
+    errorText: { fontSize: 12, color: '#EF4444', fontWeight: '500', flex: 1 },
 
-  signupBtn: {
-    backgroundColor: theme.accentYellow,
-    borderRadius: 26, height: 54,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    marginTop: 8,
-    shadowColor: theme.accentYellow, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25, shadowRadius: 8, elevation: 0,
-  },
-  signupBtnText: { fontSize: FONTS.sizes.md + 1, fontWeight: '800', color: theme.textPrimary },
+    signupBtn: {
+      backgroundColor: theme.accentYellow,
+      borderRadius: 26, height: 54,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      marginTop: 8,
+      shadowColor: theme.accentYellow, shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25, shadowRadius: 8, elevation: 0,
+    },
+    signupBtnText: { fontSize: FONTS.sizes.md + 1, fontWeight: '800', color: theme.textPrimary },
 
-  loginRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
-  loginText: { fontSize: FONTS.sizes.sm, color: theme.textSecondary, fontWeight: '500' },
-  loginLink: { fontSize: FONTS.sizes.sm, fontWeight: '800', color: theme.accentGreen },
+    loginRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
+    loginText: { fontSize: FONTS.sizes.sm, color: theme.textSecondary, fontWeight: '500' },
+    loginLink: { fontSize: FONTS.sizes.sm, fontWeight: '800', color: theme.accentGreen },
 
-  // OTP Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  otpCard: {
-    backgroundColor: theme.isDark ? '#1E293B' : '#FFFFFF',
-    borderRadius: 28,
-    borderWidth: 1.5,
-    borderColor: theme.isDark ? '#334155' : '#E5E7EB',
-    padding: 24,
-    width: '90%',
-    maxWidth: 340,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 24,
-  },
-  otpIcon: {
-    marginBottom: 12,
-  },
-  otpTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    marginBottom: 8,
-    textAlign: 'center',
-    letterSpacing: -0.5,
-  },
-  otpSubtitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: theme.textSecondary,
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 20,
-  },
-  otpInputLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.textPrimary,
-    alignSelf: 'flex-start',
-    marginBottom: 6,
-    paddingLeft: 2,
-  },
-  otpInputWrapper: {
-    backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
-    paddingHorizontal: 16,
-    height: 56,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  otpInput: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: theme.textPrimary,
-    letterSpacing: 8,
-    textAlign: 'center',
-    width: '100%',
-  },
-  otpSubmitBtn: {
-    backgroundColor: theme.accentYellow,
-    borderRadius: 20,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    shadowColor: theme.accentYellow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    marginBottom: 10,
-  },
-  otpSubmitBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: theme.textPrimary,
-  },
-  otpCancelBtn: {
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-  },
-  otpCancelBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.textSecondary,
-  },
-}); }
+    // OTP Modal Styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.65)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    otpCard: {
+      backgroundColor: theme.isDark ? '#1E293B' : '#FFFFFF',
+      borderRadius: 28,
+      borderWidth: 1.5,
+      borderColor: theme.isDark ? '#334155' : '#E5E7EB',
+      padding: 24,
+      width: '90%',
+      maxWidth: 340,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.35,
+      shadowRadius: 20,
+      elevation: 24,
+    },
+    otpIcon: {
+      marginBottom: 12,
+    },
+    otpTitle: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: theme.textPrimary,
+      marginBottom: 8,
+      textAlign: 'center',
+      letterSpacing: -0.5,
+    },
+    otpSubtitle: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.textSecondary,
+      textAlign: 'center',
+      lineHeight: 18,
+      marginBottom: 20,
+    },
+    otpInputLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.textPrimary,
+      alignSelf: 'flex-start',
+      marginBottom: 6,
+      paddingLeft: 2,
+    },
+    otpInputWrapper: {
+      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9',
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0',
+      paddingHorizontal: 16,
+      height: 56,
+      width: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    otpInput: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: theme.textPrimary,
+      letterSpacing: 8,
+      textAlign: 'center',
+      width: '100%',
+    },
+    otpSubmitBtn: {
+      backgroundColor: theme.accentYellow,
+      borderRadius: 20,
+      height: 48,
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: '100%',
+      shadowColor: theme.accentYellow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      marginBottom: 10,
+    },
+    otpSubmitBtnText: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: theme.textPrimary,
+    },
+    otpCancelBtn: {
+      height: 40,
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: '100%',
+    },
+    otpCancelBtnText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.textSecondary,
+    },
+  });
+}

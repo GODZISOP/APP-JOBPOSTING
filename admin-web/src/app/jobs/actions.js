@@ -13,7 +13,8 @@ export async function approveJob(jobId) {
 
 export async function rejectJob(jobId) {
   if (!supabaseAdmin) throw new Error('Supabase admin not initialized');
-  const { error } = await supabaseAdmin.from('jobs').update({ status: 'rejected' }).eq('id', jobId);
+  // Set to 'deleted' so it disappears from app and admin panel completely
+  const { error } = await supabaseAdmin.from('jobs').update({ status: 'deleted' }).eq('id', jobId);
   if (error) throw error;
   revalidatePath('/jobs');
   revalidatePath('/');

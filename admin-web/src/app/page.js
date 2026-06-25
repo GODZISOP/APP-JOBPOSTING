@@ -70,11 +70,11 @@ async function getStats() {
         .limit(10);
 
       if (!reportsErr && reportsData && reportsData.length > 0) {
-        // Step 2: Fetch job titles for those job IDs
+        // Step 2: Fetch full job details
         const jobIds = [...new Set(reportsData.map(r => r.job_id).filter(Boolean))];
         const { data: jobsData } = await supabaseAdmin
           .from('jobs')
-          .select('id, title, company')
+          .select('id, title, company, description, location, salary, type, category, posted_by')
           .in('id', jobIds);
 
         // Step 3: Fetch reporter profiles
@@ -83,17 +83,35 @@ async function getStats() {
         if (reporterIds.length > 0) {
           const { data: pData } = await supabaseAdmin
             .from('profiles')
-            .select('id, name, email')
+            .select('id, name, email, phone')
             .in('id', reporterIds);
           profilesData = pData || [];
         }
 
-        // Step 4: Merge everything
-        reportedJobs = reportsData.map(report => ({
-          ...report,
-          job: jobsData?.find(j => j.id === report.job_id) || null,
-          reporter: profilesData?.find(p => p.id === report.reporter_id) || null,
-        }));
+        // Step 4: Fetch job poster profiles
+        const posterIds = [...new Set((jobsData || []).map(j => j.posted_by).filter(Boolean))];
+        let posterProfiles = [];
+        if (posterIds.length > 0) {
+          const { data: ppData } = await supabaseAdmin
+            .from('profiles')
+            .select('id, name, email, phone')
+            .in('id', posterIds);
+          posterProfiles = ppData || [];
+        }
+
+        // Step 5: Merge everything
+        reportedJobs = reportsData
+          .map(report => {
+            const job = jobsData?.find(j => j.id === report.job_id) || null;
+            const poster = job ? posterProfiles?.find(p => p.id === job.posted_by) || null : null;
+            return {
+              ...report,
+              job,
+              poster,
+              reporter: profilesData?.find(p => p.id === report.reporter_id) || null,
+            };
+          })
+          .filter(item => item.job !== null);
       }
     } catch (e) {
       console.warn("Reported jobs logic failed.", e);
@@ -196,34 +214,74 @@ export default async function Dashboard() {
 
       {/* Reported Jobs Section */}
       <div className="card glass-card" style={{ marginTop: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
           <Activity color="#EF4444" />
           <h2>Reported Jobs</h2>
+          {stats?.reportedJobs?.length > 0 && (
+            <span style={{ background: '#EF4444', color: '#fff', borderRadius: 20, padding: '2px 10px', fontSize: 13, fontWeight: 700 }}>
+              {stats.reportedJobs.length}
+            </span>
+          )}
         </div>
-        <p className="subtitle" style={{ marginBottom: 20 }}>Jobs that users have flagged or reported for review.</p>
-        
+        <p className="subtitle" style={{ marginBottom: 24 }}>Jobs flagged by users. Review job details, reporter and poster info below.</p>
+
         {stats?.reportedJobs && stats.reportedJobs.length > 0 ? (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--card-border)', color: 'var(--text-secondary)' }}>
-                  <th style={{ padding: 12 }}>Job Title</th>
-                  <th style={{ padding: 12 }}>Reporter</th>
-                  <th style={{ padding: 12 }}>Reason</th>
-                  <th style={{ padding: 12 }}>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.reportedJobs.map((report) => (
-                  <tr key={report.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <td style={{ padding: 12 }}>{report.job?.title || 'Unknown Job'}</td>
-                    <td style={{ padding: 12 }}>{report.reporter?.name || report.reporter?.email || 'Anonymous'}</td>
-                    <td style={{ padding: 12, color: '#EF4444' }}>{report.reason}</td>
-                    <td style={{ padding: 12 }}>{new Date(report.created_at).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {stats.reportedJobs.map((report) => (
+              <div key={report.id} style={{
+                border: '1px solid rgba(239,68,68,0.25)',
+                borderRadius: 14,
+                padding: 20,
+                background: 'rgba(239,68,68,0.04)'
+              }}>
+                {/* Report Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ background: '#EF4444', color: '#fff', borderRadius: 8, padding: '3px 10px', fontSize: 12, fontWeight: 700 }}>🚩 Report</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{new Date(report.created_at).toLocaleString()}</span>
+                  </div>
+                  <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '6px 14px' }}>
+                    <span style={{ color: '#EF4444', fontWeight: 700, fontSize: 13 }}>Reason: </span>
+                    <span style={{ color: '#EF4444', fontSize: 13 }}>{report.reason}</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+
+                  {/* Job Details */}
+                  <div style={{ background: 'var(--card-bg)', borderRadius: 10, padding: 16, border: '1px solid var(--card-border)' }}>
+                    <p style={{ fontWeight: 700, marginBottom: 10, fontSize: 14, color: 'var(--accent-color)' }}>📋 Job Details</p>
+                    <p style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{report.job?.title || '—'}</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Company: <strong>{report.job?.company || '—'}</strong></p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Location: {report.job?.location || '—'}</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Salary: {report.job?.salary || '—'}</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Type: {report.job?.type || '—'} | Category: {report.job?.category || '—'}</p>
+                    {report.job?.description && (
+                      <p style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 8, borderTop: '1px solid var(--card-border)', paddingTop: 8 }}>
+                        {report.job.description.slice(0, 200)}{report.job.description.length > 200 ? '...' : ''}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Reporter Details */}
+                  <div style={{ background: 'var(--card-bg)', borderRadius: 10, padding: 16, border: '1px solid var(--card-border)' }}>
+                    <p style={{ fontWeight: 700, marginBottom: 10, fontSize: 14, color: '#3B82F6' }}>👤 Reporter (Who reported)</p>
+                    <p style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{report.reporter?.name || 'Anonymous'}</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Email: {report.reporter?.email || '—'}</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Phone: {report.reporter?.phone || '—'}</p>
+                  </div>
+
+                  {/* Job Poster Details */}
+                  <div style={{ background: 'var(--card-bg)', borderRadius: 10, padding: 16, border: '1px solid var(--card-border)' }}>
+                    <p style={{ fontWeight: 700, marginBottom: 10, fontSize: 14, color: '#F59E0B' }}>🏢 Job Poster (Reported user)</p>
+                    <p style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{report.poster?.name || '—'}</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Email: {report.poster?.email || '—'}</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Phone: {report.poster?.phone || '—'}</p>
+                  </div>
+
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div style={{ padding: 40, textAlign: 'center', border: '1px dashed var(--card-border)', borderRadius: 12 }}>

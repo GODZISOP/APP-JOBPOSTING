@@ -1314,18 +1314,33 @@ export default function JobsScreen({ navigation, route }) {
       // Geo-sort only if not searching
       const countryLower = userCountry.toLowerCase();
       const topJobs = [];
+      const myJobs = [];
       const local = [];
       const others = [];
       list.forEach(j => {
+        const isOwn = user && (j.postedBy === user.id || j.posterProfile?.id === user.id);
         if (j.is_top) {
           topJobs.push(j);
+        } else if (isOwn) {
+          myJobs.push(j);
         } else if (j.location && j.location.toLowerCase().includes(countryLower)) {
           local.push(j);
         } else {
           others.push(j);
         }
       });
-      list = [...topJobs, ...local, ...others];
+      
+      const sortByNewest = (a, b) => (b.createdAtTimestamp || 0) - (a.createdAtTimestamp || 0);
+      topJobs.sort((a, b) => {
+        const timeA = a.top_updated_at || a.createdAtTimestamp || 0;
+        const timeB = b.top_updated_at || b.createdAtTimestamp || 0;
+        return timeB - timeA;
+      });
+      myJobs.sort(sortByNewest);
+      local.sort(sortByNewest);
+      others.sort(sortByNewest);
+
+      list = [...topJobs, ...myJobs, ...local, ...others];
     }
 
     return list;

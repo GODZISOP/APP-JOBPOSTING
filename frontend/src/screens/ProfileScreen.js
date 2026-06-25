@@ -584,7 +584,7 @@ export default function ProfileScreen() {
   const { theme, isDark, toggleTheme } = useTheme();
   const styles = getStyles(theme);
   const navigation = useNavigation();
-  const { user, logout, updateProfile, getMyJobs, getUserById, setIsGuest, jobs, likedJobs, likeJob, appliedJobs, notifications, fetchJobs, fetchRealNotifications, deleteJob, updateJob, closeHiring, userCountry } = useAuth();
+  const { user, logout, deleteAccount, updateProfile, getMyJobs, getUserById, setIsGuest, jobs, likedJobs, likeJob, appliedJobs, notifications, fetchJobs, fetchRealNotifications, deleteJob, updateJob, closeHiring, userCountry } = useAuth();
   const myJobs = getMyJobs ? getMyJobs() : [];
   const bookmarkedJobs = Array.from(new Map((jobs || []).filter(j => likedJobs?.includes(j.id)).map(j => [j.id, j])).values());
   const appliedJobsList = (jobs || []).reduce((acc, job) => {
@@ -889,6 +889,26 @@ export default function ProfileScreen() {
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.log_out'), style: 'destructive', onPress: logout },
     ]);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account Permanently ⚠️",
+      "Are you absolutely sure you want to delete your account? This action is permanent and cannot be undone. All your profile data, job postings, applications, and bookmarks will be deleted.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete Account", 
+          style: "destructive", 
+          onPress: async () => {
+            const res = await deleteAccount();
+            if (!res.success) {
+              Alert.alert("Deletion Failed", res.message || "Failed to delete account.");
+            }
+          } 
+        },
+      ]
+    );
   };
 
   const requestGalleryPermission = async () => {
@@ -1680,11 +1700,31 @@ export default function ProfileScreen() {
 
             <View style={styles.divider} />
 
+            <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('PrivacyPolicy')} activeOpacity={0.7}>
+              <View style={[styles.settingsIconWrap, { backgroundColor: '#EDE9FE' }]}>
+                <Ionicons name="shield-checkmark" size={16} color="#6D28D9" />
+              </View>
+              <Text style={[styles.settingsLabel, { flex: 1 }]}>Privacy Policy</Text>
+              <Ionicons name="chevron-forward" size={16} color={theme.textLight} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
             <TouchableOpacity style={styles.settingsRow} onPress={handleLogout}>
               <View style={[styles.settingsIconWrap, { backgroundColor: '#FEE2E2' }]}>
                 <Ionicons name="log-out" size={16} color="#EF4444" />
               </View>
               <Text style={[styles.settingsLabel, { color: '#EF4444' }]}>{t('profile.logout_account')}</Text>
+              <Ionicons name="chevron-forward" size={16} color={theme.textLight} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity style={styles.settingsRow} onPress={handleDeleteAccount}>
+              <View style={[styles.settingsIconWrap, { backgroundColor: '#FFEBEE' }]}>
+                <Ionicons name="trash-outline" size={16} color="#C62828" />
+              </View>
+              <Text style={[styles.settingsLabel, { color: '#C62828' }]}>Delete Account</Text>
               <Ionicons name="chevron-forward" size={16} color={theme.textLight} />
             </TouchableOpacity>
           </View>

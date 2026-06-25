@@ -1454,11 +1454,18 @@ export const AuthProvider = ({ children }) => {
               filteredJobs.unshift(updatedJob);
 
               return filteredJobs.sort((a, b) => {
+                if (a.is_top && !b.is_top) return -1;
+                if (!a.is_top && b.is_top) return 1;
                 if (a.is_top && b.is_top) {
-                  return (b.top_updated_at || b.createdAtTimestamp) - (a.top_updated_at || a.createdAtTimestamp);
+                  const timeA = a.top_updated_at || a.createdAtTimestamp || 0;
+                  const timeB = b.top_updated_at || b.createdAtTimestamp || 0;
+                  return timeB - timeA;
                 }
-                if (a.is_top === b.is_top) return 0;
-                return a.is_top ? -1 : 1;
+                const isOwnA = user && (a.postedBy === user.id || a.posterProfile?.id === user.id);
+                const isOwnB = user && (b.postedBy === user.id || b.posterProfile?.id === user.id);
+                if (isOwnA && !isOwnB) return -1;
+                if (!isOwnA && isOwnB) return 1;
+                return (b.createdAtTimestamp || 0) - (a.createdAtTimestamp || 0);
               });
             });
           }
@@ -1726,13 +1733,19 @@ export const AuthProvider = ({ children }) => {
         // Show approved jobs within 15 days, OR own jobs (so employer can see their own)
         return (isApproved && notExpired) || isMine;
       });
-      const ranked = rankJobs(activeJobs);
-      const sortedByTop = ranked.sort((a, b) => {
+      const sortedByTop = activeJobs.sort((a, b) => {
+        if (a.is_top && !b.is_top) return -1;
+        if (!a.is_top && b.is_top) return 1;
         if (a.is_top && b.is_top) {
-          return (b.top_updated_at || b.createdAtTimestamp) - (a.top_updated_at || a.createdAtTimestamp);
+          const timeA = a.top_updated_at || a.createdAtTimestamp || 0;
+          const timeB = b.top_updated_at || b.createdAtTimestamp || 0;
+          return timeB - timeA;
         }
-        if (a.is_top === b.is_top) return 0;
-        return a.is_top ? -1 : 1;
+        const isOwnA = user && (a.postedBy === user.id || a.posterProfile?.id === user.id);
+        const isOwnB = user && (b.postedBy === user.id || b.posterProfile?.id === user.id);
+        if (isOwnA && !isOwnB) return -1;
+        if (!isOwnA && isOwnB) return 1;
+        return (b.createdAtTimestamp || 0) - (a.createdAtTimestamp || 0);
       });
       setJobs(sortedByTop);
       // Prefetch all avatars to disk cache to ensure instant rendering
@@ -2418,6 +2431,69 @@ export const AuthProvider = ({ children }) => {
       return handleError(err);
     }
   };
+
+  const deleteAccount = async () => {
+    if (!user) return { success: false, message: 'No active session' };
+    setLoggingOut(true); // Show the loading splash screen
+    try {
+      if (isMockMode) {
+        await new Promise((res) => setTimeout(res, 1500));
+        setUsers(prev => prev.filter(u => u.id !== user.id));
+        setJobs(prev => prev.filter(j => j.postedBy !== user.id));
+        setUser(null);
+        await AsyncStorage.removeItem(SESSION_KEY);
+        setLoggingOut(false);
+        return { success: true };
+      }
+
+      const backendUrl = __DEV__
+        ? `http://${Constants.expoConfig?.hostUri?.split(':')?.[0] || '192.168.100.22'}:5000`
+        : (Constants.expoConfig?.extra?.backendUrl || 'https://app-jobposting-arks.vercel.app');
+
+      console.log(`🗑️ [DELETE ACCOUNT] Fetching deletion endpoint at: ${backendUrl}`);
+
+      const response = await fetch(`${backendUrl}/api/auth/delete-account`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId: user.id })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete account from server.');
+      }
+
+      await supabase.auth.signOut();
+      setUser(null);
+      setLikedJobs([]);
+      setAppliedJobs([]);
+
+      // Clear local AsyncStorage session keys
+      try {
+        const allKeys = await AsyncStorage.getAllKeys();
+        const keysToRemove = allKeys.filter(
+          (key) =>
+            key === SESSION_KEY ||
+            key.startsWith('sb-') ||
+            key.includes('supabase')
+        );
+        if (keysToRemove.length > 0) {
+          await AsyncStorage.multiRemove(keysToRemove);
+        }
+      } catch (storageErr) {
+        console.warn('Failed to clear AsyncStorage keys on account deletion:', storageErr);
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error('Delete account error:', err);
+      return { success: false, message: err.message || 'Failed to delete account. Please try again.' };
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   // ─── Post Job ──────────────────────────────────────────────────────────────
   const postJob = async (jobData) => {
     if (isMockMode) {
@@ -2646,6 +2722,7 @@ export const AuthProvider = ({ children }) => {
         signup,
         verifyEmailOtp,
         logout,
+        deleteAccount,
         updateProfile,
         postJob,
         deleteJob,
