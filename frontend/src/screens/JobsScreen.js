@@ -437,7 +437,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
   const employerEmail = job.posterProfile?.email || (isOwnJob ? user?.email : '') || 'employer@joblink.com';
   const employerName = job.posterProfile?.name || (isOwnJob ? user?.name : '') || 'Anonymous Employer';
 
-  const handleWhatsApp = async (phone, name, jobTitle, isBusiness = false) => {
+  const handleWhatsApp = (phone, name, jobTitle) => {
     if (applyToJob) {
       applyToJob(job.id);
     }
@@ -450,32 +450,17 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
     }
 
     const message = `Hi ${name || 'Employer'},\n\nI am applying for the "${jobTitle}" position on BKJ. Here are my application details:\n\n👤 Name: ${applicantName}\n📧 Email: ${applicantEmail}\n📞 Phone: ${applicantPhone}\n\nPlease let me know if we can discuss this opportunity further. Thank you!`;
+    const webUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
 
-    if (Platform.OS === 'android') {
-      const webUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
-      // whatsapp:// triggers system chooser if both apps installed,
-      // or opens directly if only one app — works on ALL Android phones
-      const whatsappUrl = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
-      Linking.openURL(whatsappUrl).catch(() => {
-        Linking.openURL(webUrl);
+    // Standard approach: whatsapp:// works for both regular & business
+    // If both apps installed, Android shows chooser — user picks which one
+    Linking.openURL(whatsappUrl).catch(() => {
+      // WhatsApp not installed — open in browser
+      Linking.openURL(webUrl).catch(() => {
+        Alert.alert('WhatsApp not found', `Please contact the employer at: ${phone}`);
       });
-    } else {
-      const schemes = isBusiness ? ['whatsapp-business', 'whatsappw4b'] : ['whatsapp'];
-      const attemptLaunch = (index) => {
-        if (index >= schemes.length) {
-          const webUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
-          Linking.openURL(webUrl).catch(() => {
-            Alert.alert('Error', `Could not open ${isBusiness ? 'WhatsApp Business' : 'WhatsApp'}. Please check if it is installed.`);
-          });
-          return;
-        }
-        const url = `${schemes[index]}://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
-        Linking.openURL(url).catch(() => {
-          attemptLaunch(index + 1);
-        });
-      };
-      attemptLaunch(0);
-    }
+    });
   };
 
   const handleEmail = (email, name, jobTitle) => {
@@ -659,14 +644,6 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
           <Text style={styles.upworkApplyBtnText}>{t('jobs.apply_now')}</Text>
           <Ionicons name="paper-plane-outline" size={16} color="#1A1A1A" style={{ marginLeft: 6 }} />
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.upworkApplyBtn, { flex: 0, paddingHorizontal: 16, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#EF4444' }]}
-          activeOpacity={0.85}
-          onPress={() => job.onReport && job.onReport(job)}
-        >
-          <Ionicons name="warning-outline" size={20} color="#EF4444" />
-        </TouchableOpacity>
       </View>
 
       {/* Direct Job Application Modal */}
@@ -734,36 +711,20 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
                 </View>
               </View>
 
-              {/* Premium Deep Linking Buttons */}
+              {/* Action Buttons */}
               <View style={styles.modalActionsContainer}>
-                {/* Single button → in-app Alert chooser (works on ALL phones) */}
+                {/* Single WhatsApp Button — professional standard approach */}
                 <TouchableOpacity
                   style={styles.whatsappActionBtn}
                   activeOpacity={0.88}
-                  onPress={() => {
-                    Alert.alert(
-                      i18n.language === 'en' ? 'Apply via WhatsApp' : 'WhatsApp se Apply Karein',
-                      i18n.language === 'en' ? 'Which WhatsApp do you want to open?' : 'Konsa WhatsApp open karna chahte hain?',
-                      [
-                        {
-                          text: '💼 WhatsApp Business',
-                          onPress: () => handleWhatsApp(employerPhone, employerName, job.title, true),
-                        },
-                        {
-                          text: '✅ Regular WhatsApp',
-                          onPress: () => handleWhatsApp(employerPhone, employerName, job.title, false),
-                        },
-                        { text: i18n.language === 'en' ? 'Cancel' : 'Cancel', style: 'cancel' },
-                      ]
-                    );
-                  }}
+                  onPress={() => handleWhatsApp(employerPhone, employerName, job.title)}
                 >
                   <Ionicons name="logo-whatsapp" size={24} color="#FFFFFF" />
                   <View style={{ marginLeft: 12, flex: 1 }}>
-                    <Text style={styles.whatsappBtnTitle}>{i18n.language === 'en' ? 'Apply on WhatsApp' : 'Apply on WhatsApp'}</Text>
-                    <Text style={styles.whatsappBtnSub}>{i18n.language === 'en' ? 'Choose WhatsApp or Business' : 'WhatsApp ya Business — choose karein'}</Text>
+                    <Text style={styles.whatsappBtnTitle}>💬 {i18n.language === 'en' ? 'Apply via WhatsApp' : 'واٹس ایپ سے اپلائی کریں'}</Text>
+                    <Text style={styles.whatsappBtnSub}>{i18n.language === 'en' ? 'Message the employer directly' : 'آجر کو براہ راست پیغام بھیجیں'}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ opacity: 0.8 }} />
+                  <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={{ opacity: 0.8 }} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1048,6 +1009,15 @@ export default function JobsScreen({ navigation, route }) {
             }
           }
         ]
+      );
+      return;
+    }
+    const isClosed = job.title && job.title.startsWith('[CLOSED]');
+    if (isClosed) {
+      Alert.alert(
+        t('jobs.hiring_closed_title') || 'Hiring Closed',
+        t('jobs.hiring_closed_msg') || 'This job is already closed or the recruiter has hired someone.',
+        [{ text: 'OK' }]
       );
       return;
     }

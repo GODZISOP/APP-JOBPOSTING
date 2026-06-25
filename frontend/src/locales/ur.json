@@ -97,7 +97,11 @@
     "hot": "ہاٹ 🔥",
     "job_details": "نوکری کی تفصیلات",
     "apply_directly": "براہ راست اپلائی کریں",
-    "applicants": "امیدوار"
+    "applicants": "امیدوار",
+    "pending": "التوا میں ⏳",
+    "rejected": "مسترد شدہ ❌",
+    "hiring_closed_title": "بھرتیاں بند ہیں",
+    "hiring_closed_msg": "یہ نوکری پہلے ہی بند ہو چکی ہے یا کمپنی نے امیدوار کا انتخاب کر لیا ہے۔"
   },
   "post_job": {
     "post_job_title": "نوکری پوسٹ کریں",

@@ -2499,6 +2499,15 @@ export default function ProfileScreen() {
                       key={job.id}
                       job={job}
                       onPress={(j) => {
+                        const isClosed = j.title && j.title.startsWith('[CLOSED]');
+                        if (isClosed) {
+                          Alert.alert(
+                            t('jobs.hiring_closed_title') || 'Hiring Closed',
+                            t('jobs.hiring_closed_msg') || 'This job is already closed or the recruiter has hired someone.',
+                            [{ text: 'OK' }]
+                          );
+                          return;
+                        }
                         setShowAppliedModal(false);
                         setTimeout(() => setSelectedJob(j), 100);
                       }}
@@ -2544,6 +2553,15 @@ export default function ProfileScreen() {
                       key={job.id}
                       job={job}
                       onPress={(j) => {
+                        const isClosed = j.title && j.title.startsWith('[CLOSED]');
+                        if (isClosed) {
+                          Alert.alert(
+                            t('jobs.hiring_closed_title') || 'Hiring Closed',
+                            t('jobs.hiring_closed_msg') || 'This job is already closed or the recruiter has hired someone.',
+                            [{ text: 'OK' }]
+                          );
+                          return;
+                        }
                         setShowBookmarkedModal(false);
                         setTimeout(() => setSelectedJob(j), 100);
                       }}

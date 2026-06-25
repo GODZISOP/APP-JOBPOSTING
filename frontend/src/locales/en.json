@@ -97,7 +97,11 @@
     "hot": "Hot 🔥",
     "job_details": "Job Details",
     "apply_directly": "Apply Directly",
-    "applicants": "applicants"
+    "applicants": "applicants",
+    "pending": "Pending ⏳",
+    "rejected": "Rejected ❌",
+    "hiring_closed_title": "Hiring Closed",
+    "hiring_closed_msg": "This job is already closed or the recruiter has hired someone."
   },
   "post_job": {
     "post_job_title": "Post a Job",
