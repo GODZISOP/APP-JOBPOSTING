@@ -1447,6 +1447,7 @@ export const AuthProvider = ({ children }) => {
               const updatedJob = {
                 ...existingJob,
                 ...payload.new,
+                company: existingJob.posterProfile?.name || payload.new.company || existingJob.company || 'Anonymous Employer',
                 is_top: payload.new.is_top,
                 top_updated_at: payload.new.top_updated_at ? new Date(payload.new.top_updated_at).getTime() : 0
               };

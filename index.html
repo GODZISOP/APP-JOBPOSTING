@@ -174,7 +174,8 @@
         
         // Define links
         const nativeAppUrl = `bkj://job/${jobId}`;
-        const expoGoUrl = `exp://192.168.100.22:8081/--/job/${jobId}`;
+        const expoHost = urlParams.get('expoHost') || '192.168.100.22:8081';
+        const expoGoUrl = `exp://${expoHost}/--/job/${jobId}`;
         
         // Bind button actions
         document.getElementById('btn-app').href = nativeAppUrl;

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   StatusBar, TextInput, FlatList, Dimensions, Alert,
-  Animated, Easing, Modal, Linking, RefreshControl, Share, Platform, BackHandler
+  Animated, Easing, Modal, Linking, RefreshControl, Share, Platform, BackHandler,
+  NativeModules
 } from 'react-native';
 import { Image } from 'expo-image';
 
@@ -412,9 +413,23 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
       // For now, using a placeholder bkj-jobs.vercel.app. You can change this to your Vercel domain once deployed!
       const redirectDomain = "https://app-jobposting.vercel.app";
 
+      // Dynamically get the dev server host if in development
+      let devIpHost = "";
+      const scriptURL = NativeModules.SourceCode?.scriptURL || "";
+      if (scriptURL.startsWith("http")) {
+        const match = scriptURL.match(/^https?:\/\/([^/]+)/);
+        if (match) {
+          devIpHost = match[1];
+        }
+      }
+
       // If testing in Expo Go, append ?dev=true so the landing page redirects to the local Expo bundle
-      const isTestingOnExpo = true;
-      const shareUrl = `${redirectDomain}/job/${job.id}${isTestingOnExpo ? '?dev=true' : ''}`;
+      const isTestingOnExpo = __DEV__;
+      const shareUrl = `${redirectDomain}/job/${job.id}${
+        isTestingOnExpo
+          ? `?dev=true${devIpHost ? `&expoHost=${encodeURIComponent(devIpHost)}` : ''}`
+          : ''
+      }`;
 
       const message = `Check out this job on BKJ: "${job.title}" at "${job.company}"!\nSalary: ${job.salary}\nLocation: ${job.location}\n\nApply now: ${shareUrl}`;
 
