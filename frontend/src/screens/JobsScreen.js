@@ -415,21 +415,23 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
 
       // Dynamically get the dev server host if in development
       let devIpHost = "";
-      const scriptURL = NativeModules.SourceCode?.scriptURL || "";
-      if (scriptURL.startsWith("http")) {
-        const match = scriptURL.match(/^https?:\/\/([^/]+)/);
+      try {
+        const expoUrl = ExpoLinking.createURL('/');
+        // Extract host (e.g. "192.168.100.22:8081") from the generated Expo URL
+        const match = expoUrl.match(/^(?:exp|https?):\/\/([^/]+)/);
         if (match) {
           devIpHost = match[1];
         }
+      } catch (err) {
+        console.warn("Failed to resolve expo Host via ExpoLinking:", err);
       }
 
       // If testing in Expo Go, append ?dev=true so the landing page redirects to the local Expo bundle
       const isTestingOnExpo = __DEV__;
-      const shareUrl = `${redirectDomain}/job/${job.id}${
-        isTestingOnExpo
+      const shareUrl = `${redirectDomain}/job/${job.id}${isTestingOnExpo
           ? `?dev=true${devIpHost ? `&expoHost=${encodeURIComponent(devIpHost)}` : ''}`
           : ''
-      }`;
+        }`;
 
       const message = `Check out this job on BKJ: "${job.title}" at "${job.company}"!\nSalary: ${job.salary}\nLocation: ${job.location}\n\nApply now: ${shareUrl}`;
 
@@ -1146,29 +1148,131 @@ export default function JobsScreen({ navigation, route }) {
 
   const routeJobId = route?.params?.jobId;
   useEffect(() => {
-    if (routeJobId && jobs && jobs.length > 0) {
-      const job = jobs.find(j => String(j.id) === String(routeJobId));
-      if (job) {
-        if (!user) {
-          Alert.alert(
-            'Create Account First',
-            'You must create an account or sign in to view job details.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Sign In / Sign Up',
-                onPress: () => {
-                  setIsGuest(false);
+    let active = true;
+    if (routeJobId) {
+      const loadSharedJob = async () => {
+        // 1. Try to find in already loaded list
+        let foundJob = jobs && jobs.length > 0 ? jobs.find(j => String(j.id) === String(routeJobId)) : null;
+
+        if (foundJob) {
+          if (!active) return;
+          if (!user) {
+            Alert.alert(
+              'Create Account First',
+              'You must create an account or sign in to view job details.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Sign In / Sign Up',
+                  onPress: () => {
+                    setIsGuest(false);
+                  }
                 }
-              }
-            ]
-          );
-        } else {
-          setSelectedJob(job);
+              ]
+            );
+          } else {
+            setSelectedJob(foundJob);
+          }
+          navigation.setParams({ jobId: undefined });
+          return;
         }
-        navigation.setParams({ jobId: undefined });
-      }
+
+        // 2. If not found in local list (still loading or expired or not in home feed), fetch directly from database
+        try {
+          const { data: jobData, error } = await supabase
+            .from('jobs')
+            .select(`
+              *,
+              profiles:posted_by (
+                id,
+                name,
+                email,
+                title,
+                location,
+                phone,
+                avatar_url
+              )
+            `)
+            .eq('id', routeJobId)
+            .single();
+
+          if (error) throw error;
+          if (jobData && active) {
+            const p = jobData.profiles || {};
+            let dbLocation = p.location || jobData.location || 'Pakistan';
+            let employerPhone = p.phone || '';
+            let employerName = p.name || 'Anonymous Employer';
+            let employerEmail = p.email || 'employer@joblink.com';
+            let employerTitle = p.title || 'HR Manager';
+
+            if (dbLocation && dbLocation.includes('|phone:')) {
+              const parts = dbLocation.split('|phone:');
+              dbLocation = parts[0] || 'Pakistan';
+              employerPhone = parts[1] || '';
+            }
+
+            const getTransformedAvatarUrl = (avatarUrl) => {
+              if (!avatarUrl) return null;
+              if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
+              const { data } = supabase.storage.from('avatars').getPublicUrl(avatarUrl);
+              return data?.publicUrl || null;
+            };
+
+            const mappedJob = {
+              id: jobData.id,
+              title: jobData.title,
+              status: jobData.status,
+              is_top: jobData.is_top || false,
+              company: employerName || jobData.company || 'Anonymous Employer',
+              location: jobData.location,
+              salary: jobData.salary,
+              type: jobData.type,
+              category: jobData.category,
+              description: jobData.description,
+              requirements: jobData.requirements || [],
+              postedBy: jobData.posted_by,
+              posterProfile: jobData.posted_by ? {
+                id: p.id || jobData.posted_by,
+                name: employerName,
+                email: employerEmail,
+                title: employerTitle,
+                location: dbLocation,
+                phone: employerPhone,
+                avatar: getTransformedAvatarUrl(p.avatar_url || null),
+              } : null,
+              likes: jobData.likes || 0,
+              createdAtTimestamp: jobData.created_at ? new Date(jobData.created_at).getTime() : Date.now(),
+            };
+
+            if (!user) {
+              Alert.alert(
+                'Create Account First',
+                'You must create an account or sign in to view job details.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Sign In / Sign Up',
+                    onPress: () => {
+                      setIsGuest(false);
+                    }
+                  }
+                ]
+              );
+            } else {
+              setSelectedJob(mappedJob);
+            }
+            navigation.setParams({ jobId: undefined });
+          }
+        } catch (err) {
+          console.warn('Failed to fetch shared job details:', err);
+        }
+      };
+
+      loadSharedJob();
     }
+    return () => {
+      active = false;
+    };
   }, [routeJobId, jobs, user]);
 
   // Professional Auto-refresh polling loop (fetches latest database postings every 30 seconds)
@@ -1314,7 +1418,7 @@ export default function JobsScreen({ navigation, route }) {
           others.push(j);
         }
       });
-      
+
       const sortByNewest = (a, b) => (b.createdAtTimestamp || 0) - (a.createdAtTimestamp || 0);
       topJobs.sort((a, b) => {
         const timeA = a.top_updated_at || a.createdAtTimestamp || 0;
