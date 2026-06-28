@@ -656,7 +656,28 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
         <TouchableOpacity
           style={[styles.upworkApplyBtn, { flex: 1 }]}
           activeOpacity={0.85}
-          onPress={() => setShowApplyModal(true)}
+          onPress={() => {
+            Alert.alert(
+              "Share Your Contact Information?",
+              "Your email, phone number, name, profile picture, and job title will be shared with this employer.\n\nThey will contact you via WhatsApp, Email, or Phone Call.",
+              [
+                { text: "Cancel", onPress: () => {}, style: "cancel" },
+                { 
+                  text: "Yes, Apply", 
+                  onPress: () => {
+                    if (applyToJob) {
+                      applyToJob(job.id);
+                    }
+                    Alert.alert(
+                      'Application Submitted! 🎉',
+                      `Your BKJ profile has been successfully shared with ${job.company} for the "${job.title}" position. Good luck!`,
+                      [{ text: 'Perfect', onPress: onBack }]
+                    );
+                  } 
+                }
+              ]
+            );
+          }}
         >
           <Text style={styles.upworkApplyBtnText}>{t('jobs.apply_now')}</Text>
           <Ionicons name="paper-plane-outline" size={16} color="#1A1A1A" style={{ marginLeft: 6 }} />
@@ -761,14 +782,26 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
                   style={styles.appApplyBtn}
                   activeOpacity={0.85}
                   onPress={() => {
-                    setShowApplyModal(false);
-                    if (applyToJob) {
-                      applyToJob(job.id);
-                    }
                     Alert.alert(
-                      'Application Submitted! 🎉',
-                      `Your BKJ profile has been successfully shared with ${job.company} for the "${job.title}" position. Good luck!`,
-                      [{ text: 'Perfect', onPress: onBack }]
+                      "Share Your Contact Information?",
+                      "Your email, phone number, name, profile picture, and job title will be shared with this employer.\n\nThey will contact you via WhatsApp, Email, or Phone Call.",
+                      [
+                        { text: "Cancel", onPress: () => {}, style: "cancel" },
+                        { 
+                          text: "Yes, Apply", 
+                          onPress: () => {
+                            setShowApplyModal(false);
+                            if (applyToJob) {
+                              applyToJob(job.id);
+                            }
+                            Alert.alert(
+                              'Application Submitted! 🎉',
+                              `Your BKJ profile has been successfully shared with ${job.company} for the "${job.title}" position. Good luck!`,
+                              [{ text: 'Perfect', onPress: onBack }]
+                            );
+                          } 
+                        }
+                      ]
                     );
                   }}
                 >
@@ -1399,23 +1432,15 @@ export default function JobsScreen({ navigation, route }) {
       };
 
       list.sort((a, b) => getRelevanceScore(b) - getRelevanceScore(a));
-    } else if (userCountry && selectedLocations.length === 0) {
-      // Geo-sort only if not searching
-      const countryLower = userCountry.toLowerCase();
+    } else {
+      // Sort all non-top jobs purely by date (latest first) to keep a clean chronological feed
       const topJobs = [];
-      const myJobs = [];
-      const local = [];
-      const others = [];
+      const regularJobs = [];
       list.forEach(j => {
-        const isOwn = user && (j.postedBy === user.id || j.posterProfile?.id === user.id);
         if (j.is_top) {
           topJobs.push(j);
-        } else if (isOwn) {
-          myJobs.push(j);
-        } else if (j.location && j.location.toLowerCase().includes(countryLower)) {
-          local.push(j);
         } else {
-          others.push(j);
+          regularJobs.push(j);
         }
       });
 
@@ -1425,11 +1450,9 @@ export default function JobsScreen({ navigation, route }) {
         const timeB = b.top_updated_at || b.createdAtTimestamp || 0;
         return timeB - timeA;
       });
-      myJobs.sort(sortByNewest);
-      local.sort(sortByNewest);
-      others.sort(sortByNewest);
+      regularJobs.sort(sortByNewest);
 
-      list = [...topJobs, ...myJobs, ...local, ...others];
+      list = [...topJobs, ...regularJobs];
     }
 
     return list;

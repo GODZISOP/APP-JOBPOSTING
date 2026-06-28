@@ -10,6 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 let styles;
 let theme;
 import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import SplashScreen from '../components/splashscreen';
 
@@ -34,7 +35,7 @@ export default function SignupScreen({ navigation }) {
   const [showOtpConfirm, setShowOtpConfirm] = useState(false);
   const [emailOtpCode, setEmailOtpCode] = useState('');
   const [userEnteredEmailOtp, setUserEnteredEmailOtp] = useState('');
-  const { signup, verifyEmailOtp, userCountry } = useAuth();
+  const { signup, verifyEmailOtp, userCountry, setJustSignedUp } = useAuth();
 
   const COUNTRY_DIAL_CODES = {
     'Pakistan': '+92',
@@ -473,6 +474,7 @@ export default function SignupScreen({ navigation }) {
       setLocalSplash(false);
       setLoading(false);
       if (result.success) {
+        setJustSignedUp(true);
         Alert.alert('Registration Successful 🎉', 'Your account has been verified and registered successfully.');
       } else {
         handleSignupError(result);
@@ -622,6 +624,20 @@ export default function SignupScreen({ navigation }) {
               </TouchableOpacity>
             ),
           })}
+
+          {/* Terms & Privacy Agreement Text */}
+          <View style={styles.agreementTextContainer}>
+            <Text style={styles.agreementText}>
+              By signing up, you agree to our{"\n"}
+              <Text style={styles.agreementLink} onPress={() => navigation.navigate('PrivacyPolicy')}>
+                Privacy Policy
+              </Text>
+              {" "}and{" "}
+              <Text style={styles.agreementLink} onPress={() => navigation.navigate('PrivacyPolicy')}>
+                Terms & Conditions
+              </Text>
+            </Text>
+          </View>
 
           {/* Submit */}
           <TouchableOpacity style={styles.signupBtn} onPress={handleSignup} activeOpacity={0.88} disabled={loading}>
@@ -802,6 +818,26 @@ function getStyles(theme) {
 
     errorRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 5, paddingLeft: 2 },
     errorText: { fontSize: 12, color: '#EF4444', fontWeight: '500', flex: 1 },
+
+    agreementTextContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 16,
+      marginBottom: 12,
+      paddingHorizontal: 8,
+    },
+    agreementText: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: theme.textSecondary,
+      textAlign: 'center',
+      lineHeight: 18,
+    },
+    agreementLink: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: theme.isDark ? theme.accentYellow : theme.accentGreen,
+    },
 
     signupBtn: {
       backgroundColor: theme.accentYellow,

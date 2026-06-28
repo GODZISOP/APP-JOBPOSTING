@@ -273,6 +273,7 @@ export const AuthProvider = ({ children }) => {
   const [signingUp, setSigningUp] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const [appliedJobs, setAppliedJobs] = useState([]);
+  const [justSignedUp, setJustSignedUp] = useState(false);
 
   // Prefetch avatar to disk cache for instant load
   useEffect(() => {
@@ -1462,10 +1463,6 @@ export const AuthProvider = ({ children }) => {
                   const timeB = b.top_updated_at || b.createdAtTimestamp || 0;
                   return timeB - timeA;
                 }
-                const isOwnA = user && (a.postedBy === user.id || a.posterProfile?.id === user.id);
-                const isOwnB = user && (b.postedBy === user.id || b.posterProfile?.id === user.id);
-                if (isOwnA && !isOwnB) return -1;
-                if (!isOwnA && isOwnB) return 1;
                 return (b.createdAtTimestamp || 0) - (a.createdAtTimestamp || 0);
               });
             });
@@ -1742,10 +1739,6 @@ export const AuthProvider = ({ children }) => {
           const timeB = b.top_updated_at || b.createdAtTimestamp || 0;
           return timeB - timeA;
         }
-        const isOwnA = user && (a.postedBy === user.id || a.posterProfile?.id === user.id);
-        const isOwnB = user && (b.postedBy === user.id || b.posterProfile?.id === user.id);
-        if (isOwnA && !isOwnB) return -1;
-        if (!isOwnA && isOwnB) return 1;
         return (b.createdAtTimestamp || 0) - (a.createdAtTimestamp || 0);
       });
       setJobs(sortedByTop);
@@ -2744,6 +2737,8 @@ export const AuthProvider = ({ children }) => {
         loggingIn,
         fetchRealNotifications,
         userCountry,
+        justSignedUp,
+        setJustSignedUp,
       }}
     >
       {children}
