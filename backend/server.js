@@ -184,7 +184,14 @@ app.post('/api/auth/send-otp', async (req, res, next) => {
     }
   }
 
-  const otpCode = String(Math.floor(10000000 + Math.random() * 90000000));
+  let otpCode = String(Math.floor(10000000 + Math.random() * 90000000));
+  
+  // Test Account Bypass for Google Play Reviewers
+  if (email && email.toLowerCase().trim() === 'reviewer@bkj.com') {
+    otpCode = '12345678';
+    console.log(`[TEST ACCOUNT BYPASS] Sending static OTP ${otpCode} to ${email}`);
+    return res.json({ success: true, otp: otpCode, delivered: true });
+  }
   try {
     
     // SMTP credentials from env
@@ -362,7 +369,14 @@ app.post('/api/auth/send-reset-otp', async (req, res, next) => {
     }
 
     // 2. Generate OTP
-    const otpCode = String(Math.floor(10000000 + Math.random() * 90000000));
+    let otpCode = String(Math.floor(10000000 + Math.random() * 90000000));
+    
+    // Test Account Bypass for Google Play Reviewers
+    if (email.toLowerCase().trim() === 'reviewer@bkj.com') {
+      otpCode = '12345678';
+      console.log(`[TEST ACCOUNT BYPASS] Sending static Reset OTP ${otpCode} to ${email}`);
+      return res.json({ success: true, otp: otpCode, delivered: true });
+    }
     
     // SMTP credentials from env
     const smtpHost = process.env.SMTP_HOST || 'smtp.resend.com';
