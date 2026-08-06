@@ -148,7 +148,7 @@ export default function SplashScreen({ message, subMessage, isSignOut, showLotti
 
     if (!isSignOut && !showLottie) {
       const t = setTimeout(() => {
-        Animated.timing(phase, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }).start();
+        Animated.timing(phase, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: false }).start();
       }, 3500);
       return () => clearTimeout(t);
     }
@@ -208,7 +208,7 @@ export default function SplashScreen({ message, subMessage, isSignOut, showLotti
         {(isSignOut || showLottie) && !type && (
           <LottieView source={require('../../../assets/signout.json')} style={styles.lottieMain} autoPlay loop />
         )}
-        
+
         {/* Suspended Icon */}
         {type === 'suspended' && (
           <View style={{ alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>

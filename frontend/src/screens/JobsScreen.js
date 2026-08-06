@@ -656,28 +656,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
         <TouchableOpacity
           style={[styles.upworkApplyBtn, { flex: 1 }]}
           activeOpacity={0.85}
-          onPress={() => {
-            Alert.alert(
-              "Share Your Contact Information?",
-              "Your email, phone number, name, profile picture, and job title will be shared with this employer.\n\nThey will contact you via WhatsApp, Email, or Phone Call.",
-              [
-                { text: "Cancel", onPress: () => {}, style: "cancel" },
-                { 
-                  text: "Yes, Apply", 
-                  onPress: () => {
-                    if (applyToJob) {
-                      applyToJob(job.id);
-                    }
-                    Alert.alert(
-                      'Application Submitted! 🎉',
-                      `Your BKJ profile has been successfully shared with ${job.company} for the "${job.title}" position. Good luck!`,
-                      [{ text: 'Perfect', onPress: onBack }]
-                    );
-                  } 
-                }
-              ]
-            );
-          }}
+          onPress={() => setShowApplyModal(true)}
         >
           <Text style={styles.upworkApplyBtnText}>{t('jobs.apply_now')}</Text>
           <Ionicons name="paper-plane-outline" size={16} color="#1A1A1A" style={{ marginLeft: 6 }} />
