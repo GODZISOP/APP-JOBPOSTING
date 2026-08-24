@@ -9,13 +9,12 @@ async function getStats() {
   try {
     const { count: usersCount } = await supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true });
 
-    // Total jobs (excluding deleted and expired older than 15 days)
+    // Total jobs (all-time, excluding deleted)
     const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
     const { count: jobsCount } = await supabaseAdmin
       .from('jobs')
       .select('*', { count: 'exact', head: true })
-      .neq('status', 'deleted')
-      .gte('created_at', fifteenDaysAgo);
+      .neq('status', 'deleted');
 
     let pendingJobsCount = 0;
     try {

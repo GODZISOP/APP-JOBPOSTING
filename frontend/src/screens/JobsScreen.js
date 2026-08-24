@@ -1445,7 +1445,8 @@ export default function JobsScreen({ navigation, route }) {
 
   // Redesigned dashboard header to match the user's reference image exactly
   const renderHeader = () => {
-    const totalJobsCount = jobs.filter(j => j.status === 'approved' || (!j.status && j.postedBy !== user?.id)).length;
+    const fifteenDaysAgo = Date.now() - 15 * 24 * 60 * 60 * 1000;
+    const totalJobsCount = jobs.filter(j => (j.status === 'approved' || (!j.status && j.postedBy !== user?.id)) && j.createdAtTimestamp >= fifteenDaysAgo).length;
     const likedJobsCount = jobs.filter(j => likedJobs?.includes(j.id)).length;
     const myJobsCount = jobs.filter(j => user && (j.postedBy === user.id || j.posterProfile?.id === user.id)).length;
     const isEmployer = user?.role === 'employer';
@@ -1817,13 +1818,14 @@ export default function JobsScreen({ navigation, route }) {
             contentContainerStyle={{ gap: 10, paddingRight: 20 }}
           >
             {CATEGORIES.map((cat) => {
+              const fifteenDaysAgo = Date.now() - 15 * 24 * 60 * 60 * 1000;
               let count = 0;
               if (cat === 'All') {
-                count = jobs.filter((j) => j.status === 'approved').length;
+                count = jobs.filter((j) => j.status === 'approved' && j.createdAtTimestamp >= fifteenDaysAgo).length;
               } else if (cat === 'Pending') {
-                count = jobs.filter((j) => j.status === 'pending' || !j.status).length;
+                count = jobs.filter((j) => (j.status === 'pending' || !j.status) && j.createdAtTimestamp >= fifteenDaysAgo).length;
               } else {
-                count = jobs.filter((j) => j.status === 'approved' && (j.category === cat || (j.category && j.category.toLowerCase().includes(cat.toLowerCase())))).length;
+                count = jobs.filter((j) => j.status === 'approved' && j.createdAtTimestamp >= fifteenDaysAgo && (j.category === cat || (j.category && j.category.toLowerCase().includes(cat.toLowerCase())))).length;
               }
               const isActive = activeCategory === cat;
 
