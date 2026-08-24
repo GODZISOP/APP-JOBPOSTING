@@ -9,16 +9,20 @@ async function getStats() {
   try {
     const { count: usersCount } = await supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true });
 
-    // Total jobs (all-time, excluding deleted)
+    // Total jobs (excluding deleted and expired older than 15 days)
     const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
     const { count: jobsCount } = await supabaseAdmin
       .from('jobs')
       .select('*', { count: 'exact', head: true })
-      .neq('status', 'deleted');
+      .neq('status', 'deleted')
+      .gte('created_at', fifteenDaysAgo);
 
     let pendingJobsCount = 0;
     try {
-      const { count, error } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      const { count, error } = await supabaseAdmin.from('jobs')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending')
+        .gte('created_at', fifteenDaysAgo);
       if (error) throw error;
       pendingJobsCount = count || 0;
     } catch (e) {
@@ -45,12 +49,12 @@ async function getStats() {
     let featuredJobsCount = 0;
     try {
       // First try to check if is_top exists
-      const { count: topCount, error: topError } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('is_top', true);
+      const { count: topCount, error: topError } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('is_top', true).gte('created_at', fifteenDaysAgo);
       if (!topError && topCount) featuredJobsCount += topCount;
 
       // Try to check if likes column exists
       try {
-        const { count: likesCount, error: likesError } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).gte('likes', 10);
+        const { count: likesCount, error: likesError } = await supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).gte('likes', 10).gte('created_at', fifteenDaysAgo);
         if (!likesError && likesCount) featuredJobsCount += likesCount;
       } catch (e) {
         // Ignored
