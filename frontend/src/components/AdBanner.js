@@ -19,6 +19,14 @@ try {
   console.log('Google Mobile Ads native module not found, using fallback.');
 }
 
+const BANNER_AD_UNIT_ID = __DEV__
+  ? (TestIds?.BANNER || 'ca-app-pub-3940256099942544/6300978111')
+  : Platform.select({
+      android: 'ca-app-pub-1159445809747607/1799962518',
+      ios: 'ca-app-pub-3940256099942544/2934735716',
+      default: 'ca-app-pub-1159445809747607/1799962518',
+    });
+
 export default function AdBanner() {
   const [adLoaded, setAdLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -39,7 +47,7 @@ export default function AdBanner() {
   return (
     <View style={styles.container}>
       <BannerAd
-        unitId={TestIds.BANNER} // Official Google Test Banner ID
+        unitId={BANNER_AD_UNIT_ID}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         requestOptions={{
           requestNonPersonalizedAdsOnly: true,

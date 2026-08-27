@@ -397,6 +397,26 @@ function JobCard({ job, onPress, isLiked, onLike, t, onReport }) {
     </TouchableOpacity>
   );
 }
+const renderTextWithLinks = (text) => {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <Text
+          key={index}
+          style={{ color: '#3B82F6', textDecorationLine: 'underline' }}
+          onPress={() => Linking.openURL(part).catch(err => console.error('Error opening link:', err))}
+        >
+          {part}
+        </Text>
+      );
+    }
+    return <Text key={index}>{part}</Text>;
+  });
+};
 
 function JobDetailView({ job, onBack, isLiked, onLike }) {
   const { theme } = useTheme();
@@ -586,7 +606,7 @@ function JobDetailView({ job, onBack, isLiked, onLike }) {
           style={styles.upworkDescText}
           numberOfLines={showMoreDesc ? undefined : 4}
         >
-          {cleanDescription}
+          {renderTextWithLinks(cleanDescription)}
         </Text>
         <TouchableOpacity
           onPress={() => setShowMoreDesc(!showMoreDesc)}

@@ -58,7 +58,7 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "androidAppId": "ca-app-pub-1159445809747607~3581771879",
           "iosAppId": "ca-app-pub-3940256099942544~1458002511"
         }
       ],
@@ -81,7 +81,7 @@
     "owner": "ksmsjjsis"
   },
   "react-native-google-mobile-ads": {
-    "android_app_id": "ca-app-pub-3940256099942544~3347511713",
+    "android_app_id": "ca-app-pub-1159445809747607~3581771879",
     "ios_app_id": "ca-app-pub-3940256099942544~1458002511"
   }
 }

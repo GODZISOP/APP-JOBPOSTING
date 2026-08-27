@@ -498,7 +498,7 @@ export default function PostJobScreen({ navigation }) {
 
     const containsInappropriateContent = (text) => {
       if (!text) return false;
-      const cleanText = text.toLowerCase().replace(/[^a-z0-9\s\u0600-\u06FF]/g, '');
+      const cleanText = text.toLowerCase().replace(/[^a-z0-9\s\u0600-\u06FF]/g, ' ');
       const normalized = cleanText
         .replace(/0/g, 'o')
         .replace(/1/g, 'i')
@@ -507,11 +507,11 @@ export default function PostJobScreen({ navigation }) {
         .replace(/5/g, 's')
         .replace(/8/g, 'b');
 
-      // Check original text (for exact matches of urdu/spaces) and normalized text
-      const textsToCheck = [text.toLowerCase(), normalized];
+      const textsToCheck = [cleanText, normalized];
 
       return inappropriateKeywords.some(keyword => {
-        return textsToCheck.some(t => t.includes(keyword.toLowerCase()));
+        const regex = new RegExp(`(?:^|\\s)${keyword}(?:$|\\s)`, 'i');
+        return textsToCheck.some(t => regex.test(t));
       });
     };
 
