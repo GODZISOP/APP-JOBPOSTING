@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   StatusBar, TextInput, FlatList, Dimensions, Alert,
   Animated, Easing, Modal, Linking, RefreshControl, Share, Platform, BackHandler,
-  NativeModules
+  NativeModules, KeyboardAvoidingView
 } from 'react-native';
 import { Image } from 'expo-image';
 
@@ -2162,33 +2162,81 @@ export default function JobsScreen({ navigation, route }) {
 
       {/* Report Modal */}
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={showReportModal}
+        statusBarTranslucent={true}
         onRequestClose={() => {
           setShowReportModal(false);
           setReportJobTarget(null);
         }}
       >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity style={{ ...StyleSheet.absoluteFillObject }} activeOpacity={1} onPress={() => { setShowReportModal(false); setReportJobTarget(null); }} />
-          <View style={[styles.modalContent, { backgroundColor: theme.bgCard || theme.cardBg }]}>
-            <View style={styles.modalHandle} />
-            <ScrollView contentContainerStyle={{ padding: 24 }} bounces={false}>
-              <Text style={styles.modalTitle}>Report Job</Text>
-              <Text style={styles.modalSubtitle}>Please tell us why you are reporting this job.</Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.reportModalOverlay}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => {
+              setShowReportModal(false);
+              setReportJobTarget(null);
+            }}
+          />
+          <View style={[styles.reportModalCard, { backgroundColor: theme.isDark ? '#1E1E1E' : '#FFFFFF' }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(239, 68, 68, 0.12)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="flag" size={18} color="#EF4444" />
+                </View>
+                <Text style={styles.modalTitle}>Report Job</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowReportModal(false);
+                  setReportJobTarget(null);
+                }}
+                style={styles.modalCloseBtn}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={20} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
 
-              <TextInput
-                style={[styles.searchInput, { height: 100, textAlignVertical: 'top', marginTop: 16, backgroundColor: theme.isDark ? '#2A2A2A' : '#F8FAFC', color: theme.textPrimary }]}
-                placeholder="Reason for reporting..."
-                placeholderTextColor={theme.textSecondary}
-                multiline
-                value={reportReason}
-                onChangeText={setReportReason}
-              />
+            <Text style={styles.modalSubtitle}>Please tell us why you are reporting this job.</Text>
+
+            <TextInput
+              style={[
+                styles.reportTextInput,
+                {
+                  backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
+                  color: theme.textPrimary,
+                  borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+                },
+              ]}
+              placeholder="Reason for reporting..."
+              placeholderTextColor={theme.textSecondary}
+              multiline
+              numberOfLines={4}
+              value={reportReason}
+              onChangeText={setReportReason}
+              textAlignVertical="top"
+            />
+
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+              <TouchableOpacity
+                style={styles.reportCancelBtn}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setShowReportModal(false);
+                  setReportJobTarget(null);
+                }}
+              >
+                <Text style={[styles.reportCancelBtnText, { color: theme.textPrimary }]}>Cancel</Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.appApplyBtn, { marginTop: 24, backgroundColor: '#EF4444' }]}
+                style={[styles.reportSubmitBtn, { backgroundColor: '#EF4444' }]}
                 activeOpacity={0.85}
                 onPress={async () => {
                   if (!reportReason.trim()) {
@@ -2201,7 +2249,7 @@ export default function JobsScreen({ navigation, route }) {
                       await supabase.from('job_reports').insert({
                         job_id: reportJobTarget.id,
                         reporter_id: user?.id,
-                        reason: reportReason.trim()
+                        reason: reportReason.trim(),
                       });
                     }
                   } catch (e) {
@@ -2214,12 +2262,12 @@ export default function JobsScreen({ navigation, route }) {
                   Alert.alert('Report Submitted', 'Thank you. Admin will review this job shortly.');
                 }}
               >
-                <Ionicons name="flag" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Ionicons name="flag" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
                 <Text style={[styles.appApplyBtnText, { color: '#FFFFFF' }]}>Submit Report</Text>
               </TouchableOpacity>
-            </ScrollView>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -3117,6 +3165,56 @@ function getStyles(theme) {
       shadowOpacity: 0.15,
       shadowRadius: 20,
       elevation: 10,
+    },
+    reportModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(15, 23, 42, 0.75)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    reportModalCard: {
+      width: '100%',
+      maxWidth: 420,
+      borderRadius: 24,
+      padding: 22,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.25,
+      shadowRadius: 20,
+      elevation: 12,
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0,0,0,0.06)',
+    },
+    reportTextInput: {
+      minHeight: 90,
+      maxHeight: 130,
+      textAlignVertical: 'top',
+      padding: 14,
+      borderRadius: 14,
+      borderWidth: 1,
+      fontSize: 14,
+      marginTop: 10,
+    },
+    reportCancelBtn: {
+      flex: 1,
+      height: 48,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : '#F1F5F9',
+    },
+    reportCancelBtnText: {
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    reportSubmitBtn: {
+      flex: 1.3,
+      height: 48,
+      borderRadius: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     modalHandle: {
       width: 48,

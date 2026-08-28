@@ -2342,7 +2342,7 @@ export default function ProfileScreen() {
       </Modal>
 
       {/* Unified All Jobs / Manage / Edit Modal */}
-      <Modal visible={showAllJobsModal} transparent animationType="slide" onRequestClose={() => {
+      <Modal visible={showAllJobsModal} transparent statusBarTranslucent animationType="slide" onRequestClose={() => {
         if (showEditJobModal) setShowEditJobModal(false);
         else if (showJobActionModal) setShowJobActionModal(false);
         else setShowAllJobsModal(false);
@@ -2357,7 +2357,7 @@ export default function ProfileScreen() {
                   <Ionicons name="close" size={20} color={theme.textPrimary} />
                 </TouchableOpacity>
               </View>
-              <ScrollView showsVerticalScrollIndicator={false} style={{ width: '100%' }}>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ width: '100%' }}>
 
                 <Text style={{ fontSize: 13, fontWeight: '700', color: theme.textSecondary, marginBottom: 6, marginLeft: 4 }}>Job Title</Text>
                 <TextInput style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)', borderRadius: 14, padding: 14, marginBottom: 16, fontSize: 14, color: theme.textPrimary, borderWidth: 1, borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)' }} value={editJobTitle} onChangeText={setEditJobTitle} placeholder="e.g. Senior React Developer" placeholderTextColor={theme.isDark ? 'rgba(255,255,255,0.3)' : '#94A3B8'} />

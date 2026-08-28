@@ -83,8 +83,10 @@ function MainTabs() {
   return (
     <Tab.Navigator
       safeAreaInsets={{ bottom: 0, top: 0, left: 0, right: 0 }}
+      sceneContainerStyle={{ backgroundColor: theme.bgPrimary }}
       screenOptions={{
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarShowLabel: true,
         tabBarStyle: [
           styles.tabBar,
@@ -776,14 +778,16 @@ function getStyles(theme) {
       position: 'absolute',
       left: 20,
       right: 20,
-      backgroundColor: theme.bgCard,
+      backgroundColor: theme.isDark ? '#1A1A1A' : '#FFFFFF',
       borderRadius: 28,
       borderTopWidth: 0,
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.12,
-      shadowRadius: 20,
-      elevation: Platform.OS === 'android' ? 4 : 12,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.1,
+      shadowRadius: 16,
+      elevation: 6,
     },
     tabLabel: {
       fontSize: FONTS.sizes.xs,

@@ -364,6 +364,7 @@ export default function PostJobScreen({ navigation }) {
   const { t } = useTranslation();
   const { postJob, user } = useAuth();
   const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef(null);
   const [title, setTitle] = useState('');
   const [company, setCompany] = useState('');
   const [jobTiming, setJobTiming] = useState('');
@@ -655,7 +656,11 @@ export default function PostJobScreen({ navigation }) {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+    >
       <StatusBar barStyle={theme.isDark ? "light-content" : "dark-content"} backgroundColor={theme.bgPrimary} />
 
       {theme.isDark && (
@@ -666,11 +671,26 @@ export default function PostJobScreen({ navigation }) {
           end={{ x: 0.5, y: 0.6 }}
         />
       )}
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top > 0 ? insets.top : 16 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={{ flex: 1, backgroundColor: theme.bgPrimary }}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top > 0 ? insets.top : 16 }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets={true}
+      >
 
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>{t('post_job.post_job_title')}</Text>
-          <Text style={styles.headerSub}>{t('post_job.post_job_subtitle')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={styles.headerIconCircle}>
+              <Ionicons name="briefcase" size={22} color={theme.isDark ? '#FF8C00' : '#15803D'} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headerTitle}>{t('post_job.post_job_title')}</Text>
+              <Text style={styles.headerSub}>{t('post_job.post_job_subtitle')}</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.card}>
@@ -896,6 +916,11 @@ export default function PostJobScreen({ navigation }) {
                 placeholderTextColor={theme.textLight}
                 value={customRequirement}
                 onChangeText={setCustomRequirement}
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollTo({ y: 550, animated: true });
+                  }, 150);
+                }}
               />
               <TouchableOpacity style={styles.skillAddIconButton} onPress={handleAddCustomRequirement}>
                 <Ionicons name="add" size={20} color={theme.textWhite} />
@@ -928,15 +953,24 @@ export default function PostJobScreen({ navigation }) {
                 {description.length} / 50 chars min
               </Text>
             </View>
-            <View style={[styles.inputWrapper, { height: 140, alignItems: 'flex-start', paddingVertical: 14 }]}>
+            <View style={[styles.descriptionWrapper, {
+              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAF9',
+              borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : '#EEF2F0'
+            }]}>
               <TextInput
-                style={[styles.input, { textAlignVertical: 'top' }]}
+                style={styles.descriptionInput}
                 placeholder="Describe details, roles, expectations, hours, timings and company goals..."
                 placeholderTextColor={theme.textLight}
                 value={description}
                 onChangeText={setDescription}
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 150);
+                }}
                 multiline
                 numberOfLines={5}
+                textAlignVertical="top"
               />
             </View>
           </View>
@@ -1023,11 +1057,26 @@ export default function PostJobScreen({ navigation }) {
 function getStyles(theme) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bgPrimary },
-    scroll: { paddingHorizontal: 20, paddingBottom: 150, paddingTop: 0 },
+    scroll: { paddingHorizontal: 20, paddingBottom: 130, paddingTop: 0 },
 
-    header: { paddingTop: 12, paddingBottom: 20, paddingHorizontal: 2 },
-    headerTitle: { fontSize: 24, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 },
-    headerSub: { fontSize: FONTS.sizes.xs + 1, color: theme.textSecondary, marginTop: 2 },
+    header: { paddingTop: 10, paddingBottom: 18, paddingHorizontal: 2 },
+    headerIconCircle: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: theme.isDark ? 'rgba(255, 140, 0, 0.15)' : '#FFFFFF',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.isDark ? 'rgba(255, 140, 0, 0.3)' : '#E2E8F0',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 6,
+      elevation: 1,
+    },
+    headerTitle: { fontSize: 22, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 },
+    headerSub: { fontSize: FONTS.sizes.xs, color: theme.textSecondary, marginTop: 2, fontWeight: '600' },
 
     card: {
       backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.03)' : theme.bgCard, borderRadius: 28, padding: 22,
@@ -1109,6 +1158,20 @@ function getStyles(theme) {
 
     descriptionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     charCounter: { fontSize: 11, fontWeight: '700' },
+    descriptionWrapper: {
+      borderRadius: 16,
+      borderWidth: 1.5,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      minHeight: 120,
+    },
+    descriptionInput: {
+      fontSize: FONTS.sizes.md,
+      color: theme.textPrimary,
+      fontWeight: '500',
+      textAlignVertical: 'top',
+      minHeight: 96,
+    },
 
     postBtn: {
       backgroundColor: theme.isDark ? '#FFFFFF' : '#111111',
